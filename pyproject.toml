@@ -1,0 +1,17 @@
+[project]
+name = "2osgestion"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "omegaoutsourcinginfo-glitch",email = "omegaoutsourcinginfo-glitch@users.noreply.github.com"}
+]
+requires-python = ">=3.14,<4.0"
+dependencies = [
+    "django (>=6.1.2,<7.0.0)",
+    "django-unfold (>=0.108.0,<0.109.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
