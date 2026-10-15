@@ -1,7 +1,14 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin, StackedInline
+from unfold.admin import ModelAdmin, StackedInline, TabularInline
 
-from .models import Project, TerrainMere
+from .models import (
+    Autorisation,
+    Intervenant,
+    ProgrammeTechnique,
+    Project,
+    StructureFinancement,
+    TerrainMere,
+)
 
 
 class TerrainMereInline(StackedInline):
@@ -9,24 +16,62 @@ class TerrainMereInline(StackedInline):
     can_delete = False
     extra = 1
     max_num = 1
+    tab = True
+
+
+class AutorisationInline(StackedInline):
+    model = Autorisation
+    fields = ("type_permis", "numero_autorisation", "date_delivrance")
+    can_delete = False
+    extra = 1
+    max_num = 1
+    tab = True
+
+
+class IntervenantInline(TabularInline):
+    model = Project.intervenants.through
+    autocomplete_fields = ("intervenant",)
+    extra = 0
+    tab = True
+    verbose_name = "Intervenant"
+    verbose_name_plural = "Intervenants"
+
+
+class ProgrammeTechniqueInline(StackedInline):
+    model = ProgrammeTechnique
+    can_delete = False
+    extra = 1
+    max_num = 1
+    tab = True
+    show_title = False
+    fields = (
+        "voirie_vrd_pdf",
+        "telecom_fibre_pdf",
+        "amenagement_paysager_pdf",
+        "fiche_lot_parcelle_pdf",
+    )
 
 
 @admin.register(Project)
 class ProjectAdmin(ModelAdmin):
-    list_display = ("code", "titre", "perfecture", "commune", "created_at")
+    list_display = ("code", "titre", "prefecture", "commune", "statut_actuel", "created_at")
     list_display_links = ("code", "titre")
-    search_fields = ("code", "titre", "perfecture", "commune")
-    list_filter = ("perfecture", "commune", "created_at")
+    search_fields = ("code", "titre", "prefecture", "commune")
+    list_filter = ("statut_actuel", "prefecture", "commune", "created_at")
     ordering = ("-code",)
     readonly_fields = ("code_display", "created_at", "updated_at")
-    inlines = (TerrainMereInline,)
+    inlines = (
+        TerrainMereInline,
+        AutorisationInline,
+        IntervenantInline,
+        ProgrammeTechniqueInline,
+    )
 
     fieldsets = (
-        ("Identification", {"fields": ("code_display", "titre")}),
-        ("Localisation", {"fields": ("perfecture", "commune", "situation_localisation", "voie_access")}),
-        ("Description", {"fields": ("consistane_gloable", "emprise_project")}),
-        ("Commentaire", {"fields": ("commentaire",)}),
-        ("Historique", {"fields": ("created_at", "updated_at")}),
+        ("Identification", {"classes": ["tab"], "fields": ("code_display", "titre", "statut_actuel")}),
+        ("Localisation", {"classes": ["tab"], "fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
+        ("Description", {"classes": ["tab"], "fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
+        ("Historique", {"classes": ["tab"], "fields": ("created_at", "updated_at")}),
     )
 
     def get_fieldsets(self, request, obj=None):
@@ -42,21 +87,40 @@ class ProjectAdmin(ModelAdmin):
         return Project.next_code()
 
 
-@admin.register(TerrainMere)
-class TerrainMereAdmin(ModelAdmin):
-    list_display = ("project_code", "project_titre", "titre_foncier_mere", "suffixe", "superficie_totale", "created_at")
-    list_display_links = ("project_code", "titre_foncier_mere")
+@admin.register(Intervenant)
+class IntervenantAdmin(ModelAdmin):
+    list_display = ("nom_ou_cabinet", "type_intervenant", "contact", "qualite")
+    search_fields = ("nom_ou_cabinet", "contact")
+    list_filter = ("type_intervenant",)
+    fields = ("type_intervenant", "nom_ou_cabinet", "contact", "qualite")
+
+    def has_module_permission(self, request):
+        # Hidden from the sidebar; reached from the project page's Intervenants tab.
+        return False
+
+
+@admin.register(StructureFinancement)
+class StructureFinancementAdmin(ModelAdmin):
+    list_display = (
+        "project_code",
+        "project_titre",
+        "fonds_propres_fp",
+        "credit_moyen_terme_cmt",
+        "investissement_total",
+        "document_pdf",
+    )
+    list_display_links = ("project_code", "project_titre")
     list_select_related = ("project",)
-    search_fields = ("project__code", "project__titre", "titre_foncier_mere", "suffixe")
-    list_filter = ("project__perfecture", "project__commune", "created_at")
+    search_fields = ("project__code", "project__titre")
     autocomplete_fields = ("project",)
     ordering = ("-project__code",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("investissement_total", "created_at", "updated_at")
 
     fieldsets = (
         ("Projet", {"fields": ("project",)}),
-        ("Terrain", {"fields": ("titre_foncier_mere", "suffixe", "superficie_totale")}),
-        ("Commentaire", {"fields": ("commentaire",)}),
+        ("Sources de financement", {
+            "fields": ("fonds_propres_fp", "credit_moyen_terme_cmt", "investissement_total", "document_pdf"),
+        }),
         ("Historique", {"fields": ("created_at", "updated_at")}),
     )
 

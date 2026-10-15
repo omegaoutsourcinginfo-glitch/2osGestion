@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+from django.urls import reverse_lazy
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -117,6 +119,52 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# Admin sidebar (Unfold)
+UNFOLD = {
+    "SIDEBAR": {
+        "navigation": [
+            {
+                "title": "Authentification et autorisation",
+                "items": [
+                    {
+                        "title": "Groupes",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "permission": lambda request: request.user.has_perm("auth.view_group"),
+                    },
+                    {
+                        "title": "Utilisateurs",
+                        "icon": "person",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
+                        "permission": lambda request: request.user.has_perm("auth.view_user"),
+                    },
+                ],
+            },
+            {
+                "title": "Projets",
+                "items": [
+                    {
+                        "title": "Projets",
+                        "icon": "folder",
+                        "link": reverse_lazy("admin:projects_project_changelist"),
+                        "permission": lambda request: request.user.has_perm("projects.view_project"),
+                    },
+                    {
+                        "title": "Planning financier & structure de financement",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:projects_structurefinancement_changelist"),
+                        "permission": lambda request: request.user.has_perm("projects.view_structurefinancement"),
+                    },
+                ],
+            },
+        ],
+    },
+}
+
+# Uploaded files (PDF documents)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Email

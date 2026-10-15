@@ -1,0 +1,11 @@
+---
+description: Always reply to the user in Arabic in this project
+alwaysApply: true
+---
+
+# Language of replies
+
+- Always write replies to the user in Arabic, whatever language the question is in.
+- Keep code, file names, field names, commands and Django/French terms as they are
+  (e.g. `models.py`, `makemigrations`, "Permis d'aménager"), inside backticks or quotes.
+- Code comments and admin labels stay in the existing language of the code (English comments, French labels).
