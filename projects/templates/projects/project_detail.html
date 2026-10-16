@@ -1,0 +1,142 @@
+{% extends "projects/base.html" %}
+
+{% block title %}{{ project.code }} — {{ project.titre }}{% endblock %}
+
+{% block content %}
+<div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <div class="mb-2 flex flex-wrap items-center gap-2">
+      <span class="rounded-md bg-base-100 px-2.5 py-1 font-mono text-xs font-bold text-base-700">{{ project.code }}</span>
+      <span class="rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide
+        {% if project.statut_actuel == 'EXECUTION' %}bg-warn-soft text-warn{% else %}bg-ok-soft text-ok{% endif %}">
+        {{ project.get_statut_actuel_display }}
+      </span>
+    </div>
+    <h1 class="text-2xl font-bold tracking-tight text-base-900">{{ project.titre }}</h1>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ edit_url }}" class="inline-flex rounded-lg bg-base-900 px-4 py-2 text-sm font-bold text-white no-underline hover:bg-base-700">Modifier</a>
+    <a href="{% url 'admin:projects_project_changelist' %}" class="inline-flex rounded-lg border border-base-200 bg-white px-4 py-2 text-sm font-bold text-base-700 no-underline hover:bg-base-50">Retour</a>
+  </div>
+</div>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Identification</h2></div>
+  <dl class="grid sm:grid-cols-2">
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Code</dt><dd class="mt-1 text-sm font-semibold">{{ project.code }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Statut</dt><dd class="mt-1 text-sm font-semibold">{{ project.get_statut_actuel_display }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-b-0 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Créé le</dt><dd class="mt-1 text-sm font-semibold">{{ project.created_at|date:"d/m/Y" }}</dd></div>
+    <div class="px-5 py-3.5"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Mis à jour</dt><dd class="mt-1 text-sm font-semibold">{{ project.updated_at|date:"d/m/Y" }}</dd></div>
+  </dl>
+</section>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Localisation</h2></div>
+  <dl class="grid sm:grid-cols-2">
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Préfecture / Province</dt><dd class="mt-1 whitespace-pre-wrap text-sm font-semibold">{{ project.prefecture }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Commune</dt><dd class="mt-1 whitespace-pre-wrap text-sm font-semibold">{{ project.commune }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5 sm:col-span-2"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Situation & localisation</dt><dd class="mt-1 whitespace-pre-wrap text-sm text-base-700">{{ project.situation_localisation }}</dd></div>
+    <div class="px-5 py-3.5 sm:col-span-2"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Accès au site</dt><dd class="mt-1 whitespace-pre-wrap text-sm text-base-700">{{ project.voie_acces }}</dd></div>
+  </dl>
+</section>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Description</h2></div>
+  <dl class="grid sm:grid-cols-2">
+    <div class="border-b border-base-100 px-5 py-3.5 sm:col-span-2"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Consistance du projet</dt><dd class="mt-1 whitespace-pre-wrap text-sm text-base-700">{{ project.consistance_globale }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-b-0 sm:border-r">
+      <dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Nombre de lots</dt>
+      <dd class="mt-1 text-sm font-semibold {% if not project.nombre_lots %}italic text-base-300{% endif %}">
+        {% if project.nombre_lots %}{{ project.nombre_lots }}{% else %}Non renseigné{% endif %}
+      </dd>
+    </div>
+    <div class="px-5 py-3.5">
+      <dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Servitudes d'urbanisme</dt>
+      <dd class="mt-1 whitespace-pre-wrap text-sm {% if not project.emprise_servitudes %}italic text-base-300{% else %}text-base-700{% endif %}">
+        {{ project.emprise_servitudes|default:"Aucune" }}
+      </dd>
+    </div>
+  </dl>
+</section>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Terrain mère</h2></div>
+  {% if terrain %}
+  <dl class="grid sm:grid-cols-3">
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-b-0 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Titre foncier</dt><dd class="mt-1 text-sm font-semibold">{{ terrain.titre_foncier_mere }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-b-0 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Suffixe</dt><dd class="mt-1 text-sm font-semibold">{{ terrain.suffixe|default:"—" }}</dd></div>
+    <div class="px-5 py-3.5"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Superficie</dt><dd class="mt-1 text-sm font-semibold">{{ terrain.superficie_affichee }}</dd></div>
+  </dl>
+  {% else %}
+  <p class="px-5 py-4 text-sm italic text-base-300">Non renseigné</p>
+  {% endif %}
+</section>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Autorisation</h2></div>
+  {% if autorisation %}
+  <dl class="grid sm:grid-cols-3">
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-b-0 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Type</dt><dd class="mt-1 text-sm font-semibold">{{ autorisation.get_type_permis_display }}</dd></div>
+    <div class="border-b border-base-100 px-5 py-3.5 sm:border-b-0 sm:border-r"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Numéro</dt><dd class="mt-1 text-sm font-semibold">{{ autorisation.numero_autorisation }}</dd></div>
+    <div class="px-5 py-3.5"><dt class="text-[11px] font-bold uppercase tracking-wide text-base-500">Date</dt><dd class="mt-1 text-sm font-semibold">{% if autorisation.date_delivrance %}{{ autorisation.date_delivrance|date:"d/m/Y" }}{% else %}—{% endif %}</dd></div>
+  </dl>
+  {% else %}
+  <p class="px-5 py-4 text-sm italic text-base-300">Non renseigné</p>
+  {% endif %}
+</section>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Intervenants</h2></div>
+  {% if project.intervenants.all %}
+  <ul class="divide-y divide-base-100">
+    {% for person in project.intervenants.all %}
+    <li class="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:gap-6">
+      <span class="w-44 shrink-0 text-[11px] font-bold uppercase tracking-wide text-base-500">{{ person.get_type_intervenant_display }}</span>
+      <div>
+        <p class="text-sm font-semibold">{{ person.nom_ou_cabinet }}</p>
+        {% if person.contact %}<p class="text-sm text-base-500">{{ person.contact }}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="px-5 py-4 text-sm italic text-base-300">Aucun intervenant</p>
+  {% endif %}
+</section>
+
+<section class="mb-4 overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Documents</h2></div>
+  {% if documents %}
+  <ul class="divide-y divide-base-100">
+    {% for doc in documents %}
+    <li>
+      <a href="{{ doc.url }}" target="_blank" rel="noopener"
+         class="flex items-center justify-between gap-3 px-5 py-3.5 text-sm font-semibold text-base-900 no-underline hover:bg-base-50">
+        <span>{{ doc.label }} <span class="font-normal text-base-500">({{ doc.group }})</span></span>
+        <span class="text-[11px] font-bold uppercase tracking-wide text-base-500">Ouvrir</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="px-5 py-4 text-sm italic text-base-300">Aucun document</p>
+  {% endif %}
+</section>
+
+<section class="overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  <div class="border-b border-base-100 px-5 py-3"><h2 class="text-sm font-bold text-base-900">Financement</h2></div>
+  {% if financement %}
+  <div class="px-5 py-4">
+    <p class="text-[11px] font-bold uppercase tracking-wide text-base-500">Total investissement</p>
+    <p class="mt-1 text-2xl font-bold text-base-900">{{ financement.investissement_total }} <span class="text-base text-base-500">DH</span></p>
+    <p class="mt-2 text-sm text-base-500">
+      FP {{ financement.fonds_propres_fp }} DH ({{ fp_pct }}%)
+      ·
+      CMT {{ financement.credit_moyen_terme_cmt }} DH ({{ cmt_pct }}%)
+    </p>
+  </div>
+  {% else %}
+  <p class="px-5 py-4 text-sm italic text-base-300">Non renseigné</p>
+  {% endif %}
+</section>
+{% endblock %}

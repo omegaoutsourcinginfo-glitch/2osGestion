@@ -27,7 +27,6 @@ class Intervenant(TimeStampedModel):
     )
     nom_ou_cabinet = models.CharField(max_length=255, verbose_name="Nom ou cabinet")
     contact = models.CharField(max_length=255, blank=True, verbose_name="Contact")
-    qualite = models.CharField(max_length=150, blank=True, verbose_name="Qualité")
 
     class Meta:
         verbose_name = "Intervenant"
@@ -72,6 +71,11 @@ class Project(TimeStampedModel):
     def __str__(self):
         return f"{self.code} - {self.titre}"
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return f"{reverse('admin:index')}?projet={self.code}"
+
     @classmethod
     def next_code(cls):
         yy = timezone.now().strftime("%y")
@@ -106,6 +110,10 @@ class Project(TimeStampedModel):
 
 
 class TerrainMere(TimeStampedModel):
+    class UniteSuperficie(models.TextChoices):
+        M2 = "M2", "m²"
+        HA = "HA", "ha"
+
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
@@ -117,7 +125,13 @@ class TerrainMere(TimeStampedModel):
     superficie_totale = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        verbose_name="Superficie totale (m² / ha)"
+        verbose_name="Superficie totale",
+    )
+    superficie_unite = models.CharField(
+        max_length=2,
+        choices=UniteSuperficie.choices,
+        default=UniteSuperficie.M2,
+        verbose_name="Unité",
     )
 
     class Meta:
@@ -126,6 +140,10 @@ class TerrainMere(TimeStampedModel):
 
     def __str__(self):
         return f"{self.titre_foncier_mere} ({self.project.code})"
+
+    @property
+    def superficie_affichee(self):
+        return f"{self.superficie_totale} {self.get_superficie_unite_display()}"
 
 
 class Autorisation(TimeStampedModel):

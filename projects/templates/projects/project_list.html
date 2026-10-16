@@ -1,0 +1,40 @@
+{% extends "projects/base.html" %}
+
+{% block title %}Projets — 2os Gestion{% endblock %}
+
+{% block content %}
+<div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight text-base-900">Projets</h1>
+    <p class="mt-1 text-sm text-base-500">{{ projects|length }} fiche{{ projects|length|pluralize }} technique{{ projects|length|pluralize }}</p>
+  </div>
+  <a href="{% url 'admin:projects_project_add' %}"
+     class="inline-flex items-center rounded-lg bg-base-900 px-4 py-2.5 text-sm font-bold text-white no-underline hover:bg-base-700">
+    Nouveau projet
+  </a>
+</div>
+
+{% if projects %}
+<ul class="overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm">
+  {% for project in projects %}
+  <li class="border-b border-base-100 last:border-b-0">
+    <a href="{{ project.get_absolute_url }}"
+       class="grid grid-cols-1 items-center gap-2 px-5 py-4 text-base-900 no-underline transition hover:bg-base-50 sm:grid-cols-[5.5rem_1fr_auto] sm:gap-4 sm:px-6">
+      <span class="font-mono text-xs font-bold text-base-500">{{ project.code }}</span>
+      <span>
+        <span class="block text-sm font-bold">{{ project.titre }}</span>
+        <span class="mt-0.5 block text-sm text-base-500">{{ project.commune }} — {{ project.prefecture }}</span>
+      </span>
+      <span class="text-[11px] font-bold uppercase tracking-wide text-base-500">
+        {{ project.get_statut_actuel_display }}
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="rounded-2xl border border-dashed border-base-200 bg-white px-5 py-10 text-center text-sm text-base-500">
+  Aucun projet pour le moment.
+</p>
+{% endif %}
+{% endblock %}

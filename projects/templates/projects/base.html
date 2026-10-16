@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" class="h-full scroll-smooth">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}2os Gestion{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: {
+              50: "#f8fafc",
+              100: "#f1f5f9",
+              200: "#e2e8f0",
+              300: "#cbd5e1",
+              500: "#64748b",
+              700: "#334155",
+              900: "#0f172a",
+            },
+            primary: {
+              DEFAULT: "#334155",
+              soft: "#e2e8f0",
+              ink: "#0f172a",
+            },
+            ok: { DEFAULT: "#0d9488", soft: "#ccfbf1" },
+            warn: { DEFAULT: "#b45309", soft: "#fef3c7" },
+          },
+          fontFamily: {
+            sans: ['"Source Sans 3"', "Segoe UI", "ui-sans-serif", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    .toc-link.is-active {
+      background: #0f172a;
+      color: #fff;
+    }
+    .doc-item.is-active {
+      background: #f1f5f9;
+      box-shadow: inset 3px 0 0 #0f172a;
+    }
+  </style>
+</head>
+<body class="min-h-full bg-base-50 font-sans text-base-900 antialiased">
+  <header class="sticky top-0 z-30 border-b border-base-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <a href="{% url 'admin:index' %}" class="flex items-center gap-2 no-underline">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-base-900 text-xs font-bold text-white">2os</span>
+        <span class="text-sm font-bold tracking-tight text-base-900">Gestion</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="{% url 'admin:projects_project_changelist' %}"
+           class="rounded-lg px-3 py-1.5 text-sm font-semibold text-base-500 no-underline transition hover:bg-base-100 hover:text-base-900">
+          Projets
+        </a>
+        <a href="{% url 'admin:index' %}"
+           class="rounded-lg px-3 py-1.5 text-sm font-semibold text-base-500 no-underline transition hover:bg-base-100 hover:text-base-900">
+          Tableau de bord
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{% static 'projects/js/fiche.js' %}"></script>
+</body>
+</html>

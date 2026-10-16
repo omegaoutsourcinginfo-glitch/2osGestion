@@ -1,0 +1,137 @@
+{% load humanize %}
+<div class="project-info" id="project-info">
+  <div class="project-info-head">
+    <div>
+      <div class="project-info-badges">
+        <span class="project-info-code">{{ project.code }}</span>
+        <span class="project-info-badge{% if project.statut_actuel == 'EXECUTION' %} is-exec{% endif %}">
+          {{ project.get_statut_actuel_display }}
+        </span>
+      </div>
+      <h1>{{ project.titre }}</h1>
+    </div>
+    <div class="project-info-actions">
+      <a class="is-primary" href="{{ edit_url }}">Modifier</a>
+      <a href="{% url 'admin:projects_project_changelist' %}">Retour</a>
+    </div>
+  </div>
+
+  <section>
+    <h2>Identification</h2>
+    <dl class="cols-2">
+      <div><dt>Code</dt><dd>{{ project.code }}</dd></div>
+      <div><dt>Statut</dt><dd>{{ project.get_statut_actuel_display }}</dd></div>
+      <div><dt>Créé le</dt><dd>{{ project.created_at|date:"d/m/Y" }}</dd></div>
+      <div><dt>Mis à jour</dt><dd>{{ project.updated_at|date:"d/m/Y" }}</dd></div>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Localisation</h2>
+    <dl class="cols-2">
+      <div><dt>Préfecture / Province</dt><dd>{{ project.prefecture }}</dd></div>
+      <div><dt>Commune</dt><dd>{{ project.commune }}</dd></div>
+      <div class="wide"><dt>Situation & localisation</dt><dd>{{ project.situation_localisation }}</dd></div>
+      <div class="wide"><dt>Accès au site</dt><dd>{{ project.voie_acces }}</dd></div>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Description</h2>
+    <dl class="cols-2">
+      <div class="wide"><dt>Consistance du projet</dt><dd>{{ project.consistance_globale }}</dd></div>
+      <div>
+        <dt>Nombre de lots</dt>
+        <dd{% if not project.nombre_lots %} class="empty"{% endif %}>
+          {% if project.nombre_lots %}{{ project.nombre_lots }}{% else %}Non renseigné{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt>Servitudes d'urbanisme</dt>
+        <dd{% if not project.emprise_servitudes %} class="empty"{% endif %}>
+          {{ project.emprise_servitudes|default:"Aucune" }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Terrain mère</h2>
+    {% if terrain %}
+    <dl class="cols-3">
+      <div><dt>Titre foncier</dt><dd>{{ terrain.titre_foncier_mere }}</dd></div>
+      <div><dt>Suffixe</dt><dd>{{ terrain.suffixe|default:"—" }}</dd></div>
+      <div><dt>Superficie</dt><dd>{{ terrain.superficie_affichee }}</dd></div>
+    </dl>
+    {% else %}
+    <p class="empty">Non renseigné</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Autorisation</h2>
+    {% if autorisation %}
+    <dl class="cols-3">
+      <div><dt>Type</dt><dd>{{ autorisation.get_type_permis_display }}</dd></div>
+      <div><dt>Numéro</dt><dd>{{ autorisation.numero_autorisation }}</dd></div>
+      <div><dt>Date</dt><dd>{% if autorisation.date_delivrance %}{{ autorisation.date_delivrance|date:"d/m/Y" }}{% else %}—{% endif %}</dd></div>
+    </dl>
+    {% else %}
+    <p class="empty">Non renseigné</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Intervenants</h2>
+    {% if project.intervenants.all %}
+    <ul class="people">
+      {% for person in project.intervenants.all %}
+      <li>
+        <span>{{ person.get_type_intervenant_display }}</span>
+        <div>
+          <strong>{{ person.nom_ou_cabinet }}</strong>
+          {% if person.contact %}<small>{{ person.contact }}</small>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">Aucun intervenant</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Documents</h2>
+    {% if documents %}
+    <ul class="docs">
+      {% for doc in documents %}
+      <li>
+        <a href="{{ doc.url }}" target="_blank" rel="noopener">
+          <span>{{ doc.label }} <em>({{ doc.group }})</em></span>
+          <span>Ouvrir</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">Aucun document</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Financement</h2>
+    {% if financement %}
+    <div class="finance">
+      <p class="label">Total investissement</p>
+      <p class="total">{{ financement.investissement_total|floatformat:0|intcomma }} <small>DH</small></p>
+      <p class="split">
+        FP {{ financement.fonds_propres_fp|floatformat:0|intcomma }} DH ({{ fp_pct }}%)
+        ·
+        CMT {{ financement.credit_moyen_terme_cmt|floatformat:0|intcomma }} DH ({{ cmt_pct }}%)
+      </p>
+    </div>
+    {% else %}
+    <p class="empty">Non renseigné</p>
+    {% endif %}
+  </section>
+</div>

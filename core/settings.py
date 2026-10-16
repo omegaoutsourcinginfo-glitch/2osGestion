@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+from django.templatetags.static import static
 from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'projects',
 ]
 
@@ -58,7 +60,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -120,8 +122,34 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Admin sidebar (Unfold)
+# Admin theme (Unfold) — slate professional
 UNFOLD = {
+    "SITE_TITLE": "2os Gestion",
+    "SITE_HEADER": "2os Gestion",
+    "SITE_SUBHEADER": "Gestion des projets",
+    "SITE_SYMBOL": "folder",
+    "DASHBOARD_CALLBACK": "projects.views.dashboard_callback",
+    "STYLES": [
+        lambda request: static("projects/css/dashboard.css"),
+    ],
+    "SCRIPTS": [
+        lambda request: static("projects/js/dashboard.js"),
+    ],
+    "COLORS": {
+        "primary": {
+            "50": "oklch(97% 0.015 240)",
+            "100": "oklch(93% 0.025 240)",
+            "200": "oklch(86% 0.04 240)",
+            "300": "oklch(74% 0.055 240)",
+            "400": "oklch(58% 0.07 245)",
+            "500": "oklch(45% 0.08 245)",
+            "600": "oklch(38% 0.07 245)",
+            "700": "oklch(32% 0.06 245)",
+            "800": "oklch(26% 0.05 245)",
+            "900": "oklch(20% 0.035 245)",
+            "950": "oklch(14% 0.025 245)",
+        },
+    },
     "SIDEBAR": {
         "navigation": [
             {

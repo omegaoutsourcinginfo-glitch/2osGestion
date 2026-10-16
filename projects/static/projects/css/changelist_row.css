@@ -1,0 +1,17 @@
+/* One-click project row → CRM detail */
+table tbody tr.project-row-clickable {
+  cursor: pointer;
+}
+
+table tbody tr.project-row-clickable:hover {
+  background: rgba(30, 58, 95, 0.06);
+}
+
+table tbody tr.project-row-clickable a.project-detail-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+table tbody tr.project-row-clickable:hover a.project-detail-link {
+  color: #1e3a5f;
+}

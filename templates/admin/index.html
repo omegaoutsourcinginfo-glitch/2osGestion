@@ -1,0 +1,96 @@
+{% extends 'admin/base.html' %}
+{% load i18n humanize static %}
+
+{% block title %}
+  {% if dash_project %}
+    {{ dash_project.project.code }} — {{ dash_project.project.titre }} |
+  {% elif subtitle %}{{ subtitle }} | {% endif %}
+  {% if dash_project %}Projet{% else %}Tableau de bord{% endif %} | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+{% block branding %}
+  {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'projects/css/project_info.css' %}">
+
+{% if dash_project %}
+  {% with project=dash_project.project terrain=dash_project.terrain autorisation=dash_project.autorisation documents=dash_project.documents financement=dash_project.financement fp_pct=dash_project.fp_pct cmt_pct=dash_project.cmt_pct edit_url=dash_project.edit_url %}
+  <div class="studio" id="dash-root">
+    <div class="studio-body studio-body-detail">
+      {% include "projects/partials/project_info.html" %}
+    </div>
+  </div>
+  {% endwith %}
+{% else %}
+<link rel="stylesheet" href="{% static 'projects/css/dashboard.css' %}">
+<div class="studio" id="dash-root">
+  <div class="studio-body">
+    <header class="studio-head">
+      <div>
+        <p class="studio-eyebrow">{{ dash_today|date:"j M Y" }}</p>
+        <h1 class="studio-title">Tableau de bord</h1>
+      </div>
+      <div class="studio-cta">
+        <a href="{% url 'admin:projects_project_add' %}">Nouveau projet</a>
+        <a class="is-soft" href="{% url 'admin:projects_project_changelist' %}">Tous les projets</a>
+      </div>
+    </header>
+
+    <section class="studio-metrics" aria-label="Vue d'ensemble">
+      <a href="{% url 'admin:projects_project_changelist' %}">
+        <em>Projets</em>
+        <strong>{{ dash_total }}</strong>
+      </a>
+      <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=INSTRUCTION">
+        <em>En instruction</em>
+        <strong>{{ dash_instruction }}</strong>
+        <small>{{ dash_pct_instruction }}%</small>
+      </a>
+      <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=EXECUTION">
+        <em>En exécution</em>
+        <strong>{{ dash_execution }}</strong>
+        <small>{{ dash_pct_execution }}%</small>
+      </a>
+      <a href="{% url 'admin:projects_structurefinancement_changelist' %}">
+        <em>Investissement</em>
+        <strong class="is-money">{{ dash_investissement|floatformat:0|intcomma }}</strong>
+        <small>DH</small>
+      </a>
+    </section>
+
+    <section class="studio-list" aria-label="Projets récents">
+      <div class="studio-list-head">
+        <h2>Projets récents</h2>
+        <a href="{% url 'admin:projects_project_changelist' %}">Voir la liste</a>
+      </div>
+
+      {% if dash_recent %}
+      <ol>
+        {% for project in dash_recent %}
+        <li>
+          <a href="{{ project.url }}">
+            <span class="studio-code">{{ project.code }}</span>
+            <span class="studio-info">
+              <span class="studio-name">{{ project.titre }}</span>
+              <span class="studio-place">{{ project.commune|truncatechars:40 }}</span>
+            </span>
+            <span class="studio-status {% if project.statut_actuel == 'EXECUTION' %}is-exec{% endif %}">
+              {{ project.statut_label }}
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="studio-empty">Aucun projet. <a href="{% url 'admin:projects_project_add' %}">Nouveau projet</a></p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

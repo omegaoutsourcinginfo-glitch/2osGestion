@@ -99,6 +99,7 @@ class ProjectAdminTests(TestCase):
             **EMPTY_INLINES,
             "terrain_mere-0-titre_foncier_mere": "TF 12345/R",
             "terrain_mere-0-superficie_totale": "15000.50",
+            "terrain_mere-0-superficie_unite": "M2",
             "autorisation-0-type_permis": "LOTIR",
             "autorisation-0-numero_autorisation": "123/2026",
         }
@@ -106,6 +107,8 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(response.status_code, 302)
         project = Project.objects.get()
         self.assertEqual(str(project.terrain_mere), f"TF 12345/R ({project.code})")
+        self.assertEqual(project.terrain_mere.superficie_unite, "M2")
+        self.assertEqual(project.terrain_mere.superficie_affichee, "15000.50 m²")
         self.assertEqual(str(project.autorisation), f"Autorisation de lotir n° 123/2026 ({project.code})")
 
     def test_sidebar_only_lists_projects(self):
@@ -147,7 +150,12 @@ class ProjectAdminTests(TestCase):
 
     def test_edit_related_from_project_page(self):
         project = Project.objects.create(**FIELDS)
-        terrain = TerrainMere.objects.create(project=project, titre_foncier_mere="TF 1/R", superficie_totale=500)
+        terrain = TerrainMere.objects.create(
+            project=project,
+            titre_foncier_mere="TF 1/R",
+            superficie_totale=500,
+            superficie_unite="HA",
+        )
         autorisation = Autorisation.objects.create(
             project=project, type_permis="CONSTRUIRE", numero_autorisation="45/2026"
         )
@@ -160,7 +168,8 @@ class ProjectAdminTests(TestCase):
             "terrain_mere-0-project": project.pk,
             "terrain_mere-0-titre_foncier_mere": "TF 1/R",
             "terrain_mere-0-suffixe": "B",
-            "terrain_mere-0-superficie_totale": "500",
+            "terrain_mere-0-superficie_totale": "1.25",
+            "terrain_mere-0-superficie_unite": "HA",
             "autorisation-TOTAL_FORMS": "1",
             "autorisation-INITIAL_FORMS": "1",
             "autorisation-0-id": autorisation.pk,
@@ -179,6 +188,8 @@ class ProjectAdminTests(TestCase):
         terrain.refresh_from_db()
         autorisation.refresh_from_db()
         self.assertEqual(terrain.suffixe, "B")
+        self.assertEqual(terrain.superficie_unite, "HA")
+        self.assertEqual(terrain.superficie_affichee, "1.25 ha")
         self.assertEqual(str(autorisation.date_delivrance), "2026-10-01")
 
     def test_admin_add_generates_code(self):
@@ -229,6 +240,7 @@ class ProjectAdminTests(TestCase):
 
     def test_structure_financement_pages(self):
         project = Project.objects.create(**FIELDS)
+        free = Project.objects.create(**FIELDS)
         financement = StructureFinancement.objects.create(project=project, fonds_propres_fp=100)
         for url in [
             "/admin/projects/structurefinancement/",
@@ -238,6 +250,7 @@ class ProjectAdminTests(TestCase):
         ]:
             self.assertEqual(self.client.get(url).status_code, 200, url)
         self.assertContains(self.client.get("/admin/projects/structurefinancement/"), project.code)
+        self.assertContains(self.client.get("/admin/projects/structurefinancement/add/"), free.code)
 
     def test_financement_no_longer_a_project_tab(self):
         project = Project.objects.create(**FIELDS)
@@ -292,11 +305,88 @@ class ProjectAdminTests(TestCase):
 
     def test_one_financement_per_project(self):
         project = Project.objects.create(**FIELDS)
-        StructureFinancement.objects.create(project=project)
-        data = {"project": project.pk, "fonds_propres_fp": "0", "credit_moyen_terme_cmt": "0"}
+        StructureFinancement.objects.create(
+            project=project, fonds_propres_fp=10, credit_moyen_terme_cmt=20
+        )
+        data = {
+            "project": project.pk,
+            "fonds_propres_fp": "50",
+            "credit_moyen_terme_cmt": "51",
+        }
         response = self.client.post("/admin/projects/structurefinancement/add/", data)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(StructureFinancement.objects.count(), 1)
+        financement = StructureFinancement.objects.get(project=project)
+        self.assertEqual(financement.fonds_propres_fp, Decimal("50"))
+        self.assertEqual(financement.investissement_total, Decimal("101"))
+
+    def test_add_form_shows_all_projects(self):
+        taken = Project.objects.create(**FIELDS)
+        free = Project.objects.create(**FIELDS)
+        StructureFinancement.objects.create(project=taken)
+        response = self.client.get("/admin/projects/structurefinancement/add/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, taken.code)
+        self.assertContains(response, free.code)
+
+    def test_edit_existing_financement(self):
+        project = Project.objects.create(**FIELDS)
+        financement = StructureFinancement.objects.create(
+            project=project, fonds_propres_fp=10, credit_moyen_terme_cmt=20
+        )
+        data = {"fonds_propres_fp": "50", "credit_moyen_terme_cmt": "51"}
+        response = self.client.post(
+            f"/admin/projects/structurefinancement/{financement.pk}/change/", data
+        )
+        self.assertEqual(response.status_code, 302)
+        financement.refresh_from_db()
+        self.assertEqual(financement.fonds_propres_fp, Decimal("50"))
+        self.assertEqual(financement.investissement_total, Decimal("101"))
+
+    def test_modifier_row_button_on_lists(self):
+        project = Project.objects.create(**FIELDS)
+        financement = StructureFinancement.objects.create(project=project)
+        for url, object_id in [
+            ("/admin/projects/project/", project.pk),
+            ("/admin/projects/structurefinancement/", financement.pk),
+        ]:
+            response = self.client.get(url)
+            self.assertContains(response, "Modifier")
+            self.assertContains(response, f"/{object_id}/modifier/")
+
+    def test_add_with_project_query_redirects_to_edit(self):
+        project = Project.objects.create(**FIELDS)
+        financement = StructureFinancement.objects.create(project=project)
+        response = self.client.get(
+            f"/admin/projects/structurefinancement/add/?project={project.pk}"
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(
+            f"/admin/projects/structurefinancement/{financement.pk}/change/",
+            response.url,
+        )
+
+    def test_add_page_shows_live_total(self):
+        Project.objects.create(**FIELDS)
+        response = self.client.get("/admin/projects/structurefinancement/add/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "projects/js/financement_total.js")
+        self.assertContains(response, "id_investissement_total_live")
+
+    def test_modifier_financement_from_project_page(self):
+        project = Project.objects.create(**FIELDS)
+        financement = StructureFinancement.objects.create(project=project)
+        response = self.client.get(f"/admin/projects/project/{project.pk}/change/")
+        self.assertContains(response, "Modifier le financement")
+
+        response = self.client.get(
+            f"/admin/projects/project/{project.pk}/modifier-financement/"
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(
+            f"/admin/projects/structurefinancement/{financement.pk}/change/",
+            response.url,
+        )
 
     def test_programme_technique_rejects_other_files(self):
         for filename in ["virus.exe", "archive.zip"]:
@@ -310,3 +400,70 @@ class ProjectAdminTests(TestCase):
                     response = self.client.post("/admin/projects/project/add/", data)
                 self.assertEqual(response.status_code, 200)
                 self.assertFalse(Project.objects.exists())
+
+    def test_admin_dashboard(self):
+        project = Project.objects.create(**FIELDS)
+        StructureFinancement.objects.create(
+            project=project, fonds_propres_fp=1000, credit_moyen_terme_cmt=2000
+        )
+        response = self.client.get("/admin/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Tableau de bord")
+        self.assertContains(response, "studio-head")
+        self.assertContains(response, "Projets récents")
+        self.assertContains(response, project.code)
+        self.assertContains(response, "projects/css/dashboard.css")
+        self.assertContains(response, "Investissement")
+        self.assertContains(response, f"?projet={project.code}")
+        self.assertNotContains(response, "project-info")
+
+    def test_financing_list_hides_pdf_column(self):
+        project = Project.objects.create(**FIELDS)
+        StructureFinancement.objects.create(project=project)
+        response = self.client.get("/admin/projects/structurefinancement/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, project.code)
+        self.assertNotContains(response, "Document financement (PDF)")
+
+    def test_project_list_row_links_to_detail(self):
+        project = Project.objects.create(**FIELDS)
+        response = self.client.get("/admin/projects/project/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, project.get_absolute_url())
+        self.assertContains(response, "project-detail-link")
+        self.assertContains(response, "changelist_row_detail.js")
+        self.assertContains(response, "changelist_row.css")
+        self.assertContains(response, project.commune)
+        self.assertContains(response, project.prefecture)
+
+        detail = self.client.get(project.get_absolute_url())
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, project.titre)
+        self.assertContains(detail, "Identification")
+        self.assertContains(detail, "project-info")
+        self.assertNotContains(detail, "studio-metrics")
+        self.assertNotContains(detail, "Projets récents")
+
+    def test_project_detail_shows_only_project_info(self):
+        project = Project.objects.create(**FIELDS)
+        ProgrammeTechnique.objects.create(
+            project=project,
+            voirie_vrd_pdf=SimpleUploadedFile("voirie.pdf", b"%PDF-1.4"),
+        )
+        StructureFinancement.objects.create(
+            project=project,
+            document_pdf=SimpleUploadedFile("finance.pdf", b"%PDF-1.4"),
+        )
+        response = self.client.get(f"/projets/{project.code}/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(f"?projet={project.code}", response.url)
+
+        detail = self.client.get(f"/admin/?projet={project.code}")
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, project.titre)
+        self.assertContains(detail, "Identification")
+        self.assertContains(detail, "Voirie (VRD)")
+        self.assertContains(detail, "Document financement")
+        self.assertContains(detail, "Financement")
+        self.assertContains(detail, "project-info")
+        self.assertNotContains(detail, "studio-metrics")
