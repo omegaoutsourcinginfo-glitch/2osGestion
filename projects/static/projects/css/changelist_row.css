@@ -1,10 +1,18 @@
-/* One-click project row → CRM detail */
+/* Hide bulk-selection checkboxes on project list */
+#result_list th.action-checkbox-column,
+#result_list td.action-checkbox,
+table thead th.action-checkbox-column,
+table tbody td.action-checkbox {
+  display: none !important;
+}
+
+/* One-click project row → fiche détail */
 table tbody tr.project-row-clickable {
   cursor: pointer;
 }
 
 table tbody tr.project-row-clickable:hover {
-  background: rgba(30, 58, 95, 0.06);
+  background: rgba(139, 30, 45, 0.05);
 }
 
 table tbody tr.project-row-clickable a.project-detail-link {
@@ -13,5 +21,70 @@ table tbody tr.project-row-clickable a.project-detail-link {
 }
 
 table tbody tr.project-row-clickable:hover a.project-detail-link {
-  color: #1e3a5f;
+  color: #8b1e2d;
+}
+
+.project-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.project-row-action {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #1f2937 !important;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.project-row-action:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.project-row-action.is-primary {
+  background: #8b1e2d;
+  border-color: #8b1e2d;
+  color: #fff !important;
+}
+
+.project-row-action.is-primary:hover {
+  background: #731828;
+  border-color: #731828;
+}
+
+/* Row actions column: keep buttons aligned inside the table */
+#result_list th:last-child,
+#result_list td.field-actions_holder {
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+  width: 1%;
+}
+
+#result_list td.field-actions_holder > div {
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+#result_list td.field-actions_holder a {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding-inline: 0.65rem !important;
+}
+
+/* Keep pagination visible and clean */
+nav[aria-label="Pagination"],
+.paginator {
+  margin-top: 0.75rem;
 }

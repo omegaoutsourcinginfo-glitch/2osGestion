@@ -1,0 +1,17 @@
+{% load i18n admin_urls %}
+
+{# Add (+) only on changelist — hidden on add/change forms #}
+{% if cl and has_add_permission %}
+    {% url cl.opts|admin_urlname:"add" as add_url %}
+    {% blocktranslate with name=cl.opts.verbose_name asvar title %}Add {{ name }}{% endblocktranslate %}
+
+    {% if add_url and cl.model_admin.show_add_link %}
+        <div class="flex flex-row items-center shrink-0">
+            <a href="{% add_preserved_filters add_url is_popup to_field %}"
+               class="addlink border border-primary-700 bg-primary-600 flex items-center h-[38px] justify-center rounded-default w-[38px] hover:bg-primary-600/80 dark:border-primary-500"
+               title="{{ title }}">
+                <span class="material-symbols-outlined text-white">add</span>
+            </a>
+        </div>
+    {% endif %}
+{% endif %}

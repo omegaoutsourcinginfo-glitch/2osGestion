@@ -10,9 +10,12 @@ from unfold.enums import ActionVariant
 
 from .models import (
     Autorisation,
+    FinancementDocument,
     Intervenant,
-    ProgrammeTechnique,
+    PlanningDocument,
+    PlanningExecution,
     Project,
+    ProjectDocument,
     StructureFinancement,
     TerrainMere,
 )
@@ -29,6 +32,7 @@ class EditUpdateActionsMixin:
         variant=ActionVariant.PRIMARY,
         url_path="modifier",
         permissions=["change"],
+        extra_options={"display_in_dropdown": False},
     )
     def modifier(self, request, object_id):
         opts = self.model._meta
@@ -37,8 +41,39 @@ class EditUpdateActionsMixin:
         )
 
 
+class SimpleSaveMixin:
+    """Only show the primary Enregistrer button (hide save-and-continue / add-another)."""
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context.update(
+            {
+                "show_save_and_continue": False,
+                "show_save_and_add_another": False,
+            }
+        )
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+
+class TerrainMereAdminForm(forms.ModelForm):
+    """Ignore model default on superficie_unite for empty extra inlines."""
+
+    class Meta:
+        model = TerrainMere
+        fields = ("titre_foncier_mere", "suffixe", "superficie_totale", "superficie_unite")
+
+    def has_changed(self):
+        if not super().has_changed():
+            return False
+        if self.instance.pk:
+            return True
+        # Default M2 alone must not mark a blank Terrain Mère row as filled.
+        return any(name != "superficie_unite" for name in self.changed_data)
+
+
 class TerrainMereInline(StackedInline):
     model = TerrainMere
+    form = TerrainMereAdminForm
     fields = ("titre_foncier_mere", "suffixe", "superficie_totale", "superficie_unite")
     can_delete = False
     extra = 1
@@ -64,58 +99,90 @@ class IntervenantInline(TabularInline):
     verbose_name_plural = "Intervenants"
 
 
-class ProgrammeTechniqueInline(StackedInline):
-    model = ProgrammeTechnique
-    can_delete = False
+class ProjectDocumentInline(TabularInline):
+    model = ProjectDocument
     extra = 1
-    max_num = 1
     tab = True
-    show_title = False
-    fields = (
-        "voirie_vrd_pdf",
-        "telecom_fibre_pdf",
-        "amenagement_paysager_pdf",
-        "fiche_lot_parcelle_pdf",
-    )
+    fields = ("kind", "fichier")
+    verbose_name = "Document technique"
+    verbose_name_plural = "Documents techniques (plusieurs par type)"
+
+
+class FinancementDocumentInline(TabularInline):
+    model = FinancementDocument
+    extra = 1
+    fields = ("fichier",)
+    verbose_name = "Document PDF"
+    verbose_name_plural = "Documents financement (plusieurs PDF)"
+
+
+class PlanningDocumentInline(TabularInline):
+    model = PlanningDocument
+    extra = 1
+    fields = ("phase", "fichier")
+    verbose_name = "PDF"
+    verbose_name_plural = "PDFs par phase (plusieurs fichiers)"
+    tab = True
 
 
 @admin.register(Project)
-class ProjectAdmin(EditUpdateActionsMixin, ModelAdmin):
+class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
+    # No bulk checkboxes on the changelist.
+    actions = None
     list_display = (
         "code_link",
         "titre_link",
-        "prefecture_link",
-        "commune_link",
         "statut_link",
-        "created_link",
     )
     list_display_links = None
+    list_per_page = 25
+    show_full_result_count = True
     search_fields = ("code", "titre", "prefecture", "commune")
-    list_filter = ("statut_actuel", "prefecture", "commune", "created_at")
+    list_filter = ("statut_actuel", "is_archived", "prefecture", "commune")
     ordering = ("-code",)
-    readonly_fields = ("code_display", "created_at", "updated_at")
+    readonly_fields = ("code_display", "is_archived", "created_at", "updated_at")
     inlines = (
         TerrainMereInline,
         AutorisationInline,
         IntervenantInline,
-        ProgrammeTechniqueInline,
+        ProjectDocumentInline,
     )
-    actions_detail = ["voir_fiche", "modifier_financement"]
+    actions_detail = ["voir_fiche", "modifier", "modifier_financement", "modifier_planning"]
+    actions_list = ["voir_archives"]
+    # Row: Fiche + Modifier + Archiver
+    actions_row = ["voir_fiche", "modifier", "archiver"]
 
     class Media:
         js = ("projects/js/changelist_row_detail.js",)
         css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
-        ("Identification", {"classes": ["tab"], "fields": ("code_display", "titre", "statut_actuel")}),
+        ("Identification", {"classes": ["tab"], "fields": ("code_display", "titre", "statut_actuel", "is_archived")}),
         ("Localisation", {"classes": ["tab"], "fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
         ("Description", {"classes": ["tab"], "fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
         ("Historique", {"classes": ["tab"], "fields": ("created_at", "updated_at")}),
     )
 
+    def changelist_view(self, request, extra_context=None):
+        # Mark changelist so get_queryset can hide archived rows by default.
+        request._project_changelist = True
+        return super().changelist_view(request, extra_context)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Default list: active projects only (unless filtering archives explicitly).
+        if getattr(request, "_project_changelist", False):
+            if "is_archived__exact" not in request.GET and "is_archived" not in request.GET:
+                qs = qs.filter(is_archived=False)
+        return qs
+
     def get_fieldsets(self, request, obj=None):
         if obj is None:
-            return self.fieldsets[:-1]
+            return (
+                ("Identification", {"classes": ["tab"], "fields": ("code_display", "titre", "statut_actuel")}),
+                ("Localisation", {"classes": ["tab"], "fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
+                ("Description", {"classes": ["tab"], "fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
+            )
         return self.fieldsets
 
     @admin.display(description="Code")
@@ -141,21 +208,12 @@ class ProjectAdmin(EditUpdateActionsMixin, ModelAdmin):
     def titre_link(self, obj):
         return self._detail_link(obj, obj.titre)
 
-    @admin.display(description="Préfecture / Province", ordering="prefecture")
-    def prefecture_link(self, obj):
-        return self._detail_link(obj, obj.prefecture)
-
-    @admin.display(description="Commune", ordering="commune")
-    def commune_link(self, obj):
-        return self._detail_link(obj, obj.commune)
-
     @admin.display(description="Statut actuel du projet", ordering="statut_actuel")
     def statut_link(self, obj):
         return self._detail_link(obj, obj.get_statut_actuel_display())
 
-    @admin.display(description="Created at", ordering="created_at")
-    def created_link(self, obj):
-        return self._detail_link(obj, obj.created_at.strftime("%d/%m/%Y %H:%M"))
+    def get_actions(self, request):
+        return {}
 
     @action(
         description="Voir la fiche",
@@ -163,10 +221,57 @@ class ProjectAdmin(EditUpdateActionsMixin, ModelAdmin):
         variant=ActionVariant.PRIMARY,
         url_path="voir-fiche",
         permissions=["view"],
+        extra_options={"display_in_dropdown": False},
     )
     def voir_fiche(self, request, object_id):
         project = self.get_object(request, object_id)
         return redirect(project.get_absolute_url())
+
+    @action(
+        description="Modifier",
+        icon="edit",
+        variant=ActionVariant.PRIMARY,
+        url_path="modifier",
+        permissions=["change"],
+        extra_options={"display_in_dropdown": False},
+    )
+    def modifier(self, request, object_id):
+        return redirect(
+            reverse("admin:projects_project_change", args=[object_id])
+        )
+
+    @action(
+        description="Archiver",
+        icon="archive",
+        variant=ActionVariant.DEFAULT,
+        url_path="archiver",
+        permissions=["change"],
+        extra_options={"display_in_dropdown": False},
+    )
+    def archiver(self, request, object_id):
+        project = self.get_object(request, object_id)
+        if project is None:
+            return redirect(reverse("admin:projects_project_changelist"))
+        if project.is_archived:
+            project.is_archived = False
+            project.save(update_fields=["is_archived", "updated_at"])
+            messages.success(request, f"{project.code} a été désarchivé.")
+        else:
+            project.is_archived = True
+            project.save(update_fields=["is_archived", "updated_at"])
+            messages.success(request, f"{project.code} a été archivé.")
+        return redirect(reverse("admin:projects_project_changelist"))
+
+    @action(
+        description="Archives",
+        icon="inventory_2",
+        url_path="voir-archives",
+        permissions=["view"],
+    )
+    def voir_archives(self, request):
+        return redirect(
+            f"{reverse('admin:projects_project_changelist')}?is_archived__exact=1"
+        )
 
     @action(
         description="Modifier le financement",
@@ -184,6 +289,24 @@ class ProjectAdmin(EditUpdateActionsMixin, ModelAdmin):
             )
         return redirect(
             reverse("admin:projects_structurefinancement_change", args=[financement.pk])
+        )
+
+    @action(
+        description="Modifier le planning",
+        icon="calendar_month",
+        variant=ActionVariant.PRIMARY,
+        url_path="modifier-planning",
+        permissions=["projects.change_planningexecution"],
+    )
+    def modifier_planning(self, request, object_id):
+        project = self.get_object(request, object_id)
+        planning = PlanningExecution.objects.filter(project=project).first()
+        if planning is None:
+            return redirect(
+                f"{reverse('admin:projects_planningexecution_add')}?project={project.pk}"
+            )
+        return redirect(
+            reverse("admin:projects_planningexecution_change", args=[planning.pk])
         )
 
 
@@ -223,9 +346,6 @@ class StructureFinancementAdminForm(forms.ModelForm):
             if existing is not None:
                 existing.fonds_propres_fp = self.cleaned_data["fonds_propres_fp"]
                 existing.credit_moyen_terme_cmt = self.cleaned_data["credit_moyen_terme_cmt"]
-                document = self.cleaned_data.get("document_pdf")
-                if document:
-                    existing.document_pdf = document
                 self.instance = existing
                 if commit:
                     existing.save()
@@ -237,8 +357,10 @@ class StructureFinancementAdminForm(forms.ModelForm):
 
 
 @admin.register(StructureFinancement)
-class StructureFinancementAdmin(EditUpdateActionsMixin, ModelAdmin):
+class StructureFinancementAdmin(SimpleSaveMixin, ModelAdmin):
     form = StructureFinancementAdminForm
+    # No bulk checkboxes on the changelist.
+    actions = None
     list_display = (
         "project_code",
         "project_titre",
@@ -247,13 +369,19 @@ class StructureFinancementAdmin(EditUpdateActionsMixin, ModelAdmin):
         "investissement_total",
     )
     list_display_links = ("project_code", "project_titre")
+    list_per_page = 25
+    show_full_result_count = True
     list_select_related = ("project",)
     search_fields = ("project__code", "project__titre")
     ordering = ("-project__code",)
     readonly_fields = ("total_live", "created_at", "updated_at")
+    inlines = (FinancementDocumentInline,)
+    # Three-dot row menu
+    actions_row = ["modifier_financement_row"]
 
     class Media:
         js = ("projects/js/financement_total.js",)
+        css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
         (
@@ -267,7 +395,7 @@ class StructureFinancementAdmin(EditUpdateActionsMixin, ModelAdmin):
             },
         ),
         ("Sources de financement", {
-            "fields": ("fonds_propres_fp", "credit_moyen_terme_cmt", "total_live", "document_pdf"),
+            "fields": ("fonds_propres_fp", "credit_moyen_terme_cmt", "total_live"),
         }),
         ("Historique", {"fields": ("created_at", "updated_at")}),
     )
@@ -316,6 +444,9 @@ class StructureFinancementAdmin(EditUpdateActionsMixin, ModelAdmin):
             f"{value:.2f}".replace(".", ","),
         )
 
+    def get_actions(self, request):
+        return {}
+
     @admin.display(description="Code projet", ordering="project__code")
     def project_code(self, obj):
         return obj.project.code
@@ -323,3 +454,144 @@ class StructureFinancementAdmin(EditUpdateActionsMixin, ModelAdmin):
     @admin.display(description="Titre projet", ordering="project__titre")
     def project_titre(self, obj):
         return obj.project.titre
+
+    @action(
+        description="Modifier",
+        icon="edit",
+        variant=ActionVariant.PRIMARY,
+        url_path="modifier-row",
+        permissions=["change"],
+        extra_options={"display_in_dropdown": False},
+    )
+    def modifier_financement_row(self, request, object_id):
+        return redirect(
+            reverse("admin:projects_structurefinancement_change", args=[object_id])
+        )
+
+
+class PlanningExecutionAdminForm(forms.ModelForm):
+    """Un seul planning par projet : réenregistrement met à jour la fiche existante."""
+
+    class Meta:
+        model = PlanningExecution
+        fields = "__all__"
+
+    def validate_unique(self):
+        exclude = self._get_validation_exclusions()
+        if not self.instance.pk:
+            exclude.add("project")
+        try:
+            self.instance.validate_unique(exclude=exclude)
+        except ValidationError as error:
+            self._update_errors(error)
+
+    def save(self, commit=True):
+        if not self.instance.pk:
+            existing = PlanningExecution.objects.filter(
+                project=self.cleaned_data["project"]
+            ).first()
+            if existing is not None:
+                self.instance = existing
+                if commit:
+                    existing.save()
+                    self._save_m2m()
+                else:
+                    self.save_m2m = self._save_m2m
+                return existing
+        return super().save(commit=commit)
+
+
+@admin.register(PlanningExecution)
+class PlanningExecutionAdmin(SimpleSaveMixin, ModelAdmin):
+    form = PlanningExecutionAdminForm
+    actions = None
+    list_display = ("project_code", "project_titre", "phases_count", "updated_at")
+    list_display_links = ("project_code", "project_titre")
+    list_per_page = 25
+    show_full_result_count = True
+    list_select_related = ("project",)
+    search_fields = ("project__code", "project__titre")
+    ordering = ("-project__code",)
+    readonly_fields = ()
+    inlines = (PlanningDocumentInline,)
+    actions_row = ["modifier_planning_row"]
+    change_form_show_cancel_button = True
+
+    class Media:
+        css = {
+            "all": (
+                "projects/css/changelist_row.css",
+                "projects/css/planning_form.css",
+            )
+        }
+
+    fieldsets = (
+        (
+            "Projet",
+            {
+                "fields": ("project",),
+                "description": (
+                    "Choisissez le projet, puis ajoutez les PDF par phase "
+                    "(études, viabilisation, réception) — plusieurs PDF possibles."
+                ),
+            },
+        ),
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ("project",)
+        return ()
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        project_id = request.GET.get("project")
+        if project_id and Project.objects.filter(pk=project_id).exists():
+            initial["project"] = project_id
+        return initial
+
+    def add_view(self, request, form_url="", extra_context=None):
+        if request.method == "GET":
+            project_id = request.GET.get("project")
+            if project_id:
+                existing = PlanningExecution.objects.filter(project_id=project_id).first()
+                if existing is not None:
+                    messages.info(
+                        request,
+                        f"Le projet a déjà un planning — modification de {existing.project.code}.",
+                    )
+                    return redirect(
+                        reverse(
+                            "admin:projects_planningexecution_change",
+                            args=[existing.pk],
+                        )
+                    )
+        return super().add_view(request, form_url, extra_context)
+
+    def get_actions(self, request):
+        return {}
+
+    @admin.display(description="Code projet", ordering="project__code")
+    def project_code(self, obj):
+        return obj.project.code
+
+    @admin.display(description="Titre projet", ordering="project__titre")
+    def project_titre(self, obj):
+        return obj.project.titre
+
+    @admin.display(description="PDFs")
+    def phases_count(self, obj):
+        return obj.documents.count()
+
+    @action(
+        description="Modifier",
+        icon="edit",
+        variant=ActionVariant.PRIMARY,
+        url_path="modifier-row",
+        permissions=["change"],
+        extra_options={"display_in_dropdown": False},
+    )
+    def modifier_planning_row(self, request, object_id):
+        return redirect(
+            reverse("admin:projects_planningexecution_change", args=[object_id])
+        )

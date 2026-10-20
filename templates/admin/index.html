@@ -15,12 +15,12 @@
 {% block content %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'projects/css/project_info.css' %}">
 
 {% if dash_project %}
-  {% with project=dash_project.project terrain=dash_project.terrain autorisation=dash_project.autorisation documents=dash_project.documents financement=dash_project.financement fp_pct=dash_project.fp_pct cmt_pct=dash_project.cmt_pct edit_url=dash_project.edit_url %}
-  <div class="studio" id="dash-root">
+  {% with project=dash_project.project terrain=dash_project.terrain autorisation=dash_project.autorisation documents=dash_project.documents programme_docs=dash_project.programme_docs finance_docs=dash_project.finance_docs planning_docs=dash_project.planning_docs financement=dash_project.financement fp_pct=dash_project.fp_pct cmt_pct=dash_project.cmt_pct planning_phases=dash_project.planning_phases edit_url=dash_project.edit_url list_url=dash_project.list_url %}
+  <div class="studio studio-detail" id="dash-root">
     <div class="studio-body studio-body-detail">
       {% include "projects/partials/project_info.html" %}
     </div>

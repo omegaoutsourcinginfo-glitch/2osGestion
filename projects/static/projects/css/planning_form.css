@@ -1,0 +1,34 @@
+/* Planning d'exécution — change form polish */
+
+body.model-planningexecution #content-main {
+  max-width: 960px;
+}
+
+/* Compact footer: soft delete, primary save */
+body.model-planningexecution #submit-row a[href*="/delete/"] {
+  background: transparent !important;
+  border: 1px solid #fecaca !important;
+  color: #b91c1c !important;
+  box-shadow: none !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  padding-inline: 0.85rem !important;
+  min-height: 2.35rem !important;
+  width: auto !important;
+  max-width: max-content;
+}
+
+body.model-planningexecution #submit-row a[href*="/delete/"]:hover {
+  background: #fef2f2 !important;
+  border-color: #f87171 !important;
+}
+
+body.model-planningexecution #submit-row button[name="_save"],
+body.model-planningexecution #submit-row input[name="_save"] {
+  min-width: 8rem;
+}
+
+body.model-planningexecution .readonly {
+  color: #8b1e2d !important;
+  font-weight: 700;
+}

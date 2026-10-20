@@ -1,11 +1,18 @@
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Sum
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Intervenant, Project, StructureFinancement
+from .models import (
+    FinancementDocument,
+    Intervenant,
+    PlanningDocument,
+    Project,
+    ProjectDocument,
+    StructureFinancement,
+)
 
 
 def _pct(part, total):
@@ -44,24 +51,49 @@ def _doc_entry(label, file_field, group):
 
 def collect_documents(project):
     documents = []
-    programme = related_or_none(project, "programme_technique")
-    if programme:
-        for label, field in [
-            ("Voirie (VRD)", programme.voirie_vrd_pdf),
-            ("Télécom / Fibre", programme.telecom_fibre_pdf),
-            ("Aménagement paysager", programme.amenagement_paysager_pdf),
-            ("Fiche lot / parcelle", programme.fiche_lot_parcelle_pdf),
-        ]:
-            entry = _doc_entry(label, field, "Programme technique")
+    for doc in project.documents.all():
+        entry = _doc_entry(doc.get_kind_display(), doc.fichier, "Programme technique")
+        if entry:
+            documents.append(entry)
+
+    financement = related_or_none(project, "structure_financement")
+    if financement is not None:
+        for doc in financement.documents.all():
+            entry = _doc_entry("Document financement", doc.fichier, "Financement")
             if entry:
                 documents.append(entry)
 
-    financement = related_or_none(project, "structure_financement")
-    if financement and financement.document_pdf:
-        entry = _doc_entry("Document financement", financement.document_pdf, "Financement")
-        if entry:
-            documents.append(entry)
+    planning = related_or_none(project, "planning_execution")
+    if planning is not None:
+        for doc in planning.documents.all():
+            entry = _doc_entry(doc.get_phase_display(), doc.fichier, "Planning")
+            if entry:
+                entry["phase"] = doc.phase
+                documents.append(entry)
     return documents
+
+
+def planning_phases_for_display(project):
+    """Always return the 3 fiche phases with their PDF lists."""
+    planning = related_or_none(project, "planning_execution")
+    docs_by_phase = {code: [] for code, _label in PlanningDocument.Phase.choices}
+    if planning is not None:
+        for doc in planning.documents.all():
+            entry = _doc_entry(doc.get_phase_display(), doc.fichier, "Planning")
+            if entry and doc.phase in docs_by_phase:
+                docs_by_phase[doc.phase].append(entry)
+    rows = []
+    for code, label in PlanningDocument.Phase.choices:
+        docs = docs_by_phase[code]
+        rows.append(
+            {
+                "code": code,
+                "label": label,
+                "docs": docs,
+                "filled": bool(docs),
+            }
+        )
+    return rows
 
 
 def build_crm_project(project):
@@ -74,16 +106,26 @@ def build_crm_project(project):
             cmt_pct = round(float(financement.credit_moyen_terme_cmt) / total * 100, 1)
 
     documents = collect_documents(project)
+    programme_docs = [d for d in documents if d["group"] == "Programme technique"]
+    finance_docs = [d for d in documents if d["group"] == "Financement"]
+    planning_docs = [d for d in documents if d["group"] == "Planning"]
+    planning_phases = planning_phases_for_display(project)
     return {
         "project": project,
         "terrain": related_or_none(project, "terrain_mere"),
         "autorisation": related_or_none(project, "autorisation"),
         "documents": documents,
-        "programme_has_docs": any(d["group"] == "Programme technique" for d in documents),
+        "programme_docs": programme_docs,
+        "finance_docs": finance_docs,
+        "planning_docs": planning_docs,
+        "programme_has_docs": bool(programme_docs),
         "financement": financement,
         "fp_pct": fp_pct,
         "cmt_pct": cmt_pct,
+        "planning_phases": planning_phases,
+        "planning_has_data": any(p["filled"] for p in planning_phases),
         "edit_url": reverse("admin:projects_project_change", args=[project.pk]),
+        "list_url": reverse("admin:projects_project_changelist"),
         "crm_url": f"{reverse('admin:index')}?projet={project.code}",
     }
 
@@ -96,7 +138,19 @@ def dashboard_callback(request, context):
                 Prefetch(
                     "intervenants",
                     queryset=Intervenant.objects.order_by("nom_ou_cabinet"),
-                )
+                ),
+                Prefetch(
+                    "documents",
+                    queryset=ProjectDocument.objects.order_by("kind", "-created_at"),
+                ),
+                Prefetch(
+                    "structure_financement__documents",
+                    queryset=FinancementDocument.objects.order_by("-created_at"),
+                ),
+                Prefetch(
+                    "planning_execution__documents",
+                    queryset=PlanningDocument.objects.order_by("phase", "-created_at"),
+                ),
             )
             .filter(code__iexact=selected_code)
             .first()
@@ -110,16 +164,19 @@ def dashboard_callback(request, context):
             )
             return context
 
-    projects = Project.objects.all()
+    projects = Project.objects.filter(is_archived=False)
     total = projects.count()
     instruction = projects.filter(statut_actuel=Project.StatutProjet.INSTRUCTION).count()
     execution = projects.filter(statut_actuel=Project.StatutProjet.EXECUTION).count()
     investissement = (
-        StructureFinancement.objects.aggregate(total=Sum("investissement_total"))["total"] or 0
+        StructureFinancement.objects.filter(project__is_archived=False).aggregate(
+            total=Sum("investissement_total")
+        )["total"]
+        or 0
     )
 
     recent = []
-    for project in Project.objects.order_by("-updated_at", "-code")[:12]:
+    for project in Project.objects.filter(is_archived=False).order_by("-updated_at", "-code")[:12]:
         recent.append(
             {
                 "code": project.code,

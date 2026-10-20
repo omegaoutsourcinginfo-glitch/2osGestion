@@ -57,6 +57,11 @@ class Project(TimeStampedModel):
         default=StatutProjet.INSTRUCTION,
         verbose_name="Statut actuel du projet"
     )
+    is_archived = models.BooleanField(
+        default=False,
+        verbose_name="Archivé",
+        help_text="Les projets archivés sont masqués de la liste principale.",
+    )
     intervenants = models.ManyToManyField(
         Intervenant,
         blank=True,
@@ -178,16 +183,6 @@ class Autorisation(TimeStampedModel):
 DOCUMENT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "dwg"]
 
 
-def document_field(label):
-    return models.FileField(
-        upload_to="programme_technique/%Y/%m/",
-        blank=True,
-        validators=[FileExtensionValidator(DOCUMENT_EXTENSIONS)],
-        verbose_name=f"Document {label}",
-        help_text="PDF, image (JPG, PNG), Word (DOC, DOCX) ou AutoCAD (DWG)"
-    )
-
-
 class ProgrammeTechnique(TimeStampedModel):
     project = models.OneToOneField(
         Project,
@@ -196,10 +191,6 @@ class ProgrammeTechnique(TimeStampedModel):
         verbose_name="Projet"
     )
     voirie_vrd = models.BooleanField(default=False, verbose_name="Voirie (VRD)")
-    voirie_vrd_pdf = document_field("Voirie (VRD)")
-    telecom_fibre_pdf = document_field("Télécom / Fibre")
-    amenagement_paysager_pdf = document_field("Aménagement paysager")
-    fiche_lot_parcelle_pdf = document_field("Fiche lot / parcelle")
     observations = models.TextField(blank=True, verbose_name="Observations")
 
     class Meta:
@@ -208,6 +199,42 @@ class ProgrammeTechnique(TimeStampedModel):
 
     def __str__(self):
         return f"Programme technique ({self.project.code})"
+
+
+class ProjectDocument(TimeStampedModel):
+    """Plusieurs fichiers par type de document technique."""
+
+    class Kind(models.TextChoices):
+        VOIRIE_VRD = "VOIRIE_VRD", "Voirie (VRD)"
+        TELECOM_FIBRE = "TELECOM_FIBRE", "Télécom / Fibre"
+        AMENAGEMENT_PAYSAGER = "AMENAGEMENT_PAYSAGER", "Aménagement paysager"
+        FICHE_LOT_PARCELLE = "FICHE_LOT_PARCELLE", "Fiche lot / parcelle"
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Projet",
+    )
+    kind = models.CharField(
+        max_length=32,
+        choices=Kind.choices,
+        verbose_name="Type de document",
+    )
+    fichier = models.FileField(
+        upload_to="programme_technique/%Y/%m/",
+        validators=[FileExtensionValidator(DOCUMENT_EXTENSIONS)],
+        verbose_name="Fichier",
+        help_text="PDF, image (JPG, PNG), Word (DOC, DOCX) ou AutoCAD (DWG)",
+    )
+
+    class Meta:
+        verbose_name = "Document technique"
+        verbose_name_plural = "Documents techniques"
+        ordering = ["kind", "-created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} — {self.project.code}"
 
 
 class StructureFinancement(TimeStampedModel):
@@ -226,13 +253,6 @@ class StructureFinancement(TimeStampedModel):
     investissement_total = models.DecimalField(
         max_digits=16, decimal_places=2, default=0, editable=False, verbose_name="Total investissement (DH)"
     )
-    document_pdf = models.FileField(
-        upload_to="financement/%Y/%m/",
-        blank=True,
-        validators=[FileExtensionValidator(["pdf"])],
-        verbose_name="Document financement (PDF)",
-        help_text="PDF uniquement"
-    )
 
     class Meta:
         verbose_name = "Planning financier & structure de financement"
@@ -244,3 +264,87 @@ class StructureFinancement(TimeStampedModel):
     def save(self, *args, **kwargs):
         self.investissement_total = self.fonds_propres_fp + self.credit_moyen_terme_cmt
         super().save(*args, **kwargs)
+
+
+class FinancementDocument(TimeStampedModel):
+    """Plusieurs PDF de financement par structure."""
+
+    financement = models.ForeignKey(
+        StructureFinancement,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Financement",
+    )
+    fichier = models.FileField(
+        upload_to="financement/%Y/%m/",
+        validators=[FileExtensionValidator(["pdf"])],
+        verbose_name="Document financement (PDF)",
+        help_text="PDF uniquement — plusieurs fichiers possibles",
+    )
+
+    class Meta:
+        verbose_name = "Document financement"
+        verbose_name_plural = "Documents financement"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"PDF financement ({self.financement.project.code})"
+
+
+class PlanningExecution(TimeStampedModel):
+    """Conteneur OneToOne — PDFs par phase via le menu latéral."""
+
+    project = models.OneToOneField(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="planning_execution",
+        verbose_name="Projet",
+    )
+
+    class Meta:
+        verbose_name = "Planning d'exécution"
+        verbose_name_plural = "Planning d'exécution du projet"
+
+    def __str__(self):
+        return f"Planning d'exécution ({self.project.code})"
+
+
+class PlanningDocument(TimeStampedModel):
+    """Plusieurs PDF par phase de planning d'exécution."""
+
+    class Phase(models.TextChoices):
+        ETUDES = "ETUDES", "Études techniques, géotechniques & Permis"
+        VIABILISATION = "VIABILISATION", "Travaux de Viabilisation (VRD & Réseaux)"
+        RECEPTION = "RECEPTION", "Réception provisoire & Titres fonciers individuels"
+
+    PHASE_ORDER = {
+        Phase.ETUDES: 1,
+        Phase.VIABILISATION: 2,
+        Phase.RECEPTION: 3,
+    }
+
+    planning = models.ForeignKey(
+        PlanningExecution,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Planning",
+    )
+    phase = models.CharField(
+        max_length=32,
+        choices=Phase.choices,
+        verbose_name="Phase de projet",
+    )
+    fichier = models.FileField(
+        upload_to="planning_execution/%Y/%m/",
+        validators=[FileExtensionValidator(["pdf"])],
+        verbose_name="PDF",
+        help_text="PDF uniquement — plusieurs fichiers possibles par phase",
+    )
+
+    class Meta:
+        verbose_name = "PDF planning d'exécution"
+        verbose_name_plural = "PDFs planning d'exécution"
+        ordering = ["phase", "-created_at"]
+
+    def __str__(self):
+        return f"{self.get_phase_display()} — {self.planning.project.code}"
