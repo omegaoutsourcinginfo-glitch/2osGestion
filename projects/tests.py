@@ -417,13 +417,13 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Voir la fiche")
         self.assertContains(response, "Modifier")
-        self.assertContains(response, "Archiver")
+        self.assertContains(response, "Voir archive")
         self.assertContains(response, f"/admin/projects/project/{project.pk}/voir-fiche/")
         self.assertContains(response, f"/admin/projects/project/{project.pk}/modifier/")
-        self.assertContains(response, f"/admin/projects/project/{project.pk}/archiver/")
+        self.assertContains(response, f"/admin/projects/project/{project.pk}/voir-archive/")
         self.assertContains(response, "Archives")
 
-        archive = self.client.get(f"/admin/projects/project/{project.pk}/archiver/")
+        archive = self.client.get(f"/admin/projects/project/{project.pk}/voir-archive/")
         self.assertEqual(archive.status_code, 302)
         project.refresh_from_db()
         self.assertTrue(project.is_archived)
@@ -435,10 +435,41 @@ class ProjectAdminTests(TestCase):
         archives = self.client.get("/admin/projects/project/?is_archived__exact=1")
         self.assertContains(archives, f'data-detail-url="{project.get_absolute_url()}"')
 
-        restore = self.client.get(f"/admin/projects/project/{project.pk}/archiver/")
+        restore = self.client.get(f"/admin/projects/project/{project.pk}/voir-archive/")
         self.assertEqual(restore.status_code, 302)
         project.refresh_from_db()
         self.assertFalse(project.is_archived)
+
+    def test_financement_row_three_dot_archive(self):
+        project = Project.objects.create(**FIELDS)
+        financement = StructureFinancement.objects.create(project=project)
+        response = self.client.get("/admin/projects/structurefinancement/")
+        self.assertContains(response, "Modifier")
+        self.assertContains(response, "Voir archive")
+        self.assertContains(response, "Archives")
+        self.assertContains(
+            response,
+            f"/admin/projects/structurefinancement/{financement.pk}/modifier-row/",
+        )
+        self.assertContains(
+            response,
+            f"/admin/projects/structurefinancement/{financement.pk}/voir-archive/",
+        )
+
+        archive = self.client.get(
+            f"/admin/projects/structurefinancement/{financement.pk}/voir-archive/"
+        )
+        self.assertEqual(archive.status_code, 302)
+        project.refresh_from_db()
+        self.assertTrue(project.is_archived)
+
+        listing = self.client.get("/admin/projects/structurefinancement/")
+        self.assertContains(listing, "No results found")
+
+        archives = self.client.get(
+            "/admin/projects/structurefinancement/?project__is_archived__exact=1"
+        )
+        self.assertContains(archives, project.code)
 
     def test_add_with_project_query_redirects_to_edit(self):
         project = Project.objects.create(**FIELDS)
@@ -603,6 +634,39 @@ class ProjectAdminTests(TestCase):
         list_page = self.client.get("/admin/projects/planningexecution/")
         self.assertContains(list_page, project.code)
         self.assertNotContains(list_page, 'name="_selected_action"')
+        self.assertContains(list_page, "Actions")
+        self.assertContains(list_page, "field-actions_holder")
+        self.assertContains(list_page, "Modifier")
+        self.assertContains(list_page, "Voir archive")
+        self.assertContains(list_page, "Archives")
+        self.assertContains(
+            list_page,
+            f"/admin/projects/planningexecution/{planning.pk}/modifier-row/",
+        )
+        self.assertContains(
+            list_page,
+            f"/admin/projects/planningexecution/{planning.pk}/voir-archive/",
+        )
+
+        archive = self.client.get(
+            f"/admin/projects/planningexecution/{planning.pk}/voir-archive/"
+        )
+        self.assertEqual(archive.status_code, 302)
+        project.refresh_from_db()
+        self.assertTrue(project.is_archived)
+
+        # Archived plannings leave the default list (ignore flash messages).
+        listing = self.client.get("/admin/projects/planningexecution/")
+        self.assertContains(listing, "No results found")
+
+        archives = self.client.get(
+            "/admin/projects/planningexecution/?project__is_archived__exact=1"
+        )
+        self.assertContains(archives, project.code)
+        self.assertContains(
+            archives,
+            f"/admin/projects/planningexecution/{planning.pk}/voir-archive/",
+        )
 
     def test_planning_execution_multiple_pdfs(self):
         project = Project.objects.create(**FIELDS)

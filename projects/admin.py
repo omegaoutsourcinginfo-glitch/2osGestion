@@ -22,7 +22,7 @@ from .models import (
 
 
 class EditUpdateActionsMixin:
-    """Adds a visible Modifier button on each changelist row."""
+    """Adds Modifier in the row three-dot menu."""
 
     actions_row = ["modifier"]
 
@@ -32,13 +32,70 @@ class EditUpdateActionsMixin:
         variant=ActionVariant.PRIMARY,
         url_path="modifier",
         permissions=["change"],
-        extra_options={"display_in_dropdown": False},
     )
     def modifier(self, request, object_id):
         opts = self.model._meta
         return redirect(
             reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[object_id])
         )
+
+
+class ProjectArchiveRowMixin:
+    """Three-dot Voir archive + list Archives for models linked to Project."""
+
+    archive_changelist_flag = "_related_project_changelist"
+    actions_list = ["voir_archives"]
+
+    def changelist_view(self, request, extra_context=None):
+        setattr(request, self.archive_changelist_flag, True)
+        return super().changelist_view(request, extra_context)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if getattr(request, self.archive_changelist_flag, False):
+            if (
+                "project__is_archived__exact" not in request.GET
+                and "project__is_archived" not in request.GET
+            ):
+                qs = qs.filter(project__is_archived=False)
+        return qs
+
+    def _changelist_url(self):
+        opts = self.model._meta
+        return reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+
+    def _toggle_project_archive(self, request, project):
+        if project.is_archived:
+            project.is_archived = False
+            project.save(update_fields=["is_archived", "updated_at"])
+            messages.success(request, f"{project.code} a été désarchivé.")
+        else:
+            project.is_archived = True
+            project.save(update_fields=["is_archived", "updated_at"])
+            messages.success(request, f"{project.code} a été archivé.")
+        return redirect(self._changelist_url())
+
+    @action(
+        description="Voir archive",
+        icon="archive",
+        variant=ActionVariant.DEFAULT,
+        url_path="voir-archive",
+        permissions=["change"],
+    )
+    def voir_archive(self, request, object_id):
+        obj = self.get_object(request, object_id)
+        if obj is None:
+            return redirect(self._changelist_url())
+        return self._toggle_project_archive(request, obj.project)
+
+    @action(
+        description="Archives",
+        icon="inventory_2",
+        url_path="voir-archives",
+        permissions=["view"],
+    )
+    def voir_archives(self, request):
+        return redirect(f"{self._changelist_url()}?project__is_archived__exact=1")
 
 
 class SimpleSaveMixin:
@@ -149,8 +206,8 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
     )
     actions_detail = ["voir_fiche", "modifier", "modifier_financement", "modifier_planning"]
     actions_list = ["voir_archives"]
-    # Row: Fiche + Modifier + Archiver
-    actions_row = ["voir_fiche", "modifier", "archiver"]
+    # Three-dot row menu: Fiche + Modifier + Voir archive
+    actions_row = ["voir_fiche", "modifier", "voir_archive"]
 
     class Media:
         js = ("projects/js/changelist_row_detail.js",)
@@ -221,7 +278,6 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         variant=ActionVariant.PRIMARY,
         url_path="voir-fiche",
         permissions=["view"],
-        extra_options={"display_in_dropdown": False},
     )
     def voir_fiche(self, request, object_id):
         project = self.get_object(request, object_id)
@@ -233,7 +289,6 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         variant=ActionVariant.PRIMARY,
         url_path="modifier",
         permissions=["change"],
-        extra_options={"display_in_dropdown": False},
     )
     def modifier(self, request, object_id):
         return redirect(
@@ -241,14 +296,13 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         )
 
     @action(
-        description="Archiver",
+        description="Voir archive",
         icon="archive",
         variant=ActionVariant.DEFAULT,
-        url_path="archiver",
+        url_path="voir-archive",
         permissions=["change"],
-        extra_options={"display_in_dropdown": False},
     )
-    def archiver(self, request, object_id):
+    def voir_archive(self, request, object_id):
         project = self.get_object(request, object_id)
         if project is None:
             return redirect(reverse("admin:projects_project_changelist"))
@@ -357,7 +411,7 @@ class StructureFinancementAdminForm(forms.ModelForm):
 
 
 @admin.register(StructureFinancement)
-class StructureFinancementAdmin(SimpleSaveMixin, ModelAdmin):
+class StructureFinancementAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
     form = StructureFinancementAdminForm
     # No bulk checkboxes on the changelist.
     actions = None
@@ -373,11 +427,13 @@ class StructureFinancementAdmin(SimpleSaveMixin, ModelAdmin):
     show_full_result_count = True
     list_select_related = ("project",)
     search_fields = ("project__code", "project__titre")
+    list_filter = ("project__is_archived",)
     ordering = ("-project__code",)
     readonly_fields = ("total_live", "created_at", "updated_at")
     inlines = (FinancementDocumentInline,)
-    # Three-dot row menu
-    actions_row = ["modifier_financement_row"]
+    # Three-dot row menu: Modifier + Voir archive
+    actions_row = ["modifier_financement_row", "voir_archive"]
+    actions_list = ["voir_archives"]
 
     class Media:
         js = ("projects/js/financement_total.js",)
@@ -461,7 +517,6 @@ class StructureFinancementAdmin(SimpleSaveMixin, ModelAdmin):
         variant=ActionVariant.PRIMARY,
         url_path="modifier-row",
         permissions=["change"],
-        extra_options={"display_in_dropdown": False},
     )
     def modifier_financement_row(self, request, object_id):
         return redirect(
@@ -502,7 +557,7 @@ class PlanningExecutionAdminForm(forms.ModelForm):
 
 
 @admin.register(PlanningExecution)
-class PlanningExecutionAdmin(SimpleSaveMixin, ModelAdmin):
+class PlanningExecutionAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
     form = PlanningExecutionAdminForm
     actions = None
     list_display = ("project_code", "project_titre", "phases_count", "updated_at")
@@ -511,10 +566,13 @@ class PlanningExecutionAdmin(SimpleSaveMixin, ModelAdmin):
     show_full_result_count = True
     list_select_related = ("project",)
     search_fields = ("project__code", "project__titre")
+    list_filter = ("project__is_archived",)
     ordering = ("-project__code",)
     readonly_fields = ()
     inlines = (PlanningDocumentInline,)
-    actions_row = ["modifier_planning_row"]
+    # Three-dot row menu: Modifier + Voir archive
+    actions_row = ["modifier_planning_row", "voir_archive"]
+    actions_list = ["voir_archives"]
     change_form_show_cancel_button = True
 
     class Media:
@@ -589,7 +647,6 @@ class PlanningExecutionAdmin(SimpleSaveMixin, ModelAdmin):
         variant=ActionVariant.PRIMARY,
         url_path="modifier-row",
         permissions=["change"],
-        extra_options={"display_in_dropdown": False},
     )
     def modifier_planning_row(self, request, object_id):
         return redirect(
