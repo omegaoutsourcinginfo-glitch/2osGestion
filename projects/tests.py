@@ -39,6 +39,8 @@ EMPTY_INLINES = {
     "Project_intervenants-INITIAL_FORMS": "0",
     "documents-TOTAL_FORMS": "0",
     "documents-INITIAL_FORMS": "0",
+    "images-TOTAL_FORMS": "0",
+    "images-INITIAL_FORMS": "0",
 }
 
 EMPTY_FINANCE_DOCS = {
@@ -603,13 +605,34 @@ class ProjectAdminTests(TestCase):
         self.assertContains(detail, "data-tab=\"financement\"")
         self.assertContains(detail, "data-subtab=\"structure\"")
         self.assertContains(detail, "data-subtab=\"documents\"")
+        self.assertContains(detail, "data-tab=\"photos\"")
+        self.assertContains(detail, "Photos du projet")
         self.assertContains(detail, "data-tab=\"planning\"")
         self.assertContains(detail, "Planning d'exécution du projet")
         self.assertContains(detail, "Études techniques, géotechniques &amp; Permis")
         self.assertContains(detail, "Travaux de Viabilisation (VRD &amp; Réseaux)")
         self.assertContains(detail, "Réception provisoire &amp; Titres fonciers individuels")
+        self.assertContains(detail, "data-tab=\"annexes\"")
+        self.assertContains(detail, "ÉLÉMENTS COMPLÉMENTAIRES")
+        self.assertContains(detail, "Certificat de propriété récent")
+        self.assertContains(detail, "Maître d")
+        self.assertContains(detail, "Administration / Commune")
         self.assertNotContains(detail, "Date de début")
         self.assertNotContains(detail, "studio-metrics")
+
+        annexes_redirect = self.client.get("/admin/annexes/")
+        self.assertEqual(annexes_redirect.status_code, 302)
+        self.assertIn("/admin/projects/annexedossier/", annexes_redirect.url)
+
+        annexes_list = self.client.get("/admin/projects/annexedossier/")
+        self.assertEqual(annexes_list.status_code, 200)
+        self.assertContains(annexes_list, "Annexes")
+
+        add_page = self.client.get("/admin/projects/annexedossier/add/")
+        self.assertEqual(add_page.status_code, 200)
+        self.assertContains(add_page, "documents-TOTAL_FORMS")
+        self.assertContains(add_page, "Pièces jointes")
+        self.assertContains(add_page, "Certificat de propriété")
 
     def test_planning_execution_via_sidebar_admin(self):
         project = Project.objects.create(**FIELDS)

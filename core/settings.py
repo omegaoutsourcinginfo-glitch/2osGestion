@@ -132,12 +132,13 @@ UNFOLD = {
     "DASHBOARD_CALLBACK": "projects.views.dashboard_callback",
     "STYLES": [
         lambda request: static("projects/css/dashboard.css"),
+        lambda request: static("projects/css/admin_form.css"),
     ],
     "SCRIPTS": [
         lambda request: static("projects/js/dashboard.js"),
     ],
     "COLORS": {
-        # Maroon accent (same family as Omega admin)
+        # Maroon accent (brand)
         "primary": {
             "50": "#fdf2f4",
             "100": "#f8e9ec",
@@ -191,6 +192,14 @@ UNFOLD = {
                         "icon": "calendar_month",
                         "link": reverse_lazy("admin:projects_planningexecution_changelist"),
                         "permission": lambda request: request.user.has_perm("projects.view_planningexecution"),
+                    },
+                    {
+                        "title": "Annexes",
+                        "icon": "attachment",
+                        "link": reverse_lazy("admin:projects_annexedossier_changelist"),
+                        "permission": lambda request: request.user.has_perm(
+                            "projects.view_annexedossier"
+                        ),
                     },
                 ],
             },

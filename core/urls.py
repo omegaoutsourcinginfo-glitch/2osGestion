@@ -19,9 +19,16 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from django.shortcuts import redirect
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('projets/', include('projects.urls')),
+    path(
+        "admin/annexes/",
+        lambda request: redirect("admin:projects_annexedossier_changelist"),
+        name="admin_annexes",
+    ),
+    path("admin/", admin.site.urls),
+    path("projets/", include("projects.urls")),
 ]
 
 if settings.DEBUG:

@@ -11,6 +11,7 @@ from .models import (
     PlanningDocument,
     Project,
     ProjectDocument,
+    ProjectImage,
     StructureFinancement,
 )
 
@@ -96,6 +97,15 @@ def planning_phases_for_display(project):
     return rows
 
 
+ANNEXES_OBLIGATOIRES = [
+    "Certificat de propriété récent (ANCFCC) du Titre Foncier Mère.",
+    "Plan Cadastral et Calque topographique restitué par l'IGT.",
+    "Plan d'Architecture & Plan de Lotissement autorisés « Ne Varietur ».",
+    "Attestations d'approbation des concessionnaires (Eaux, Électricité, Télécom).",
+    "Cahier des charges du projet et PV de réception provisoire/définitive.",
+]
+
+
 def build_crm_project(project):
     financement = related_or_none(project, "structure_financement")
     fp_pct = cmt_pct = 0
@@ -110,6 +120,15 @@ def build_crm_project(project):
     finance_docs = [d for d in documents if d["group"] == "Financement"]
     planning_docs = [d for d in documents if d["group"] == "Planning"]
     planning_phases = planning_phases_for_display(project)
+    project_images = [
+        {
+            "url": img.image.url,
+            "legende": img.legende,
+            "name": img.image.name.rsplit("/", 1)[-1],
+        }
+        for img in project.images.all()
+        if img.image
+    ]
     return {
         "project": project,
         "terrain": related_or_none(project, "terrain_mere"),
@@ -119,11 +138,13 @@ def build_crm_project(project):
         "finance_docs": finance_docs,
         "planning_docs": planning_docs,
         "programme_has_docs": bool(programme_docs),
+        "project_images": project_images,
         "financement": financement,
         "fp_pct": fp_pct,
         "cmt_pct": cmt_pct,
         "planning_phases": planning_phases,
         "planning_has_data": any(p["filled"] for p in planning_phases),
+        "annexes_pieces": ANNEXES_OBLIGATOIRES,
         "edit_url": reverse("admin:projects_project_change", args=[project.pk]),
         "list_url": reverse("admin:projects_project_changelist"),
         "crm_url": f"{reverse('admin:index')}?projet={project.code}",
@@ -142,6 +163,10 @@ def dashboard_callback(request, context):
                 Prefetch(
                     "documents",
                     queryset=ProjectDocument.objects.order_by("kind", "-created_at"),
+                ),
+                Prefetch(
+                    "images",
+                    queryset=ProjectImage.objects.order_by("ordre", "-created_at"),
                 ),
                 Prefetch(
                     "structure_financement__documents",
@@ -208,3 +233,5 @@ def dashboard_callback(request, context):
 def project_detail(request, code):
     get_object_or_404(Project, code=code)
     return redirect(f"{reverse('admin:index')}?projet={code}")
+
+

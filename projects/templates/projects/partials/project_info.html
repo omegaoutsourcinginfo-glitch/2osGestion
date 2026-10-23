@@ -49,8 +49,10 @@
       <button type="button" class="is-active" role="tab" aria-selected="true" data-tab="general">Général</button>
       <button type="button" role="tab" aria-selected="false" data-tab="localisation">Localisation</button>
       <button type="button" role="tab" aria-selected="false" data-tab="technique">Technique</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="photos">Photos</button>
       <button type="button" role="tab" aria-selected="false" data-tab="financement">Financement</button>
       <button type="button" role="tab" aria-selected="false" data-tab="planning">Planning</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="annexes">Annexes</button>
     </div>
 
     <div class="pi-tabpanel is-active" data-panel="general" role="tabpanel">
@@ -165,6 +167,26 @@
       </div>
     </div>
 
+    <div class="pi-tabpanel" data-panel="photos" role="tabpanel" hidden id="photos">
+      <div class="project-info-grid">
+        <section class="is-wide">
+          <h2>Photos du projet</h2>
+          {% if project_images %}
+          <div class="project-gallery">
+            {% for img in project_images %}
+            <a class="project-gallery-item" href="{{ img.url }}" target="_blank" rel="noopener" title="{{ img.legende|default:img.name }}">
+              <img src="{{ img.url }}" alt="{{ img.legende|default:img.name }}">
+              {% if img.legende %}<span>{{ img.legende }}</span>{% endif %}
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="empty">Aucune photo</p>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+
     <div class="pi-tabpanel" data-panel="financement" role="tabpanel" hidden id="financement">
       <div class="pi-subtabs" data-pi-subtabs>
         <div class="pi-tablist pi-subtablist" role="tablist" aria-label="Sections financement">
@@ -249,6 +271,10 @@
           {% endfor %}
         </section>
       </div>
+    </div>
+
+    <div class="pi-tabpanel" data-panel="annexes" role="tabpanel" hidden id="annexes">
+      {% include "projects/partials/annexes_sheet.html" %}
     </div>
   </div>
 </article>

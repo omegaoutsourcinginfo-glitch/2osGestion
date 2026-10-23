@@ -1,0 +1,28 @@
+<div class="annexes-sheet">
+  <header class="annexes-banner">
+    5. ÉLÉMENTS COMPLÉMENTAIRES &amp; ANNEXES OBLIGATOIRES
+  </header>
+
+  <div class="annexes-body">
+    <h3 class="annexes-subtitle">
+      Pièces jointes requises au dossier administratif
+      <span dir="rtl">/ المرفقات الإجبارية الواجب إرفاقها :</span>
+    </h3>
+    <ul class="annexes-list">
+      {% for piece in annexes_pieces %}
+      <li>{{ piece }}</li>
+      {% endfor %}
+    </ul>
+
+    <div class="annexes-signatures">
+      <div class="annexes-sign-box">
+        <strong>Le Maître d’Ouvrage / L’Architecte</strong>
+        <span>(Signature et Cachet)</span>
+      </div>
+      <div class="annexes-sign-box">
+        <strong>Cadre Réservé à l’Administration / Commune</strong>
+        <span>(Visa et Validation)</span>
+      </div>
+    </div>
+  </div>
+</div>

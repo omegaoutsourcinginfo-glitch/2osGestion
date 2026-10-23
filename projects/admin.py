@@ -9,6 +9,8 @@ from unfold.decorators import action
 from unfold.enums import ActionVariant
 
 from .models import (
+    AnnexeDocument,
+    AnnexeDossier,
     Autorisation,
     FinancementDocument,
     Intervenant,
@@ -16,6 +18,7 @@ from .models import (
     PlanningExecution,
     Project,
     ProjectDocument,
+    ProjectImage,
     StructureFinancement,
     TerrainMere,
 )
@@ -165,6 +168,15 @@ class ProjectDocumentInline(TabularInline):
     verbose_name_plural = "Documents techniques (plusieurs par type)"
 
 
+class ProjectImageInline(TabularInline):
+    model = ProjectImage
+    extra = 2
+    tab = True
+    fields = ("image", "legende", "ordre")
+    verbose_name = "Image"
+    verbose_name_plural = "Images du projet (plusieurs)"
+
+
 class FinancementDocumentInline(TabularInline):
     model = FinancementDocument
     extra = 1
@@ -179,6 +191,15 @@ class PlanningDocumentInline(TabularInline):
     fields = ("phase", "fichier")
     verbose_name = "PDF"
     verbose_name_plural = "PDFs par phase (plusieurs fichiers)"
+    tab = True
+
+
+class AnnexeDocumentInline(TabularInline):
+    model = AnnexeDocument
+    extra = 1
+    fields = ("kind", "fichier")
+    verbose_name = "PDF"
+    verbose_name_plural = "Pièces jointes (PDF)"
     tab = True
 
 
@@ -203,6 +224,7 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         AutorisationInline,
         IntervenantInline,
         ProjectDocumentInline,
+        ProjectImageInline,
     )
     actions_detail = ["voir_fiche", "modifier", "modifier_financement", "modifier_planning"]
     actions_list = ["voir_archives"]
@@ -651,4 +673,127 @@ class PlanningExecutionAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin
     def modifier_planning_row(self, request, object_id):
         return redirect(
             reverse("admin:projects_planningexecution_change", args=[object_id])
+        )
+
+
+class AnnexeDossierAdminForm(forms.ModelForm):
+    """Un seul dossier annexes par projet."""
+
+    class Meta:
+        model = AnnexeDossier
+        fields = "__all__"
+
+    def validate_unique(self):
+        exclude = self._get_validation_exclusions()
+        if not self.instance.pk:
+            exclude.add("project")
+        try:
+            self.instance.validate_unique(exclude=exclude)
+        except ValidationError as error:
+            self._update_errors(error)
+
+    def save(self, commit=True):
+        if not self.instance.pk:
+            existing = AnnexeDossier.objects.filter(
+                project=self.cleaned_data["project"]
+            ).first()
+            if existing is not None:
+                self.instance = existing
+                if commit:
+                    existing.save()
+                    self._save_m2m()
+                else:
+                    self.save_m2m = self._save_m2m
+                return existing
+        return super().save(commit=commit)
+
+
+@admin.register(AnnexeDossier)
+class AnnexeDossierAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
+    form = AnnexeDossierAdminForm
+    actions = None
+    list_display = ("project_code", "project_titre", "docs_count", "updated_at")
+    list_display_links = ("project_code", "project_titre")
+    list_per_page = 25
+    show_full_result_count = True
+    list_select_related = ("project",)
+    search_fields = ("project__code", "project__titre")
+    list_filter = ("project__is_archived",)
+    ordering = ("-project__code",)
+    inlines = (AnnexeDocumentInline,)
+    actions_row = ["modifier_annexe_row", "voir_archive"]
+    actions_list = ["voir_archives"]
+    change_form_show_cancel_button = True
+
+    class Media:
+        css = {"all": ("projects/css/changelist_row.css",)}
+
+    fieldsets = (
+        (
+            "Projet",
+            {
+                "fields": ("project",),
+                "description": (
+                    "Choisissez le projet, puis ajoutez les pièces jointes PDF "
+                    "(certificat ANCFCC, plans, attestations, cahier des charges)."
+                ),
+            },
+        ),
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ("project",)
+        return ()
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        project_id = request.GET.get("project")
+        if project_id and Project.objects.filter(pk=project_id).exists():
+            initial["project"] = project_id
+        return initial
+
+    def add_view(self, request, form_url="", extra_context=None):
+        if request.method == "GET":
+            project_id = request.GET.get("project")
+            if project_id:
+                existing = AnnexeDossier.objects.filter(project_id=project_id).first()
+                if existing is not None:
+                    messages.info(
+                        request,
+                        f"Le projet a déjà des annexes — modification de {existing.project.code}.",
+                    )
+                    return redirect(
+                        reverse(
+                            "admin:projects_annexedossier_change",
+                            args=[existing.pk],
+                        )
+                    )
+        return super().add_view(request, form_url, extra_context)
+
+    def get_actions(self, request):
+        return {}
+
+    @admin.display(description="Code projet", ordering="project__code")
+    def project_code(self, obj):
+        return obj.project.code
+
+    @admin.display(description="Titre projet", ordering="project__titre")
+    def project_titre(self, obj):
+        return obj.project.titre
+
+    @admin.display(description="PDFs")
+    def docs_count(self, obj):
+        return obj.documents.count()
+
+    @action(
+        description="Modifier",
+        icon="edit",
+        variant=ActionVariant.PRIMARY,
+        url_path="modifier-row",
+        permissions=["change"],
+    )
+    def modifier_annexe_row(self, request, object_id):
+        return redirect(
+            reverse("admin:projects_annexedossier_change", args=[object_id])
         )

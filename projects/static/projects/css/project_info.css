@@ -462,6 +462,140 @@
   border-bottom: 0;
 }
 
+/* Galerie photos projet */
+.project-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem 1rem;
+}
+
+.project-gallery-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-decoration: none !important;
+  color: inherit !important;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.project-gallery-item:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(139, 30, 45, 0.12);
+}
+
+.project-gallery-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
+.project-gallery-item span {
+  padding: 0 0.65rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+/* Section 5 — Annexes obligatoires (fiche officielle) */
+.annexes-sheet {
+  --annex-navy: #1e3a5f;
+  --annex-line: #d1d5db;
+  background: #fff;
+  border: 1px solid var(--annex-line);
+  border-radius: 0.55rem;
+  overflow: hidden;
+}
+
+.annexes-banner {
+  margin: 0;
+  padding: 0.75rem 1.1rem;
+  background: var(--annex-navy);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.annexes-body {
+  padding: 1.1rem 1.15rem 1.35rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.annexes-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.annexes-subtitle span {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.annexes-list {
+  margin: 0;
+  padding: 0.85rem 0.85rem 0.85rem 1.6rem;
+  border: 1px solid var(--annex-line);
+  border-radius: 0.45rem;
+  background: #fafafa;
+  display: grid;
+  gap: 0.55rem;
+  list-style: disc;
+}
+
+.annexes-list li {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.annexes-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.35rem;
+}
+
+.annexes-sign-box {
+  min-height: 9.5rem;
+  padding: 1rem 1.05rem;
+  border: 1.5px dashed #9ca3af;
+  border-radius: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #fff;
+}
+
+.annexes-sign-box strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.annexes-sign-box span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  .annexes-signatures {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .project-info-meta {
     grid-template-columns: 1fr 1fr;

@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}Annexes | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'projects/css/project_info.css' %}">
+<link rel="stylesheet" href="{% static 'projects/css/dashboard.css' %}">
+
+<div class="studio studio-detail" id="dash-root">
+  <div class="studio-body studio-body-detail">
+    <header class="studio-head" style="margin-bottom: 1rem;">
+      <div>
+        <p class="studio-eyebrow">Dossier administratif</p>
+        <h1 class="studio-title">Annexes obligatoires</h1>
+      </div>
+      <div class="studio-cta">
+        <a class="is-soft" href="{% url 'admin:projects_project_changelist' %}">Tous les projets</a>
+      </div>
+    </header>
+
+    {% include "projects/partials/annexes_sheet.html" %}
+
+    {% if projects %}
+    <section class="studio-list" aria-label="Projets" style="margin-top: 1.25rem;">
+      <div class="studio-list-head">
+        <h2>Ouvrir la fiche projet</h2>
+      </div>
+      <ol>
+        {% for project in projects %}
+        <li>
+          <a href="{% url 'admin:index' %}?projet={{ project.code }}#annexes">
+            <span class="studio-code">{{ project.code }}</span>
+            <span class="studio-info">
+              <span class="studio-name">{{ project.titre }}</span>
+              <span class="studio-place">{{ project.commune|truncatechars:40 }}</span>
+            </span>
+            <span class="studio-status {% if project.statut_actuel == 'EXECUTION' %}is-exec{% endif %}">
+              {{ project.get_statut_actuel_display }}
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

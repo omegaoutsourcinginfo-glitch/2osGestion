@@ -237,6 +237,37 @@ class ProjectDocument(TimeStampedModel):
         return f"{self.get_kind_display()} — {self.project.code}"
 
 
+class ProjectImage(TimeStampedModel):
+    """Plusieurs photos par projet (galerie)."""
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name="Projet",
+    )
+    image = models.ImageField(
+        upload_to="projets/images/%Y/%m/",
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp", "gif"])],
+        verbose_name="Image",
+        help_text="JPG, PNG, WEBP ou GIF — plusieurs images possibles",
+    )
+    legende = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Légende",
+    )
+    ordre = models.PositiveIntegerField(default=0, verbose_name="Ordre")
+
+    class Meta:
+        verbose_name = "Image projet"
+        verbose_name_plural = "Images projet"
+        ordering = ["ordre", "-created_at"]
+
+    def __str__(self):
+        return self.legende or f"Image — {self.project.code}"
+
+
 class StructureFinancement(TimeStampedModel):
     project = models.OneToOneField(
         Project,
@@ -348,3 +379,73 @@ class PlanningDocument(TimeStampedModel):
 
     def __str__(self):
         return f"{self.get_phase_display()} — {self.planning.project.code}"
+
+
+class AnnexeDossier(TimeStampedModel):
+    """Conteneur OneToOne — pièces jointes PDF du dossier administratif."""
+
+    project = models.OneToOneField(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="annexe_dossier",
+        verbose_name="Projet",
+    )
+
+    class Meta:
+        verbose_name = "Annexe"
+        verbose_name_plural = "Annexes"
+
+    def __str__(self):
+        return f"Annexes ({self.project.code})"
+
+
+class AnnexeDocument(TimeStampedModel):
+    """PDF pièce jointe obligatoire du dossier administratif."""
+
+    class Kind(models.TextChoices):
+        CERTIFICAT_PROPRIETE = (
+            "CERTIFICAT_PROPRIETE",
+            "Certificat de propriété (ANCFCC) — Titre Foncier Mère",
+        )
+        PLAN_CADASTRAL = (
+            "PLAN_CADASTRAL",
+            "Plan Cadastral et Calque topographique (IGT)",
+        )
+        PLAN_ARCHITECTURE = (
+            "PLAN_ARCHITECTURE",
+            "Plan d'Architecture & Lotissement « Ne Varietur »",
+        )
+        ATTESTATIONS = (
+            "ATTESTATIONS",
+            "Attestations concessionnaires (Eaux, Électricité, Télécom)",
+        )
+        CAHIER_CHARGES = (
+            "CAHIER_CHARGES",
+            "Cahier des charges et PV de réception",
+        )
+
+    dossier = models.ForeignKey(
+        AnnexeDossier,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Dossier annexes",
+    )
+    kind = models.CharField(
+        max_length=32,
+        choices=Kind.choices,
+        verbose_name="Type de pièce",
+    )
+    fichier = models.FileField(
+        upload_to="annexes/%Y/%m/",
+        validators=[FileExtensionValidator(["pdf"])],
+        verbose_name="PDF",
+        help_text="PDF uniquement",
+    )
+
+    class Meta:
+        verbose_name = "Pièce jointe (PDF)"
+        verbose_name_plural = "Pièces jointes (PDF)"
+        ordering = ["kind", "-created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} — {self.dossier.project.code}"

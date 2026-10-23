@@ -1,0 +1,144 @@
+/* Admin change-form polish: focus, hover, buttons, file widgets */
+
+:root {
+  --admin-focus: #8b1e2d;
+  --admin-focus-ring: rgba(139, 30, 45, 0.3);
+  --admin-secondary: #4b5563;
+  --admin-secondary-border: #6b7280;
+}
+
+/* ---- Inputs: hover + focus ---- */
+.change-form input[type="text"],
+.change-form input[type="number"],
+.change-form input[type="email"],
+.change-form input[type="url"],
+.change-form input[type="password"],
+.change-form input[type="date"],
+.change-form textarea,
+.change-form select,
+.change-form .flex.flex-row input[type="text"]:disabled {
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.change-form input[type="text"]:hover,
+.change-form input[type="number"]:hover,
+.change-form input[type="email"]:hover,
+.change-form input[type="url"]:hover,
+.change-form input[type="password"]:hover,
+.change-form input[type="date"]:hover,
+.change-form textarea:hover,
+.change-form select:hover {
+  border-color: #9ca3af !important;
+}
+
+.dark .change-form input[type="text"]:hover,
+.dark .change-form input[type="number"]:hover,
+.dark .change-form input[type="email"]:hover,
+.dark .change-form input[type="url"]:hover,
+.dark .change-form input[type="password"]:hover,
+.dark .change-form input[type="date"]:hover,
+.dark .change-form textarea:hover,
+.dark .change-form select:hover {
+  border-color: #6b7280 !important;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.change-form input[type="text"]:focus,
+.change-form input[type="number"]:focus,
+.change-form input[type="email"]:focus,
+.change-form input[type="url"]:focus,
+.change-form input[type="password"]:focus,
+.change-form input[type="date"]:focus,
+.change-form textarea:focus,
+.change-form select:focus {
+  outline: none !important;
+  border-color: var(--admin-focus) !important;
+  box-shadow: 0 0 0 3px var(--admin-focus-ring) !important;
+}
+
+/* Empty file path hint stays muted and clear */
+.change-form .flex.flex-row input[type="text"]:disabled {
+  color: #6b7280 !important;
+}
+
+.dark .change-form .flex.flex-row input[type="text"]:disabled {
+  color: #9ca3af !important;
+}
+
+/* ---- File icon buttons ---- */
+.change-form a[title],
+.change-form label[title] {
+  border-radius: 0.35rem;
+}
+
+.change-form a[title]:hover,
+.change-form label[title]:hover {
+  background: rgba(139, 30, 45, 0.08);
+  color: var(--admin-focus) !important;
+}
+
+.dark .change-form a[title]:hover,
+.dark .change-form label[title]:hover {
+  background: rgba(139, 30, 45, 0.18);
+}
+
+/* ---- Inline "Ajouter" ---- */
+.change-form .add-row a,
+.change-form .inline-group .add-row a,
+.change-form a.related-widget-wrapper-link.add-related {
+  color: var(--admin-focus) !important;
+  font-weight: 600;
+}
+
+.change-form .add-row a:hover,
+.change-form a.related-widget-wrapper-link.add-related:hover {
+  text-decoration: underline;
+}
+
+/* ---- Submit row: primary blue save, muted gray delete ---- */
+#submit-row button[name="_save"],
+#submit-row input[name="_save"] {
+  background: #8b1e2d !important;
+  border-color: #731828 !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  min-width: 8.5rem;
+  box-shadow: 0 1px 2px rgba(139, 30, 45, 0.25);
+}
+
+#submit-row button[name="_save"]:hover,
+#submit-row input[name="_save"]:hover {
+  background: #731828 !important;
+  border-color: #5c1421 !important;
+}
+
+#submit-row a[href*="/delete/"] {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #e5e7eb !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+#submit-row a[href*="/delete/"]:hover {
+  background: #4b5563 !important;
+  border-color: #6b7280 !important;
+  color: #fff !important;
+}
+
+.dark #submit-row a[href*="/delete/"] {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #d1d5db !important;
+}
+
+.dark #submit-row a[href*="/delete/"]:hover {
+  background: #374151 !important;
+  color: #fff !important;
+}
+
+/* Breathing room around fieldsets / inlines */
+.change-form .inline-group,
+.change-form fieldset {
+  margin-bottom: 1rem;
+}
