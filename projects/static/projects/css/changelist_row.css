@@ -68,6 +68,13 @@ table tbody tr.project-row-clickable:hover a.project-detail-link {
   vertical-align: middle;
   white-space: nowrap;
   width: 1%;
+  cursor: default;
+}
+
+/* Ensure the ⋯ Actions menu stays clickable above row navigation */
+#result_list td.field-actions_holder,
+#result_list td.field-actions_holder * {
+  pointer-events: auto;
 }
 
 #result_list td.field-actions_holder > div {

@@ -10,6 +10,8 @@ dependencies = [
     "django (>=6.1.2,<7.0.0)",
     "django-unfold (>=0.108.0,<0.109.0)",
     "pillow (>=11.0.0)",
+    "reportlab (>=4.0.0)",
+    "python-docx (>=1.1.0)",
 ]
 
 

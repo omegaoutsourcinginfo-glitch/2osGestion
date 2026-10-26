@@ -207,7 +207,10 @@ class ProjectDocument(TimeStampedModel):
     class Kind(models.TextChoices):
         VOIRIE_VRD = "VOIRIE_VRD", "Voirie (VRD)"
         TELECOM_FIBRE = "TELECOM_FIBRE", "Télécom / Fibre"
+        RESEAU_TELECOM = "RESEAU_TELECOM", "Réseau de télécom"
         AMENAGEMENT_PAYSAGER = "AMENAGEMENT_PAYSAGER", "Aménagement paysager"
+        ESPACE_VERT = "ESPACE_VERT", "Espace vert"
+        STEP = "STEP", "STEP"
         FICHE_LOT_PARCELLE = "FICHE_LOT_PARCELLE", "Fiche lot / parcelle"
 
     project = models.ForeignKey(
