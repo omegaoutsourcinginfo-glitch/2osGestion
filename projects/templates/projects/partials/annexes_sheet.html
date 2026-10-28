@@ -1,18 +1,51 @@
 <div class="annexes-sheet">
-  <header class="annexes-banner">
-    5. ÉLÉMENTS COMPLÉMENTAIRES &amp; ANNEXES OBLIGATOIRES
+  <header class="annexes-head">
+    <div>
+      <h3 class="annexes-title">Éléments complémentaires &amp; annexes obligatoires</h3>
+      {% if annexes_progress %}
+      <div class="annexes-progress" aria-label="{{ annexes_progress.label }}">
+        <div class="annexes-progress-meta">
+          <span>{{ annexes_progress.filled }}/{{ annexes_progress.total }} documents fournis</span>
+          <strong>{{ annexes_progress.pct }}%</strong>
+        </div>
+        <div class="annexes-progress-track">
+          <span class="annexes-progress-bar" style="width: {{ annexes_progress.pct }}%"></span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% if annexes_edit_url %}
+    <a class="annexes-add-btn" href="{{ annexes_edit_url }}">+ Ajouter un document</a>
+    {% endif %}
   </header>
 
   <div class="annexes-body">
-    <h3 class="annexes-subtitle">
-      Pièces jointes requises au dossier administratif
-      <span dir="rtl">/ المرفقات الإجبارية الواجب إرفاقها :</span>
-    </h3>
-    <ul class="annexes-list">
-      {% for piece in annexes_pieces %}
-      <li>{{ piece }}</li>
+    {% if annexe_rows %}
+    <div class="annexe-docs">
+      {% for row in annexe_rows %}
+      <div class="annexe-doc-block{% if row.filled %} is-filled{% endif %}">
+        <div class="annexe-doc-top">
+          <h4>{{ row.label }}</h4>
+          {% if row.filled %}
+          <span class="annexe-badge is-ok">Fourni</span>
+          {% else %}
+          <span class="annexe-badge is-wait">En attente</span>
+          {% endif %}
+        </div>
+
+        {% if row.docs %}
+        <ul class="pi-docs">
+          {% for doc in row.docs %}
+          <li>{% include "projects/partials/doc_file_row.html" %}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">Aucun fichier joint</p>
+        {% endif %}
+      </div>
       {% endfor %}
-    </ul>
+    </div>
+    {% endif %}
 
     <div class="annexes-signatures">
       <div class="annexes-sign-box">

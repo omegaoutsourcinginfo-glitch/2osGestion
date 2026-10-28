@@ -1,0 +1,22 @@
+{% load i18n static unfold %}
+
+{% if not is_popup %}
+    <div class="flex flex-row gap-3 items-center ml-auto">
+        {% if environment %}
+            {% include "unfold/helpers/label.html" with text=environment.0 type=environment.1 %}
+        {% endif %}
+
+        {% if cl %}
+            <span class="changelist-result-count inline-flex items-center h-[38px] min-w-[38px] justify-center px-3 rounded-default border border-base-200 bg-base-50 text-sm font-semibold text-base-700 whitespace-nowrap dark:border-base-700 dark:bg-base-800 dark:text-base-200"
+                  title="{{ cl.result_count }} {% if cl.result_count == 1 %}{{ cl.opts.verbose_name }}{% else %}{{ cl.opts.verbose_name_plural }}{% endif %}">
+                {{ cl.result_count }}
+            </span>
+        {% endif %}
+
+        {% action_list %}
+
+        {% if nav_global_side %}
+            {{ nav_global_side }}
+        {% endif %}
+    </div>
+{% endif %}

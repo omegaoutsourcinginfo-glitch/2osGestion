@@ -218,6 +218,8 @@ class ProjectAdminTests(TestCase):
             "Project_intervenants-INITIAL_FORMS": "0",
             "documents-TOTAL_FORMS": "0",
             "documents-INITIAL_FORMS": "0",
+            "images-TOTAL_FORMS": "0",
+            "images-INITIAL_FORMS": "0",
         }
         response = self.client.post(f"/admin/projects/project/{project.pk}/change/", data)
         self.assertEqual(response.status_code, 302)
@@ -419,7 +421,7 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Voir la fiche")
         self.assertContains(response, "Modifier")
-        self.assertContains(response, "Voir archive")
+        self.assertContains(response, "Archiver")
         self.assertContains(response, f"/admin/projects/project/{project.pk}/voir-fiche/")
         self.assertContains(response, f"/admin/projects/project/{project.pk}/modifier/")
         self.assertContains(response, f"/admin/projects/project/{project.pk}/voir-archive/")
@@ -447,7 +449,7 @@ class ProjectAdminTests(TestCase):
         financement = StructureFinancement.objects.create(project=project)
         response = self.client.get("/admin/projects/structurefinancement/")
         self.assertContains(response, "Modifier")
-        self.assertContains(response, "Voir archive")
+        self.assertContains(response, "Archiver")
         self.assertContains(response, "Archives")
         self.assertContains(
             response,
@@ -568,10 +570,12 @@ class ProjectAdminTests(TestCase):
         detail = self.client.get(project.get_absolute_url())
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, project.titre)
-        self.assertContains(detail, "Identification")
+        self.assertContains(detail, "Description")
         self.assertContains(detail, "project-info")
-        self.assertContains(detail, "project-info-meta")
-        self.assertContains(detail, "pi-tabs")
+        self.assertContains(detail, "pi-top")
+        self.assertContains(detail, "pi-nav")
+        self.assertContains(detail, "pi-sec")
+        self.assertContains(detail, "pi-kpis")
         self.assertContains(detail, "Général")
         self.assertNotContains(detail, "studio-metrics")
         self.assertNotContains(detail, "Projets récents")
@@ -583,7 +587,11 @@ class ProjectAdminTests(TestCase):
             kind=ProjectDocument.Kind.VOIRIE_VRD,
             fichier=SimpleUploadedFile("voirie.pdf", b"%PDF-1.4"),
         )
-        financement = StructureFinancement.objects.create(project=project)
+        financement = StructureFinancement.objects.create(
+            project=project,
+            fonds_propres_fp=386,
+            credit_moyen_terme_cmt=614,
+        )
         FinancementDocument.objects.create(
             financement=financement,
             fichier=SimpleUploadedFile("finance.pdf", b"%PDF-1.4"),
@@ -595,30 +603,48 @@ class ProjectAdminTests(TestCase):
         detail = self.client.get(f"/admin/?projet={project.code}")
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, project.titre)
-        self.assertContains(detail, "Identification")
+        self.assertContains(detail, "Description")
         self.assertContains(detail, "Voirie (VRD)")
         self.assertContains(detail, "Documents financement")
-        self.assertContains(detail, "Structure de financement")
+        self.assertContains(detail, "Total investissement")
         self.assertContains(detail, "Financement")
+        self.assertContains(detail, "pi-dist-bar")
+        self.assertContains(detail, 'class="pi-dist-fp"')
+        self.assertContains(detail, "picture_as_pdf")
+        self.assertContains(detail, "annexe-file-row")
+        self.assertContains(detail, "pi-desc-box")
+        self.assertContains(detail, "Ouvrir dans Google Maps")
+        self.assertContains(detail, "google.com/maps")
+        self.assertContains(detail, "Non fourni")
+        self.assertContains(detail, "Joindre un fichier")
         self.assertContains(detail, "project-info")
         self.assertContains(detail, "is-full")
-        self.assertContains(detail, "data-tab=\"financement\"")
-        self.assertContains(detail, "data-subtab=\"structure\"")
-        self.assertContains(detail, "data-subtab=\"documents\"")
-        self.assertContains(detail, "data-tab=\"photos\"")
-        self.assertContains(detail, "Photos du projet")
-        self.assertContains(detail, "data-tab=\"planning\"")
-        self.assertContains(detail, "Planning d'exécution du projet")
+        self.assertContains(detail, "data-pi-tabs")
+        self.assertContains(detail, 'data-tab="general"')
+        self.assertContains(detail, 'data-panel="financement"')
+        self.assertContains(detail, 'id="financement"')
+        self.assertContains(detail, 'id="photos"')
+        self.assertContains(detail, 'id="planning"')
+        self.assertContains(detail, "Planning d'exécution")
         self.assertContains(detail, "Études techniques, géotechniques &amp; Permis")
         self.assertContains(detail, "Travaux de Viabilisation (VRD &amp; Réseaux)")
         self.assertContains(detail, "Réception provisoire &amp; Titres fonciers individuels")
-        self.assertContains(detail, "data-tab=\"annexes\"")
-        self.assertContains(detail, "ÉLÉMENTS COMPLÉMENTAIRES")
-        self.assertContains(detail, "Certificat de propriété récent")
+        self.assertContains(detail, 'id="annexes"')
+        self.assertContains(detail, "Éléments complémentaires")
+        self.assertContains(detail, "Certificat de propriété")
+        self.assertContains(detail, "documents fournis")
+        self.assertContains(detail, "Ajouter un document")
+        self.assertContains(detail, "En attente")
         self.assertContains(detail, "Maître d")
         self.assertContains(detail, "Administration / Commune")
+        self.assertContains(detail, "Programme technique")
+        self.assertContains(detail, "Localisation")
+        self.assertContains(detail, "open_in_new")
+        self.assertContains(detail, "pi-icon-btn")
+        self.assertContains(detail, "Aucune photo")
         self.assertNotContains(detail, "Date de début")
         self.assertNotContains(detail, "studio-metrics")
+        self.assertNotContains(detail, "Certificat de propriété récent (ANCFCC) du Titre Foncier Mère.")
 
         annexes_redirect = self.client.get("/admin/annexes/")
         self.assertEqual(annexes_redirect.status_code, 302)
@@ -660,7 +686,7 @@ class ProjectAdminTests(TestCase):
         self.assertContains(list_page, "Actions")
         self.assertContains(list_page, "field-actions_holder")
         self.assertContains(list_page, "Modifier")
-        self.assertContains(list_page, "Voir archive")
+        self.assertContains(list_page, "Archiver")
         self.assertContains(list_page, "Archives")
         self.assertContains(
             list_page,

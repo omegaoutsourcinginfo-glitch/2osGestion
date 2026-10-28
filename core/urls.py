@@ -22,6 +22,7 @@ from django.urls import include, path
 from django.shortcuts import redirect
 
 urlpatterns = [
+    path("", lambda request: redirect("admin:index"), name="root"),
     path(
         "admin/annexes/",
         lambda request: redirect("admin:projects_annexedossier_changelist"),

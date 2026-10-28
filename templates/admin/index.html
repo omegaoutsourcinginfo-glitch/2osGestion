@@ -15,11 +15,12 @@
 {% block content %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'projects/css/project_info.css' %}">
+<link rel="stylesheet" href="{% static 'projects/css/dashboard.css' %}">
 
 {% if dash_project %}
-  {% with project=dash_project.project terrain=dash_project.terrain autorisation=dash_project.autorisation documents=dash_project.documents programme_docs=dash_project.programme_docs finance_docs=dash_project.finance_docs planning_docs=dash_project.planning_docs project_images=dash_project.project_images financement=dash_project.financement fp_pct=dash_project.fp_pct cmt_pct=dash_project.cmt_pct planning_phases=dash_project.planning_phases annexes_pieces=dash_project.annexes_pieces edit_url=dash_project.edit_url list_url=dash_project.list_url %}
+  {% with project=dash_project.project terrain=dash_project.terrain autorisation=dash_project.autorisation programme=dash_project.programme documents=dash_project.documents programme_docs=dash_project.programme_docs finance_docs=dash_project.finance_docs planning_docs=dash_project.planning_docs project_images=dash_project.project_images financement=dash_project.financement fp_pct=dash_project.fp_pct cmt_pct=dash_project.cmt_pct planning_phases=dash_project.planning_phases annexe_rows=dash_project.annexe_rows annexes_progress=dash_project.annexes_progress annexes_edit_url=dash_project.annexes_edit_url planning_edit_url=dash_project.planning_edit_url maps_url=dash_project.maps_url edit_url=dash_project.edit_url list_url=dash_project.list_url %}
   <div class="studio studio-detail" id="dash-root">
     <div class="studio-body studio-body-detail">
       {% include "projects/partials/project_info.html" %}
@@ -27,7 +28,6 @@
   </div>
   {% endwith %}
 {% else %}
-<link rel="stylesheet" href="{% static 'projects/css/dashboard.css' %}">
 <div class="studio" id="dash-root">
   <div class="studio-body">
     <header class="studio-head">

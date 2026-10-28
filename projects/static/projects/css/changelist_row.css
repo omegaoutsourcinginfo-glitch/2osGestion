@@ -90,8 +90,86 @@ table tbody tr.project-row-clickable:hover a.project-detail-link {
   padding-inline: 0.65rem !important;
 }
 
-/* Keep pagination visible and clean */
-nav[aria-label="Pagination"],
-.paginator {
-  margin-top: 0.75rem;
+/* Result count badge (top, next to Archives / +) */
+.changelist-result-count {
+  letter-spacing: 0.01em;
+}
+
+/* Centered bottom pagination with prev/next */
+.changelist-pagination-bar {
+  width: 100%;
+}
+
+.changelist-pagination {
+  margin: 0.5rem auto;
+}
+
+.changelist-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.45rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.changelist-page-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #8b1e2d;
+}
+
+.changelist-page-btn.is-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  background: #f9fafb;
+}
+
+.changelist-page-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  padding: 0 0.15rem;
+  font-weight: 600;
+}
+
+.changelist-page-num a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2.25rem;
+  padding: 0 0.45rem;
+  border-radius: 0.45rem;
+  color: #4b5563;
+  text-decoration: none;
+}
+
+.changelist-page-num a:hover {
+  background: #f3f4f6;
+  color: #8b1e2d;
+}
+
+.changelist-page-num span.font-medium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2.25rem;
+  padding: 0 0.45rem;
+  border-radius: 0.45rem;
+  background: #8b1e2d;
+  color: #fff !important;
+}
+
+/* Hide legacy bottom count text if any leftover markup appears */
+.paginator > .py-4,
+nav[aria-label="Pagination"] + .py-4 {
+  display: none;
 }

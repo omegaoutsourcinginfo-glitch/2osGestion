@@ -1,0 +1,12 @@
+<a href="{{ doc.url }}" target="_blank" rel="noopener" class="pi-doc-row annexe-file-row">
+  <span class="annexe-file-icon material-symbols-outlined" aria-hidden="true">{% if doc.kind == "pdf" or not doc.kind %}picture_as_pdf{% else %}draft{% endif %}</span>
+  <span class="annexe-file-meta">
+    <span class="pi-doc-name">{% firstof doc.label doc.name %}</span>
+    <span class="annexe-file-sub">
+      {% if doc.kind == "pdf" or not doc.kind %}PDF{% else %}{{ doc.kind|upper }}{% endif %}{% if doc.size_label %} · {{ doc.size_label }}{% endif %}{% if doc.uploaded_at %} · {{ doc.uploaded_at|date:"d/m/Y" }}{% endif %}
+    </span>
+  </span>
+  <span class="pi-icon-btn" title="Ouvrir" aria-label="Ouvrir">
+    <span class="material-symbols-outlined">open_in_new</span>
+  </span>
+</a>

@@ -1,0 +1,11 @@
+{% load unfold unfold_list %}
+
+{% if pagination_required %}
+    <nav class="changelist-pagination flex flex-row items-center justify-center gap-1 sm:gap-2" aria-label="Pagination">
+        {% for i in page_range %}
+            <span class="changelist-page-num">
+                {% paginator_number cl i %}
+            </span>
+        {% endfor %}
+    </nav>
+{% endif %}

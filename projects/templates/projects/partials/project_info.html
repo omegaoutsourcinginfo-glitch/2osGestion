@@ -1,299 +1,323 @@
 {% load humanize %}
-<article class="project-info is-full" id="project-info">
-  <header class="project-info-head">
-    <div class="project-info-identity">
-      <span class="project-info-code">{{ project.code }}</span>
-      <h1>{{ project.titre }}</h1>
-      <span class="project-info-badge{% if project.statut_actuel == 'EXECUTION' %} is-exec{% endif %}">
-        {{ project.get_statut_actuel_display }}
-      </span>
+<article class="project-info is-full" id="project-info" data-pi-tabs>
+  <header class="pi-top">
+    <div class="pi-top-inner">
+      <div class="pi-top-main">
+        <p class="pi-kicker">Fiche projet</p>
+        <h1>{{ project.titre }} <span class="pi-title-code">— {{ project.code }}</span></h1>
+        <p class="pi-status{% if project.statut_actuel == 'EXECUTION' %} is-exec{% endif %}{% if project.is_archived %} is-archived{% endif %}">
+          {{ project.get_statut_actuel_display }}{% if project.is_archived %} · Archivé{% endif %}
+        </p>
+      </div>
+      <div class="pi-actions">
+        <a class="pi-btn pi-btn-primary" href="{{ edit_url }}">Modifier</a>
+        <a class="pi-btn" href="{% if list_url %}{{ list_url }}{% else %}{% url 'admin:projects_project_changelist' %}{% endif %}">Retour</a>
+      </div>
     </div>
-    <div class="project-info-actions project-row-actions">
-      <a class="project-row-action is-primary" href="{{ edit_url }}">Modifier</a>
-      <a class="project-row-action" href="#financement" data-open-tab="financement">Financement</a>
-      <a class="project-row-action" href="{% if list_url %}{{ list_url }}{% else %}{% url 'admin:projects_project_changelist' %}{% endif %}">Retour</a>
-    </div>
+
+    <dl class="pi-kpis" aria-label="Indicateurs">
+      <div>
+        <dt>Préfecture</dt>
+        <dd title="{{ project.prefecture }}">{{ project.prefecture|truncatechars:32 }}</dd>
+      </div>
+      <div>
+        <dt>Commune</dt>
+        <dd title="{{ project.commune }}">{{ project.commune|truncatechars:32 }}</dd>
+      </div>
+      <div>
+        <dt>Terrain</dt>
+        <dd>{% if terrain %}{{ terrain.superficie_affichee }}{% else %}—{% endif %}</dd>
+      </div>
+      <div>
+        <dt>Investissement</dt>
+        <dd>
+          {% if financement %}
+            {{ financement.investissement_total|floatformat:0|intcomma }} <span class="pi-unit">DH</span>
+          {% else %}
+            —
+          {% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt>Mis à jour</dt>
+        <dd>{{ project.updated_at|date:"d/m/Y" }}</dd>
+      </div>
+    </dl>
   </header>
 
-  <ul class="project-info-meta" aria-label="Résumé">
-    <li>
-      <span>Créé le</span>
-      <strong>{{ project.created_at|date:"d/m/Y" }}</strong>
-    </li>
-    <li>
-      <span>Mis à jour</span>
-      <strong>{{ project.updated_at|date:"d/m/Y" }}</strong>
-    </li>
-    <li>
-      <span>Commune</span>
-      <strong title="{{ project.commune }}">{{ project.commune|truncatechars:36 }}</strong>
-    </li>
-    <li>
-      <span>Terrain</span>
-      <strong>{% if terrain %}{{ terrain.superficie_affichee }}{% else %}—{% endif %}</strong>
-    </li>
-    <li>
-      <span>Investissement</span>
-      <strong>
-        {% if financement %}
-          {{ financement.investissement_total|floatformat:0|intcomma }} DH
-        {% else %}
-          —
-        {% endif %}
-      </strong>
-    </li>
-  </ul>
-
-  <div class="pi-tabs" data-pi-tabs>
-    <div class="pi-tablist" role="tablist" aria-label="Sections du projet">
-      <button type="button" class="is-active" role="tab" aria-selected="true" data-tab="general">Général</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="localisation">Localisation</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="technique">Technique</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="photos">Photos</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="financement">Financement</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="planning">Planning</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="annexes">Annexes</button>
+  <nav class="pi-nav" aria-label="Sections">
+    <div class="pi-nav-inner" role="tablist">
+      <button type="button" role="tab" class="is-active" data-tab="general" aria-selected="true">Général</button>
+      <button type="button" role="tab" data-tab="localisation" aria-selected="false">Localisation</button>
+      <button type="button" role="tab" data-tab="technique" aria-selected="false">Technique</button>
+      <button type="button" role="tab" data-tab="intervenants" aria-selected="false">Intervenants</button>
+      <button type="button" role="tab" data-tab="photos" aria-selected="false">Photos</button>
+      <button type="button" role="tab" data-tab="financement" aria-selected="false">Financement</button>
+      <button type="button" role="tab" data-tab="planning" aria-selected="false">Planning</button>
+      <button type="button" role="tab" data-tab="fichiers" aria-selected="false">Fichiers</button>
+      <button type="button" role="tab" data-tab="annexes" aria-selected="false">Annexes</button>
     </div>
+  </nav>
 
-    <div class="pi-tabpanel is-active" data-panel="general" role="tabpanel">
-      <div class="project-info-grid">
-        <section>
-          <h2>Identification</h2>
-          <dl class="cols-2">
-            <div><dt>Code</dt><dd>{{ project.code }}</dd></div>
-            <div><dt>Statut</dt><dd>{{ project.get_statut_actuel_display }}</dd></div>
-            <div>
-              <dt>Nombre de lots</dt>
-              <dd{% if not project.nombre_lots %} class="empty"{% endif %}>
-                {% if project.nombre_lots %}{{ project.nombre_lots }}{% else %}Non renseigné{% endif %}
-              </dd>
-            </div>
-            <div>
-              <dt>Servitudes d'urbanisme</dt>
-              <dd{% if not project.emprise_servitudes %} class="empty"{% endif %}>
-                {{ project.emprise_servitudes|default:"Aucune" }}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <section>
-          <h2>Intervenants</h2>
-          {% if project.intervenants.all %}
-          <ul class="people">
-            {% for person in project.intervenants.all %}
-            <li>
-              <span>{{ person.get_type_intervenant_display }}</span>
-              <div>
-                <strong>{{ person.nom_ou_cabinet }}</strong>
-                {% if person.contact %}<small>{{ person.contact }}</small>{% endif %}
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p class="empty">Aucun intervenant</p>
-          {% endif %}
-        </section>
-
-        <section class="is-wide">
-          <h2>Description</h2>
-          <dl class="cols-1">
-            <div><dt>Consistance du projet</dt><dd>{{ project.consistance_globale }}</dd></div>
-          </dl>
-        </section>
+  <div class="pi-body">
+    <section class="pi-panel is-active" id="general" data-panel="general" role="tabpanel">
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Général</h2></div>
+        <dl class="pi-fields cols-3">
+          <div><dt>Code</dt><dd>{{ project.code }}</dd></div>
+          <div><dt>Statut</dt><dd>{{ project.get_statut_actuel_display }}</dd></div>
+          <div><dt>Lots / Unités</dt><dd>{% if project.nombre_lots %}{{ project.nombre_lots }}{% else %}<span class="muted">Non renseigné</span>{% endif %}</dd></div>
+          <div><dt>Créé le</dt><dd>{{ project.created_at|date:"d/m/Y" }}</dd></div>
+          <div><dt>Mis à jour</dt><dd>{{ project.updated_at|date:"d/m/Y" }}</dd></div>
+          <div><dt>Servitudes</dt><dd>{% if project.emprise_servitudes %}{{ project.emprise_servitudes|truncatechars:48 }}{% else %}<span class="muted">Aucune</span>{% endif %}</dd></div>
+        </dl>
+        <h3 class="pi-subhead">Description</h3>
+        <div class="pi-desc-box">
+          <p class="pi-text">{{ project.consistance_globale }}</p>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="pi-tabpanel" data-panel="localisation" role="tabpanel" hidden>
-      <div class="project-info-grid">
-        <section class="is-wide">
+    <section class="pi-panel" id="localisation" data-panel="localisation" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head pi-sec-head-row">
           <h2>Localisation</h2>
-          <dl class="cols-2">
-            <div><dt>Préfecture / Province</dt><dd>{{ project.prefecture }}</dd></div>
-            <div><dt>Commune</dt><dd>{{ project.commune }}</dd></div>
-            <div class="wide"><dt>Situation & localisation</dt><dd>{{ project.situation_localisation }}</dd></div>
-            <div class="wide"><dt>Accès au site</dt><dd>{{ project.voie_acces }}</dd></div>
-          </dl>
-        </section>
-      </div>
-    </div>
-
-    <div class="pi-tabpanel" data-panel="technique" role="tabpanel" hidden>
-      <div class="project-info-grid">
-        <section>
-          <h2>Terrain mère</h2>
-          {% if terrain %}
-          <dl class="cols-3">
-            <div><dt>Titre foncier</dt><dd>{{ terrain.titre_foncier_mere }}</dd></div>
-            <div><dt>Suffixe</dt><dd>{{ terrain.suffixe|default:"—" }}</dd></div>
-            <div><dt>Superficie</dt><dd>{{ terrain.superficie_affichee }}</dd></div>
-          </dl>
-          {% else %}
-          <p class="empty">Non renseigné</p>
+          {% if maps_url %}
+          <a class="pi-maps-link" href="{{ maps_url }}" target="_blank" rel="noopener">
+            <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
+            Ouvrir dans Google Maps
+            <span class="pi-maps-ext" aria-hidden="true">↗</span>
+          </a>
           {% endif %}
-        </section>
-
-        <section>
-          <h2>Autorisation</h2>
-          {% if autorisation %}
-          <dl class="cols-3">
-            <div><dt>Type</dt><dd>{{ autorisation.get_type_permis_display }}</dd></div>
-            <div><dt>Numéro</dt><dd>{{ autorisation.numero_autorisation }}</dd></div>
-            <div><dt>Date</dt><dd>{% if autorisation.date_delivrance %}{{ autorisation.date_delivrance|date:"d/m/Y" }}{% else %}—{% endif %}</dd></div>
-          </dl>
-          {% else %}
-          <p class="empty">Non renseigné</p>
-          {% endif %}
-        </section>
-
-        <section class="is-wide">
-          <h2>Documents</h2>
-          {% if programme_docs %}
-          <ul class="docs">
-            {% for doc in programme_docs %}
-            <li>
-              <a href="{{ doc.url }}" target="_blank" rel="noopener">
-                <span>{{ doc.label }}</span>
-                <span>Ouvrir</span>
-              </a>
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p class="empty">Aucun document</p>
-          {% endif %}
-        </section>
-      </div>
-    </div>
-
-    <div class="pi-tabpanel" data-panel="photos" role="tabpanel" hidden id="photos">
-      <div class="project-info-grid">
-        <section class="is-wide">
-          <h2>Photos du projet</h2>
-          {% if project_images %}
-          <div class="project-gallery">
-            {% for img in project_images %}
-            <a class="project-gallery-item" href="{{ img.url }}" target="_blank" rel="noopener" title="{{ img.legende|default:img.name }}">
-              <img src="{{ img.url }}" alt="{{ img.legende|default:img.name }}">
-              {% if img.legende %}<span>{{ img.legende }}</span>{% endif %}
-            </a>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="empty">Aucune photo</p>
-          {% endif %}
-        </section>
-      </div>
-    </div>
-
-    <div class="pi-tabpanel" data-panel="financement" role="tabpanel" hidden id="financement">
-      <div class="pi-subtabs" data-pi-subtabs>
-        <div class="pi-tablist pi-subtablist" role="tablist" aria-label="Sections financement">
-          <button type="button" class="is-active" role="tab" aria-selected="true" data-subtab="structure">Structure</button>
-          <button type="button" role="tab" aria-selected="false" data-subtab="documents">Documents</button>
         </div>
+        <dl class="pi-fields cols-2">
+          <div><dt>Préfecture / Province</dt><dd>{{ project.prefecture }}</dd></div>
+          <div><dt>Commune</dt><dd>{{ project.commune }}</dd></div>
+          <div class="full"><dt>Situation &amp; localisation</dt><dd>{{ project.situation_localisation }}</dd></div>
+          <div class="full"><dt>Accès au site</dt><dd>{{ project.voie_acces }}</dd></div>
+        </dl>
+      </div>
+    </section>
 
-        <div class="pi-subpanel is-active" data-subpanel="structure" role="tabpanel">
-          <div class="project-info-grid">
-            <section class="is-wide">
-              <h2>Structure de financement</h2>
-              {% if financement %}
-              <div class="finance">
-                <div class="finance-main">
-                  <p class="label">Total investissement</p>
-                  <p class="total">{{ financement.investissement_total|floatformat:0|intcomma }} <small>DH</small></p>
-                </div>
-                <dl class="cols-2 finance-grid">
-                  <div>
-                    <dt>Fonds propres (FP)</dt>
-                    <dd>{{ financement.fonds_propres_fp|floatformat:0|intcomma }} DH <em>{{ fp_pct }}%</em></dd>
-                  </div>
-                  <div>
-                    <dt>Crédit moyen terme (CMT)</dt>
-                    <dd>{{ financement.credit_moyen_terme_cmt|floatformat:0|intcomma }} DH <em>{{ cmt_pct }}%</em></dd>
-                  </div>
-                </dl>
-              </div>
-              {% else %}
-              <p class="empty">Non renseigné</p>
+    <section class="pi-panel" id="technique" data-panel="technique" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Technique</h2></div>
+        <div class="pi-inner-2">
+          <div>
+            <h3 class="pi-subhead">Terrain mère</h3>
+            {% if terrain %}
+            <dl class="pi-fields">
+              <div><dt>Titre foncier</dt><dd>{{ terrain.titre_foncier_mere }}</dd></div>
+              <div><dt>Suffixe</dt><dd>{{ terrain.suffixe|default:"—" }}</dd></div>
+              <div><dt>Superficie</dt><dd>{{ terrain.superficie_affichee }}</dd></div>
+            </dl>
+            {% else %}
+            <p class="muted">Non renseigné</p>
+            {% endif %}
+          </div>
+          <div>
+            <h3 class="pi-subhead">Autorisation</h3>
+            {% if autorisation %}
+            <dl class="pi-fields">
+              <div><dt>Type</dt><dd>{{ autorisation.get_type_permis_display }}</dd></div>
+              <div><dt>Numéro</dt><dd>{{ autorisation.numero_autorisation }}</dd></div>
+              <div><dt>Date</dt><dd>{% if autorisation.date_delivrance %}{{ autorisation.date_delivrance|date:"d/m/Y" }}{% else %}—{% endif %}</dd></div>
+            </dl>
+            {% else %}
+            <p class="muted">Non renseigné</p>
+            {% endif %}
+          </div>
+        </div>
+        <h3 class="pi-subhead">Programme technique &amp; viabilisation</h3>
+        {% if programme %}
+        <dl class="pi-fields cols-2">
+          <div><dt>Voirie (VRD)</dt><dd>{% if programme.voirie_vrd %}Oui{% else %}Non{% endif %}</dd></div>
+          <div class="full"><dt>Observations</dt><dd>{% if programme.observations %}{{ programme.observations }}{% else %}<span class="muted">—</span>{% endif %}</dd></div>
+        </dl>
+        {% else %}
+        <p class="muted">Non renseigné</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="pi-panel" id="intervenants" data-panel="intervenants" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Intervenants</h2></div>
+        {% if project.intervenants.all %}
+        <ul class="pi-people pi-people-grid">
+          {% for person in project.intervenants.all %}
+          <li class="pi-person-card">
+            <span class="pi-person-avatar" aria-hidden="true">
+              {% if person.type_intervenant == "ARCHITECTE" %}A
+              {% elif person.type_intervenant == "BET" %}B
+              {% elif person.type_intervenant == "BC" %}C
+              {% elif person.type_intervenant == "MO" %}M
+              {% elif person.type_intervenant == "IGT" %}I
+              {% elif person.type_intervenant == "LABO" %}L
+              {% elif person.type_intervenant == "ENTREPRISE" %}E
+              {% else %}{{ person.get_type_intervenant_display|make_list|first }}{% endif %}
+            </span>
+            <div class="pi-person-body">
+              <span>{{ person.get_type_intervenant_display }}</span>
+              <strong>{{ person.nom_ou_cabinet }}</strong>
+              {% if person.contact %}
+              <small class="pi-person-phone">
+                <span class="material-symbols-outlined" aria-hidden="true">call</span>
+                {{ person.contact }}
+              </small>
               {% endif %}
-            </section>
-          </div>
-        </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">Aucun intervenant</p>
+        {% endif %}
+      </div>
+    </section>
 
-        <div class="pi-subpanel" data-subpanel="documents" role="tabpanel" hidden>
-          <div class="project-info-grid">
-            <section class="is-wide">
-              <h2>Documents financement</h2>
-              {% if finance_docs %}
-              <ul class="docs">
-                {% for doc in finance_docs %}
-                <li>
-                  <a href="{{ doc.url }}" target="_blank" rel="noopener">
-                    <span>{{ doc.name }}</span>
-                    <span>Ouvrir</span>
-                  </a>
-                </li>
+    <section class="pi-panel" id="photos" data-panel="photos" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Photos</h2></div>
+        {% if project_images %}
+        <div class="pi-gallery">
+          {% for img in project_images %}
+          <a class="pi-thumb" href="{{ img.url }}" target="_blank" rel="noopener" title="{{ img.legende|default:img.name }}">
+            <img src="{{ img.url }}" alt="{{ img.legende|default:img.name }}">
+            {% if img.legende %}<span>{{ img.legende }}</span>{% endif %}
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">Aucune photo</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="pi-panel" id="financement" data-panel="financement" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Financement</h2></div>
+        {% if financement %}
+        <div class="pi-money-row">
+          <div class="pi-money-total">
+            <span>Total investissement</span>
+            <strong>{{ financement.investissement_total|floatformat:0|intcomma }} <small>DH</small></strong>
+          </div>
+          <dl class="pi-fields cols-2">
+            <div>
+              <dt>Fonds propres (FP)</dt>
+              <dd>{{ financement.fonds_propres_fp|floatformat:0|intcomma }} DH <em>{{ fp_pct }}%</em></dd>
+            </div>
+            <div>
+              <dt>Crédit moyen terme (CMT)</dt>
+              <dd>{{ financement.credit_moyen_terme_cmt|floatformat:0|intcomma }} DH <em>{{ cmt_pct }}%</em></dd>
+            </div>
+          </dl>
+          {% if fp_pct or cmt_pct %}
+          <div
+            class="pi-dist-bar"
+            role="img"
+            aria-label="Répartition fonds propres {{ fp_pct }}% et crédit {{ cmt_pct }}%"
+          >
+            <span
+              class="pi-dist-fp"
+              style="width: {{ fp_pct }}%"
+              title="Fonds propres {{ fp_pct }}%"
+            ></span>
+            <span
+              class="pi-dist-cmt"
+              style="width: {{ cmt_pct }}%"
+              title="Crédit {{ cmt_pct }}%"
+            ></span>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="muted">Non renseigné</p>
+        {% endif %}
+        <h3 class="pi-subhead">Documents financement</h3>
+        {% if finance_docs %}
+        <ul class="pi-docs">
+          {% for doc in finance_docs %}
+          <li>{% include "projects/partials/doc_file_row.html" %}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">Aucun document financement</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="pi-panel" id="planning" data-panel="planning" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Planning d'exécution</h2></div>
+        <div class="pi-phases">
+          {% for row in planning_phases %}
+          <div class="pi-phase{% if row.filled %} is-filled{% endif %}">
+            <span class="pi-phase-num">{{ forloop.counter }}</span>
+            <div class="pi-phase-body">
+              <h3>{{ row.label }}</h3>
+              {% if row.docs %}
+              <ul class="pi-docs">
+                {% for doc in row.docs %}
+                <li>{% include "projects/partials/doc_file_row.html" %}</li>
                 {% endfor %}
               </ul>
               {% else %}
-              <p class="empty">Aucun document</p>
+              <div class="pi-phase-empty">
+                <span class="annexe-badge is-wait">Non fourni</span>
+                {% if planning_edit_url %}
+                <a class="pi-join-btn" href="{{ planning_edit_url }}">+ Joindre un fichier</a>
+                {% endif %}
+              </div>
               {% endif %}
-            </section>
+            </div>
           </div>
+          {% empty %}
+          <p class="muted">Aucun planning</p>
+          {% endfor %}
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="pi-tabpanel" data-panel="planning" role="tabpanel" hidden id="planning">
-      <div class="project-info-grid">
-        <section class="is-wide">
-          <h2>Planning d'exécution du projet</h2>
-          {% for row in planning_phases %}
-          <div class="planning-phase-block">
-            <h3>{{ row.label }}</h3>
-            {% if row.docs %}
-            <ul class="docs">
-              {% for doc in row.docs %}
-              <li>
-                <a href="{{ doc.url }}" target="_blank" rel="noopener">
-                  <span>{{ doc.name }}</span>
-                  <span>Ouvrir</span>
-                </a>
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <p class="empty">Aucun PDF</p>
-            {% endif %}
-          </div>
+    <section class="pi-panel" id="fichiers" data-panel="fichiers" role="tabpanel" hidden>
+      <div class="pi-card">
+        <div class="pi-sec-head"><h2>Fichiers &amp; documents</h2></div>
+        <h3 class="pi-subhead">Documents techniques</h3>
+        {% if programme_docs %}
+        <ul class="pi-docs">
+          {% for doc in programme_docs %}
+          <li>{% include "projects/partials/doc_file_row.html" %}</li>
           {% endfor %}
-        </section>
+        </ul>
+        {% else %}
+        <p class="muted">Aucun document technique</p>
+        {% endif %}
       </div>
-    </div>
+    </section>
 
-    <div class="pi-tabpanel" data-panel="annexes" role="tabpanel" hidden id="annexes">
-      {% include "projects/partials/annexes_sheet.html" %}
-    </div>
+    <section class="pi-panel" id="annexes" data-panel="annexes" role="tabpanel" hidden>
+      <div class="pi-card pi-card-annexes">
+        {% include "projects/partials/annexes_sheet.html" %}
+      </div>
+    </section>
   </div>
 </article>
 <script>
 (function () {
   var root = document.querySelector("[data-pi-tabs]");
   if (!root) return;
-  var tablist = root.querySelector(":scope > .pi-tablist");
-  var tabs = tablist ? tablist.querySelectorAll("[data-tab]") : [];
-  var panels = root.querySelectorAll(":scope > [data-panel]");
+  var tabs = root.querySelectorAll(".pi-nav-inner [data-tab]");
+  var panels = root.querySelectorAll("[data-panel]");
 
-  function activateTab(id) {
+  function activate(id) {
     if (!id) return;
     var found = false;
-    tabs.forEach(function (t) {
-      var on = t.getAttribute("data-tab") === id;
+    tabs.forEach(function (tab) {
+      var on = tab.getAttribute("data-tab") === id;
       if (on) found = true;
-      t.classList.toggle("is-active", on);
-      t.setAttribute("aria-selected", on ? "true" : "false");
+      tab.classList.toggle("is-active", on);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
     });
     if (!found) return;
     panels.forEach(function (panel) {
@@ -301,49 +325,18 @@
       panel.classList.toggle("is-active", on);
       panel.hidden = !on;
     });
+    if (history.replaceState) {
+      history.replaceState(null, "", "#" + id);
+    }
   }
 
   tabs.forEach(function (tab) {
     tab.addEventListener("click", function () {
-      activateTab(tab.getAttribute("data-tab"));
-    });
-  });
-
-  document.querySelectorAll("[data-open-tab]").forEach(function (link) {
-    link.addEventListener("click", function (event) {
-      var id = link.getAttribute("data-open-tab");
-      if (!id) return;
-      event.preventDefault();
-      activateTab(id);
-      if (history.replaceState) {
-        history.replaceState(null, "", "#" + id);
-      } else {
-        location.hash = id;
-      }
-    });
-  });
-
-  root.querySelectorAll("[data-pi-subtabs]").forEach(function (sub) {
-    var subTabs = sub.querySelectorAll("[data-subtab]");
-    var subPanels = sub.querySelectorAll("[data-subpanel]");
-    subTabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        var id = tab.getAttribute("data-subtab");
-        subTabs.forEach(function (t) {
-          var on = t === tab;
-          t.classList.toggle("is-active", on);
-          t.setAttribute("aria-selected", on ? "true" : "false");
-        });
-        subPanels.forEach(function (panel) {
-          var on = panel.getAttribute("data-subpanel") === id;
-          panel.classList.toggle("is-active", on);
-          panel.hidden = !on;
-        });
-      });
+      activate(tab.getAttribute("data-tab"));
     });
   });
 
   var hash = (location.hash || "").replace(/^#/, "");
-  if (hash) activateTab(hash);
+  if (hash) activate(hash);
 })();
 </script>

@@ -3,6 +3,9 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 
+DOCUMENT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "dwg"]
+
+
 class TimeStampedModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -11,43 +14,119 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
+# kind of an intervenant
+class TypeIntervenant(models.TextChoices):
+    MO = "MO", "Maître d'ouvrage"
+    ARCHITECTE = "ARCHITECTE", "Architecte"
+    IGT = "IGT", "Ingénieur topographe (IGT)"
+    BET = "BET", "Bureau d'études techniques (BET)"
+    BC = "BC", "Bureau de contrôle (BC)"
+    LABO = "LABO", "Laboratoire"
+    ENTREPRISE = "ENTREPRISE", "Entreprise"
+    AUTRE = "AUTRE", "Autre"
+
+
+# kind of a project status
+class StatutProjet(models.TextChoices):
+    INSTRUCTION = "INSTRUCTION", "En cours d'instruction"
+    EXECUTION = "EXECUTION", "En cours d'exécution"
+
+
+# kind of a superficie unit
+class UniteSuperficie(models.TextChoices):
+    M2 = "M2", "m²"
+    HA = "HA", "ha"
+
+
+# kind of a permis
+class TypePermis(models.TextChoices):
+    AMENAGER = "AMENAGER", "Permis d'aménager"
+    CONSTRUIRE = "CONSTRUIRE", "Permis de construire"
+    LOTIR = "LOTIR", "Autorisation de lotir"
+    MORCELER = "MORCELER", "Autorisation de morceler"
+    HABITER = "HABITER", "Permis d'habiter"
+    CONFORMITE = "CONFORMITE", "Certificat de conformité"
+    AUTRE = "AUTRE", "Autre"
+
+
+# kind of a project document
+class ProjectDocumentKind(models.TextChoices):
+    VOIRIE_VRD = "VOIRIE_VRD", "Voirie (VRD)"
+    TELECOM_FIBRE = "TELECOM_FIBRE", "Télécom / Fibre"
+    RESEAU_TELECOM = "RESEAU_TELECOM", "Réseau de télécom"
+    AMENAGEMENT_PAYSAGER = "AMENAGEMENT_PAYSAGER", "Aménagement paysager"
+    ESPACE_VERT = "ESPACE_VERT", "Espace vert"
+    STEP = "STEP", "STEP"
+    FICHE_LOT_PARCELLE = "FICHE_LOT_PARCELLE", "Fiche lot / parcelle"
+
+
+# kind of a planning phase
+class PlanningPhase(models.TextChoices):
+    ETUDES = "ETUDES", "Études techniques, géotechniques & Permis"
+    VIABILISATION = "VIABILISATION", "Travaux de Viabilisation (VRD & Réseaux)"
+    RECEPTION = "RECEPTION", "Réception provisoire & Titres fonciers individuels"
+
+
+# kind of an annexe document
+class AnnexeDocumentKind(models.TextChoices):
+    CERTIFICAT_PROPRIETE = (
+        "CERTIFICAT_PROPRIETE",
+        "Certificat de propriété (ANCFCC) — Titre Foncier Mère",
+    )
+    PLAN_CADASTRAL = (
+        "PLAN_CADASTRAL",
+        "Plan Cadastral et Calque topographique (IGT)",
+    )
+    PLAN_ARCHITECTURE = (
+        "PLAN_ARCHITECTURE",
+        "Plan d'Architecture & Lotissement « Ne Varietur »",
+    )
+    ATTESTATIONS = (
+        "ATTESTATIONS",
+        "Attestations concessionnaires (Eaux, Électricité, Télécom)",
+    )
+    CAHIER_CHARGES = (
+        "CAHIER_CHARGES",
+        "Cahier des charges et PV de réception",
+    )
+
+
+# model of an intervenant
 class Intervenant(TimeStampedModel):
-    class TypeIntervenant(models.TextChoices):
-        MO = "MO", "Maître d'ouvrage"
-        ARCHITECTE = "ARCHITECTE", "Architecte"
-        IGT = "IGT", "Ingénieur topographe (IGT)"
-        BET = "BET", "Bureau d'études techniques (BET)"
-        BC = "BC", "Bureau de contrôle (BC)"
-        LABO = "LABO", "Laboratoire"
-        ENTREPRISE = "ENTREPRISE", "Entreprise"
-        AUTRE = "AUTRE", "Autre"
+    TypeIntervenant = TypeIntervenant
 
     type_intervenant = models.CharField(
-        max_length=20, choices=TypeIntervenant.choices, verbose_name="Type d'intervenant"
+        max_length=20,
+        choices=TypeIntervenant.choices,
+        verbose_name="Type d'intervenant",
     )
     nom_ou_cabinet = models.CharField(max_length=255, verbose_name="Nom ou cabinet")
     contact = models.CharField(max_length=255, blank=True, verbose_name="Contact")
+    projects: models.QuerySet["Project"]
 
     class Meta:
         verbose_name = "Intervenant"
         verbose_name_plural = "Intervenants"
         ordering = ["nom_ou_cabinet"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.nom_ou_cabinet} ({self.get_type_intervenant_display()})"
 
 
+# model of a project
 class Project(TimeStampedModel):
-    class StatutProjet(models.TextChoices):
-        INSTRUCTION = "INSTRUCTION", "En cours d'instruction"
-        EXECUTION = "EXECUTION", "En cours d'exécution"
+    StatutProjet = StatutProjet
 
     code = models.CharField(max_length=5, unique=True, editable=False)
     prefecture = models.CharField(max_length=255, verbose_name="Préfecture / Province")
     commune = models.CharField(max_length=255, verbose_name="Commune")
     titre = models.CharField(max_length=255, verbose_name="Titre du projet")
     consistance_globale = models.TextField(verbose_name="Consistance du projet")
-    nombre_lots = models.PositiveIntegerField(null=True, blank=True, verbose_name="Nombre de lots / Unités")
+    nombre_lots = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Nombre de lots / Unités",
+    )
     situation_localisation = models.TextField(verbose_name="Situation & Localisation")
     voie_acces = models.CharField(max_length=255, verbose_name="Accès au site")
     emprise_servitudes = models.TextField(blank=True, verbose_name="Servitudes d'urbanisme")
@@ -55,7 +134,7 @@ class Project(TimeStampedModel):
         max_length=20,
         choices=StatutProjet.choices,
         default=StatutProjet.INSTRUCTION,
-        verbose_name="Statut actuel du projet"
+        verbose_name="Statut actuel du projet",
     )
     is_archived = models.BooleanField(
         default=False,
@@ -66,23 +145,25 @@ class Project(TimeStampedModel):
         Intervenant,
         blank=True,
         related_name="projects",
-        verbose_name="Intervenants"
+        verbose_name="Intervenants",
     )
+    documents: models.QuerySet["ProjectDocument"]
+    images: models.QuerySet["ProjectImage"]
 
     class Meta:
         verbose_name = "Projet"
         verbose_name_plural = "Projets"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.code} - {self.titre}"
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         from django.urls import reverse
 
         return f"{reverse('admin:index')}?projet={self.code}"
 
     @classmethod
-    def next_code(cls):
+    def next_code(cls) -> str:
         yy = timezone.now().strftime("%y")
         # Match the year at positions 1-2 only: "A2627" contains "27" but belongs to 2026.
         last = cls.objects.filter(code__regex=f"^[A-Z]{yy}").order_by("-code").first()
@@ -114,16 +195,15 @@ class Project(TimeStampedModel):
         raise IntegrityError("Could not generate a unique project code.")
 
 
+# model of a terrain mère
 class TerrainMere(TimeStampedModel):
-    class UniteSuperficie(models.TextChoices):
-        M2 = "M2", "m²"
-        HA = "HA", "ha"
+    UniteSuperficie = UniteSuperficie
 
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="terrain_mere",
-        verbose_name="Projet"
+        verbose_name="Projet",
     )
     titre_foncier_mere = models.CharField(max_length=100, verbose_name="Titre foncier mère")
     suffixe = models.CharField(max_length=50, blank=True, verbose_name="Suffixe")
@@ -143,32 +223,33 @@ class TerrainMere(TimeStampedModel):
         verbose_name = "Terrain Mère"
         verbose_name_plural = "Terrains Mères"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.titre_foncier_mere} ({self.project.code})"
 
     @property
-    def superficie_affichee(self):
+    def superficie_affichee(self) -> str:
         return f"{self.superficie_totale} {self.get_superficie_unite_display()}"
 
 
+# model of an autorisation
 class Autorisation(TimeStampedModel):
-    class TypePermis(models.TextChoices):
-        AMENAGER = "AMENAGER", "Permis d'aménager"
-        CONSTRUIRE = "CONSTRUIRE", "Permis de construire"
-        LOTIR = "LOTIR", "Autorisation de lotir"
-        MORCELER = "MORCELER", "Autorisation de morceler"
-        HABITER = "HABITER", "Permis d'habiter"
-        CONFORMITE = "CONFORMITE", "Certificat de conformité"
-        AUTRE = "AUTRE", "Autre"
+    TypePermis = TypePermis
 
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="autorisation",
-        verbose_name="Projet"
+        verbose_name="Projet",
     )
-    type_permis = models.CharField(max_length=20, choices=TypePermis.choices, verbose_name="Type de permis")
-    numero_autorisation = models.CharField(max_length=100, verbose_name="Numéro d'autorisation")
+    type_permis = models.CharField(
+        max_length=20,
+        choices=TypePermis.choices,
+        verbose_name="Type de permis",
+    )
+    numero_autorisation = models.CharField(
+        max_length=100,
+        verbose_name="Numéro d'autorisation",
+    )
     date_delivrance = models.DateField(null=True, blank=True, verbose_name="Date de délivrance")
 
     class Meta:
@@ -176,19 +257,17 @@ class Autorisation(TimeStampedModel):
         verbose_name_plural = "Permis d’aménager / construire"
         ordering = ["-date_delivrance"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.get_type_permis_display()} n° {self.numero_autorisation} ({self.project.code})"
 
 
-DOCUMENT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "dwg"]
-
-
+# model of a programme technique
 class ProgrammeTechnique(TimeStampedModel):
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="programme_technique",
-        verbose_name="Projet"
+        verbose_name="Projet",
     )
     voirie_vrd = models.BooleanField(default=False, verbose_name="Voirie (VRD)")
     observations = models.TextField(blank=True, verbose_name="Observations")
@@ -197,21 +276,13 @@ class ProgrammeTechnique(TimeStampedModel):
         verbose_name = "Programme technique & viabilisation"
         verbose_name_plural = "Programme technique & viabilisation"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Programme technique ({self.project.code})"
 
 
+# model of a project document
 class ProjectDocument(TimeStampedModel):
-    """Plusieurs fichiers par type de document technique."""
-
-    class Kind(models.TextChoices):
-        VOIRIE_VRD = "VOIRIE_VRD", "Voirie (VRD)"
-        TELECOM_FIBRE = "TELECOM_FIBRE", "Télécom / Fibre"
-        RESEAU_TELECOM = "RESEAU_TELECOM", "Réseau de télécom"
-        AMENAGEMENT_PAYSAGER = "AMENAGEMENT_PAYSAGER", "Aménagement paysager"
-        ESPACE_VERT = "ESPACE_VERT", "Espace vert"
-        STEP = "STEP", "STEP"
-        FICHE_LOT_PARCELLE = "FICHE_LOT_PARCELLE", "Fiche lot / parcelle"
+    Kind = ProjectDocumentKind
 
     project = models.ForeignKey(
         Project,
@@ -221,7 +292,7 @@ class ProjectDocument(TimeStampedModel):
     )
     kind = models.CharField(
         max_length=32,
-        choices=Kind.choices,
+        choices=ProjectDocumentKind.choices,
         verbose_name="Type de document",
     )
     fichier = models.FileField(
@@ -236,13 +307,12 @@ class ProjectDocument(TimeStampedModel):
         verbose_name_plural = "Documents techniques"
         ordering = ["kind", "-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.get_kind_display()} — {self.project.code}"
 
 
+# model of a project image
 class ProjectImage(TimeStampedModel):
-    """Plusieurs photos par projet (galerie)."""
-
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
@@ -255,11 +325,7 @@ class ProjectImage(TimeStampedModel):
         verbose_name="Image",
         help_text="JPG, PNG, WEBP ou GIF — plusieurs images possibles",
     )
-    legende = models.CharField(
-        max_length=255,
-        blank=True,
-        verbose_name="Légende",
-    )
+    legende = models.CharField(max_length=255, blank=True, verbose_name="Légende")
     ordre = models.PositiveIntegerField(default=0, verbose_name="Ordre")
 
     class Meta:
@@ -267,32 +333,44 @@ class ProjectImage(TimeStampedModel):
         verbose_name_plural = "Images projet"
         ordering = ["ordre", "-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.legende or f"Image — {self.project.code}"
 
 
+# model of a structure financement
 class StructureFinancement(TimeStampedModel):
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="structure_financement",
-        verbose_name="Projet"
+        verbose_name="Projet",
     )
     fonds_propres_fp = models.DecimalField(
-        max_digits=16, decimal_places=2, default=0, verbose_name="FP : Fonds propres (DH)"
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name="FP : Fonds propres (DH)",
     )
     credit_moyen_terme_cmt = models.DecimalField(
-        max_digits=16, decimal_places=2, default=0, verbose_name="CMT : Crédit moyen terme (DH)"
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name="CMT : Crédit moyen terme (DH)",
     )
     investissement_total = models.DecimalField(
-        max_digits=16, decimal_places=2, default=0, editable=False, verbose_name="Total investissement (DH)"
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        editable=False,
+        verbose_name="Total investissement (DH)",
     )
+    documents: models.QuerySet["FinancementDocument"]
 
     class Meta:
         verbose_name = "Planning financier & structure de financement"
         verbose_name_plural = "Planning financier & structure de financement"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Financement ({self.project.code})"
 
     def save(self, *args, **kwargs):
@@ -300,9 +378,8 @@ class StructureFinancement(TimeStampedModel):
         super().save(*args, **kwargs)
 
 
+# model of a financement document
 class FinancementDocument(TimeStampedModel):
-    """Plusieurs PDF de financement par structure."""
-
     financement = models.ForeignKey(
         StructureFinancement,
         on_delete=models.CASCADE,
@@ -321,40 +398,36 @@ class FinancementDocument(TimeStampedModel):
         verbose_name_plural = "Documents financement"
         ordering = ["-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"PDF financement ({self.financement.project.code})"
 
 
+# model of a planning d'exécution
 class PlanningExecution(TimeStampedModel):
-    """Conteneur OneToOne — PDFs par phase via le menu latéral."""
-
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="planning_execution",
         verbose_name="Projet",
     )
+    documents: models.QuerySet["PlanningDocument"]
 
     class Meta:
         verbose_name = "Planning d'exécution"
         verbose_name_plural = "Planning d'exécution du projet"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Planning d'exécution ({self.project.code})"
 
 
+# model of a planning document
 class PlanningDocument(TimeStampedModel):
-    """Plusieurs PDF par phase de planning d'exécution."""
-
-    class Phase(models.TextChoices):
-        ETUDES = "ETUDES", "Études techniques, géotechniques & Permis"
-        VIABILISATION = "VIABILISATION", "Travaux de Viabilisation (VRD & Réseaux)"
-        RECEPTION = "RECEPTION", "Réception provisoire & Titres fonciers individuels"
+    Phase = PlanningPhase
 
     PHASE_ORDER = {
-        Phase.ETUDES: 1,
-        Phase.VIABILISATION: 2,
-        Phase.RECEPTION: 3,
+        PlanningPhase.ETUDES: 1,
+        PlanningPhase.VIABILISATION: 2,
+        PlanningPhase.RECEPTION: 3,
     }
 
     planning = models.ForeignKey(
@@ -365,7 +438,7 @@ class PlanningDocument(TimeStampedModel):
     )
     phase = models.CharField(
         max_length=32,
-        choices=Phase.choices,
+        choices=PlanningPhase.choices,
         verbose_name="Phase de projet",
     )
     fichier = models.FileField(
@@ -380,52 +453,31 @@ class PlanningDocument(TimeStampedModel):
         verbose_name_plural = "PDFs planning d'exécution"
         ordering = ["phase", "-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.get_phase_display()} — {self.planning.project.code}"
 
 
+# model of an annexe dossier
 class AnnexeDossier(TimeStampedModel):
-    """Conteneur OneToOne — pièces jointes PDF du dossier administratif."""
-
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="annexe_dossier",
         verbose_name="Projet",
     )
+    documents: models.QuerySet["AnnexeDocument"]
 
     class Meta:
         verbose_name = "Annexe"
         verbose_name_plural = "Annexes"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Annexes ({self.project.code})"
 
 
+# model of an annexe document
 class AnnexeDocument(TimeStampedModel):
-    """PDF pièce jointe obligatoire du dossier administratif."""
-
-    class Kind(models.TextChoices):
-        CERTIFICAT_PROPRIETE = (
-            "CERTIFICAT_PROPRIETE",
-            "Certificat de propriété (ANCFCC) — Titre Foncier Mère",
-        )
-        PLAN_CADASTRAL = (
-            "PLAN_CADASTRAL",
-            "Plan Cadastral et Calque topographique (IGT)",
-        )
-        PLAN_ARCHITECTURE = (
-            "PLAN_ARCHITECTURE",
-            "Plan d'Architecture & Lotissement « Ne Varietur »",
-        )
-        ATTESTATIONS = (
-            "ATTESTATIONS",
-            "Attestations concessionnaires (Eaux, Électricité, Télécom)",
-        )
-        CAHIER_CHARGES = (
-            "CAHIER_CHARGES",
-            "Cahier des charges et PV de réception",
-        )
+    Kind = AnnexeDocumentKind
 
     dossier = models.ForeignKey(
         AnnexeDossier,
@@ -435,7 +487,7 @@ class AnnexeDocument(TimeStampedModel):
     )
     kind = models.CharField(
         max_length=32,
-        choices=Kind.choices,
+        choices=AnnexeDocumentKind.choices,
         verbose_name="Type de pièce",
     )
     fichier = models.FileField(
@@ -450,5 +502,5 @@ class AnnexeDocument(TimeStampedModel):
         verbose_name_plural = "Pièces jointes (PDF)"
         ordering = ["kind", "-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.get_kind_display()} — {self.dossier.project.code}"

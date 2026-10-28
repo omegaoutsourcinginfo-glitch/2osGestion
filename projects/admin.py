@@ -79,7 +79,7 @@ class ProjectArchiveRowMixin:
         return redirect(self._changelist_url())
 
     @action(
-        description="Voir archive",
+        description="Archiver",
         icon="archive",
         variant=ActionVariant.DEFAULT,
         url_path="voir-archive",
@@ -213,8 +213,8 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         "statut_link",
     )
     list_display_links = None
-    list_per_page = 25
-    show_full_result_count = True
+    list_per_page = 10
+    show_full_result_count = False
     search_fields = ("code", "titre", "prefecture", "commune")
     list_filter = ("statut_actuel", "is_archived", "prefecture", "commune")
     ordering = ("-code",)
@@ -318,7 +318,7 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         )
 
     @action(
-        description="Voir archive",
+        description="Archiver",
         icon="archive",
         variant=ActionVariant.DEFAULT,
         url_path="voir-archive",
@@ -445,8 +445,8 @@ class StructureFinancementAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAd
         "investissement_total",
     )
     list_display_links = ("project_code", "project_titre")
-    list_per_page = 25
-    show_full_result_count = True
+    list_per_page = 10
+    show_full_result_count = False
     list_select_related = ("project",)
     search_fields = ("project__code", "project__titre")
     list_filter = ("project__is_archived",)
@@ -584,8 +584,8 @@ class PlanningExecutionAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin
     actions = None
     list_display = ("project_code", "project_titre", "phases_count", "updated_at")
     list_display_links = ("project_code", "project_titre")
-    list_per_page = 25
-    show_full_result_count = True
+    list_per_page = 10
+    show_full_result_count = False
     list_select_related = ("project",)
     search_fields = ("project__code", "project__titre")
     list_filter = ("project__is_archived",)
@@ -714,8 +714,8 @@ class AnnexeDossierAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
     actions = None
     list_display = ("project_code", "project_titre", "docs_count", "updated_at")
     list_display_links = ("project_code", "project_titre")
-    list_per_page = 25
-    show_full_result_count = True
+    list_per_page = 10
+    show_full_result_count = False
     list_select_related = ("project",)
     search_fields = ("project__code", "project__titre")
     list_filter = ("project__is_archived",)

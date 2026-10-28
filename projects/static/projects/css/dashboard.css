@@ -1,14 +1,14 @@
-/* Tableau de bord */
+/* Tableau de bord — light Inter + Slate */
 .studio {
-  --ink: #111827;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --bg: #f3f4f6;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --bg: #f8fafc;
   --surface: #ffffff;
-  --accent: #8b1e2d;
-  --ok: #0f766e;
-  --exec: #b45309;
-  --font: "Source Sans 3", "Segoe UI", sans-serif;
+  --accent: #0f172a;
+  --ok: #047857;
+  --exec: #1d4ed8;
+  --font: "Inter", "Segoe UI", sans-serif;
   margin: -0.25rem -0.25rem 0;
   min-height: 60vh;
   color: var(--ink);
@@ -25,12 +25,12 @@
 }
 
 .studio-body-detail {
-  width: min(100%, 1120px);
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
 }
 
 .studio-detail {
-  background: transparent;
+  background: #f8fafc;
 }
 
 .studio-head {
@@ -66,18 +66,29 @@
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 0.9rem;
-  border-radius: 0.45rem;
-  font-size: 0.82rem;
-  font-weight: 700;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
   text-decoration: none !important;
-  background: var(--accent);
+  background: #0f172a;
   color: #fff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: background 0.15s ease;
+}
+
+.studio-cta a:hover {
+  background: #1e293b;
 }
 
 .studio-cta a.is-soft {
   background: var(--surface);
-  color: var(--ink) !important;
-  border: 1px solid var(--line);
+  color: #334155 !important;
+  border: 1px solid #cbd5e1;
+  box-shadow: none;
+}
+
+.studio-cta a.is-soft:hover {
+  background: #f8fafc;
 }
 
 .studio-metrics {
@@ -149,9 +160,9 @@
 }
 
 .studio-list-head a {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--accent) !important;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1d4ed8 !important;
   text-decoration: none !important;
 }
 
@@ -177,14 +188,14 @@
 }
 
 .studio-list li a:hover {
-  background: #f9fafb;
+  background: #f8fafc;
 }
 
 .studio-code {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
   font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--accent);
+  font-weight: 600;
+  color: #1d4ed8;
 }
 
 .studio-info {
@@ -291,4 +302,54 @@
   white-space: normal;
   overflow-wrap: anywhere;
   font-size: 0.875rem;
+}
+
+/* ---- Dark theme (Unfold .dark switcher) ---- */
+.dark .studio {
+  --ink: #fafafa;
+  --muted: #a1a1aa;
+  --line: #27272a;
+  --bg: #09090b;
+  --surface: #111113;
+  --accent: #fafafa;
+  --ok: #34d399;
+  --exec: #60a5fa;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.dark .studio-detail {
+  background: #09090b;
+}
+
+.dark .studio-cta a {
+  background: #fafafa;
+  color: #09090b !important;
+}
+
+.dark .studio-cta a:hover {
+  background: #e4e4e7;
+}
+
+.dark .studio-cta a.is-soft {
+  background: var(--surface);
+  color: #e4e4e7 !important;
+  border-color: var(--line);
+}
+
+.dark .studio-cta a.is-soft:hover {
+  background: #18181b;
+}
+
+.dark .studio-metrics a:hover {
+  border-color: #3f3f46;
+}
+
+.dark .studio-list-head a,
+.dark .studio-code {
+  color: #60a5fa !important;
+}
+
+.dark .studio-list li a:hover {
+  background: #18181b;
 }

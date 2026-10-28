@@ -1,14 +1,17 @@
-"""Seed 5 realistic demo projects with ALL related data.
+"""Seed demo projects with ALL related data.
 
 Includes: terrain, permis, intervenants, docs techniques, images,
 financement + PDFs, planning + PDFs, annexes + PDFs.
 
 Usage:
     python manage.py seed_demo_projects
+    python manage.py seed_demo_projects --count 50
     python manage.py seed_demo_projects --clear
+    python manage.py seed_demo_projects --count 50 --clear
 """
 
-from datetime import date
+import copy
+from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
 
@@ -315,32 +318,84 @@ DEMO_IMAGE_LEGENDES = [
 ]
 
 
+def _build_batch(count: int) -> list[dict]:
+    """Clone/vary DEMO_PROJECTS templates to reach `count` projects."""
+    if count <= 0:
+        return []
+    batch = []
+    for i in range(count):
+        base = copy.deepcopy(DEMO_PROJECTS[i % len(DEMO_PROJECTS)])
+        n = i + 1
+        if i >= len(DEMO_PROJECTS):
+            base["titre"] = f"{base['titre']} — #{n:02d}"
+            base["nombre_lots"] = (base["nombre_lots"] or 10) + (n % 40)
+            terrain = base["terrain"]
+            terrain["titre_foncier_mere"] = f"TF {1000 + n}/{chr(65 + (n % 26))}"
+            terrain["suffixe"] = f"Lot {n}"
+            terrain["superficie_totale"] = Decimal(str(round(float(terrain["superficie_totale"]) + (n % 17) * 0.1, 2)))
+            auth = base["autorisation"]
+            auth["numero_autorisation"] = f"DEMO/{n:04d}"
+            base_date = auth["date_delivrance"] or date(2024, 1, 1)
+            auth["date_delivrance"] = base_date + timedelta(days=n)
+            fin = base["financement"]
+            fin["fonds_propres_fp"] = Decimal(str(int(fin["fonds_propres_fp"]) + n * 10000))
+            fin["credit_moyen_terme_cmt"] = Decimal(str(int(fin["credit_moyen_terme_cmt"]) + n * 15000))
+            slug = f"p{n:02d}"
+            base["docs"] = [(k, f"{PathStem(fn)}_{slug}.pdf") for k, fn in base["docs"]]
+            base["finance_docs"] = [f"{PathStem(fn)}_{slug}.pdf" for fn in base["finance_docs"]]
+            base["planning_docs"] = [(ph, f"{PathStem(fn)}_{slug}.pdf") for ph, fn in base["planning_docs"]]
+            base["statut_actuel"] = (
+                Project.StatutProjet.EXECUTION if n % 2 else Project.StatutProjet.INSTRUCTION
+            )
+        batch.append(base)
+    return batch
+
+
+def PathStem(filename: str) -> str:
+    return filename.rsplit(".", 1)[0]
+
+
 class Command(BaseCommand):
     help = (
-        "Crée 5 projets démo complets : terrain, permis, intervenants, "
+        "Crée des projets démo complets : terrain, permis, intervenants, "
         "docs techniques, photos, financement, planning et annexes PDF."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
+            "--count",
+            type=int,
+            default=len(DEMO_PROJECTS),
+            help=f"Nombre de projets à créer (défaut: {len(DEMO_PROJECTS)}).",
+        )
+        parser.add_argument(
             "--clear",
             action="store_true",
-            help="Supprime d'abord les projets dont le titre correspond à la démo.",
+            help="Supprime d'abord les projets démo (titres modèles + variantes #NN).",
         )
 
     def handle(self, *args, **options):
+        count = options["count"]
+        batch = _build_batch(count)
+
         if options["clear"]:
-            titres = [p["titre"] for p in DEMO_PROJECTS]
-            deleted, _ = Project.objects.filter(titre__in=titres).delete()
+            from django.db.models import Q
+
+            q = Q()
+            for p in DEMO_PROJECTS:
+                q |= Q(titre=p["titre"]) | Q(titre__startswith=f"{p['titre']} — #")
+            deleted, _ = Project.objects.filter(q).delete()
             self.stdout.write(self.style.WARNING(f"Supprimé {deleted} objet(s) liés à la démo."))
 
         intervenants = self._ensure_intervenants()
 
         created = []
         with transaction.atomic():
-            for index, data in enumerate(DEMO_PROJECTS):
+            for index, data in enumerate(batch):
                 project = self._create_project(data, intervenants, index)
                 created.append(project)
+                if (index + 1) % 10 == 0 or index + 1 == len(batch):
+                    self.stdout.write(f"  … {index + 1}/{len(batch)}")
 
         self.stdout.write(self.style.SUCCESS(f"{len(created)} projets créés :"))
         for project in created:

@@ -1,0 +1,13 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0;url={% url 'admin:login' %}">
+  <title>{% trans "Log in again" %}</title>
+  <script>window.location.replace("{% url 'admin:login' %}");</script>
+</head>
+<body>
+  <p><a href="{% url 'admin:login' %}">{% trans "Log in again" %}</a></p>
+</body>
+</html>

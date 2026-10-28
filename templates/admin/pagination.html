@@ -1,0 +1,24 @@
+{% load unfold unfold_list i18n %}
+
+{# Kept for Django admin inclusion-tag fallback; main UI uses unfold/helpers/pagination.html #}
+<div class="changelist-pagination-bar flex flex-row grow items-center justify-center lg:h-[64px] relative w-full">
+    {% if cl.paginator.template_name %}
+        {% include cl.paginator.template_name %}
+    {% else %}
+        {% include "unfold/helpers/pagination_default.html" %}
+    {% endif %}
+
+    {% if show_all_url %}
+        <a href="{{ show_all_url }}" class="showall absolute right-0 hidden lg:inline text-sm text-primary-600 dark:text-primary-500">
+            {% translate 'Show all' %}
+        </a>
+    {% endif %}
+
+    {% if cl.formset and cl.result_count %}
+        <div class="absolute right-0">
+            {% component "unfold/components/button.html" with submit=1 name="_save" form="changelist-form" class="w-full" %}
+                {% translate 'Save' %}
+            {% endcomponent %}
+        </div>
+    {% endif %}
+</div>

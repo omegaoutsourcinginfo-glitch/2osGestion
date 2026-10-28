@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
-from django.templatetags.static import static
 from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -131,11 +130,13 @@ UNFOLD = {
     "SHOW_BACK_BUTTON": True,
     "DASHBOARD_CALLBACK": "projects.views.dashboard_callback",
     "STYLES": [
-        lambda request: static("projects/css/dashboard.css"),
-        lambda request: static("projects/css/admin_form.css"),
+        "projects.admin_assets.style_dashboard",
+        "projects.admin_assets.style_admin_form",
+        "projects.admin_assets.style_search_autocomplete",
     ],
     "SCRIPTS": [
-        lambda request: static("projects/js/dashboard.js"),
+        "projects.admin_assets.script_dashboard",
+        "projects.admin_assets.script_search_autocomplete",
     ],
     "COLORS": {
         # Maroon accent (brand)
@@ -155,23 +156,6 @@ UNFOLD = {
     },
     "SIDEBAR": {
         "navigation": [
-            {
-                "title": "Authentification et autorisation",
-                "items": [
-                    {
-                        "title": "Groupes",
-                        "icon": "group",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
-                        "permission": lambda request: request.user.has_perm("auth.view_group"),
-                    },
-                    {
-                        "title": "Utilisateurs",
-                        "icon": "person",
-                        "link": reverse_lazy("admin:auth_user_changelist"),
-                        "permission": lambda request: request.user.has_perm("auth.view_user"),
-                    },
-                ],
-            },
             {
                 "title": "Projets",
                 "items": [
@@ -210,6 +194,9 @@ UNFOLD = {
 # Uploaded files (PDF documents)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# After logout, go to login (skip full "logged out" page)
+LOGOUT_REDIRECT_URL = "/admin/login/"
 
 
 # Email
