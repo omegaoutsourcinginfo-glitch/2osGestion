@@ -61,6 +61,9 @@ def style_select2_admin(request):
 
 
 def script_spa_nav(request):
+    # Never run SPA on the login page — HTMX swaps leave a stale CSRF token.
+    if _is_login(request):
+        return ""
     return static("projects/js/spa_nav.js") + "?v=" + _v("js/spa_nav.js")
 
 
@@ -72,12 +75,18 @@ def script_dropdowns(request):
 
 
 def script_dashboard(request):
+    if _is_login(request):
+        return ""
     return static("projects/js/dashboard.js") + "?v=" + _v("js/dashboard.js")
 
 
 def script_search_autocomplete(request):
+    if _is_login(request):
+        return ""
     return static("projects/js/search_autocomplete.js") + "?v=" + _v("js/search_autocomplete.js")
 
 
 def script_required_fields(request):
+    if _is_login(request):
+        return ""
     return static("projects/js/required_fields.js") + "?v=" + _v("js/required_fields.js")

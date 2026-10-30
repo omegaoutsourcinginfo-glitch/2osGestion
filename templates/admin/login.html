@@ -33,7 +33,7 @@
 
   {% block login_before %}{% endblock %}
 
-  <form action="{{ app_path }}" method="post" id="login-form">
+  <form action="{{ app_path }}" method="post" id="login-form" data-no-spa>
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next|default:'/admin/' }}">
 

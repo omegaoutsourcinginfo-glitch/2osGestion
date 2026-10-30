@@ -643,7 +643,22 @@
     }
   }
 
+  function isAuthPageUrl(url) {
+    var path = normalizePath(url);
+    return (
+      path === "/admin/login" ||
+      path.indexOf("/admin/login") === 0 ||
+      path.indexOf("/logout") >= 0 ||
+      path.indexOf("/password_reset") >= 0
+    );
+  }
+
   function navigateAdmin(url, source) {
+    // Login / logout must be full page loads so the CSRF cookie and form match.
+    if (isAuthPageUrl(url)) {
+      window.location.href = url;
+      return;
+    }
     // Change-form pages need django.jQuery + Select2 from form.media.
     // Those scripts are not on the dashboard — SPA swap leaves Intervenants empty.
     if (isChangeFormPath(url) && !hasDjangoAutocomplete()) {
@@ -760,13 +775,19 @@
     if (!form || !form.tagName || form.tagName.toLowerCase() !== "form") {
       return;
     }
+    // Never SPA-intercept auth forms (login is POST; keep this explicit).
+    if (
+      form.id === "login-form" ||
+      form.id === "logout-form" ||
+      (form.getAttribute("action") || "").indexOf("login") >= 0 ||
+      (form.getAttribute("action") || "").indexOf("logout") >= 0
+    ) {
+      return;
+    }
     if ((form.getAttribute("method") || "get").toLowerCase() !== "get") {
       return;
     }
     if (form.target === "_blank" || form.closest("[data-no-spa]")) {
-      return;
-    }
-    if (form.id === "logout-form" || (form.getAttribute("action") || "").indexOf("logout") >= 0) {
       return;
     }
 
@@ -797,6 +818,14 @@
     if (!target) {
       return;
     }
+    // If HTMX followed a redirect to login, do a real navigation (fresh CSRF).
+    if (
+      target.querySelector &&
+      (target.querySelector("#login-form") || target.querySelector("body.login"))
+    ) {
+      window.location.href = "/admin/login/";
+      return;
+    }
     rememberSpaPath(window.location.href);
     reinitSwappedUi(target);
     updateSidebarActive(window.location.href);
@@ -804,11 +833,27 @@
 
   function afterRequest(event) {
     var xhr = event.detail && event.detail.xhr;
-    if (!xhr || !event.detail.successful) {
+    if (!xhr) {
+      return;
+    }
+    try {
+      var finalUrl = xhr.responseURL || "";
+      if (finalUrl && isAuthPageUrl(finalUrl)) {
+        window.location.href = finalUrl;
+        return;
+      }
+    } catch (errAuth) {
+      // ignore
+    }
+    if (!event.detail.successful) {
       return;
     }
     try {
       var doc = new DOMParser().parseFromString(xhr.responseText, "text/html");
+      if (doc.querySelector("#login-form")) {
+        window.location.href = "/admin/login/";
+        return;
+      }
       if (doc.querySelector("#main") && doc.title) {
         document.title = doc.title;
       }
