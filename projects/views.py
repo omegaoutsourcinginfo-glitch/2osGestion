@@ -10,8 +10,8 @@ from urllib.parse import quote_plus
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Q, QuerySet, Sum
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
@@ -91,6 +91,17 @@ class SearchResult(TypedDict):
     code: str
     titre: str
     label: str
+    kind: str
+    kind_label: str
+    url: str
+
+
+SEARCH_KIND_LABELS: dict[str, str] = {
+    "project": "Projet",
+    "financement": "Planning financier",
+    "planning": "Planning d'exécution",
+    "annexe": "Annexes",
+}
 
 
 class RecentProject(TypedDict):
@@ -100,6 +111,21 @@ class RecentProject(TypedDict):
     statut_actuel: str
     statut_label: str
     url: str
+
+
+PI_TABS: list[tuple[str, str]] = [
+    ("general", "Général"),
+    ("localisation", "Localisation"),
+    ("technique", "Technique"),
+    ("intervenants", "Intervenants"),
+    ("photos", "Photos"),
+    ("financement", "Financement"),
+    ("planning", "Planning"),
+    ("fichiers", "Fichiers"),
+    ("annexes", "Annexes"),
+]
+
+VALID_TABS: set[str] = {tab_id for tab_id, _label in PI_TABS}
 
 
 class ProjectFiche(TypedDict):
@@ -127,6 +153,8 @@ class ProjectFiche(TypedDict):
     edit_url: str
     list_url: str
     crm_url: str
+    active_tab: str
+    pi_tabs: list[tuple[str, str]]
 
 
 class DashboardData(TypedDict):
@@ -383,8 +411,10 @@ class ProjectViewSet:
             "planning_edit_url": self.planning_edit_link(project),
             "maps_url": self.google_maps_link(project),
             "edit_url": reverse("admin:projects_project_change", args=[project.pk]),
-            "list_url": reverse("admin:projects_project_changelist"),
+            "list_url": reverse("admin:index"),
             "crm_url": f"{reverse('admin:index')}?projet={project.code}",
+            "active_tab": "general",
+            "pi_tabs": PI_TABS,
         }
 
     def _get_terrain(self, project: Project) -> TerrainMere | None:
@@ -589,6 +619,7 @@ class ProjectViewSet:
         return fp, cmt
 
     def search(self, q: str = "") -> list[SearchResult]:
+        """Project-only search (dashboard recent filter)."""
         projects = Project.objects.filter(is_archived=False).order_by("-code")
         if q:
             projects = projects.filter(Q(titre__icontains=q) | Q(code__icontains=q))
@@ -600,9 +631,92 @@ class ProjectViewSet:
                     "code": project.code,
                     "titre": project.titre,
                     "label": f"{project.code} — {project.titre}",
+                    "kind": "project",
+                    "kind_label": SEARCH_KIND_LABELS["project"],
+                    "url": f"{reverse('admin:index')}?projet={project.code}",
                 }
             )
         return results
+
+
+def global_admin_search(q: str = "", per_kind: int = 4) -> list[SearchResult]:
+    """Search Projets + Planning financier + Planning d'exécution + Annexes."""
+    q = (q or "").strip()
+    if not q:
+        return []
+
+    project_q = Q(titre__icontains=q) | Q(code__icontains=q)
+    related_q = Q(project__titre__icontains=q) | Q(project__code__icontains=q)
+    results: list[SearchResult] = []
+
+    for project in (
+        Project.objects.filter(is_archived=False)
+        .filter(project_q)
+        .order_by("-code")[:per_kind]
+    ):
+        results.append(
+            {
+                "code": project.code,
+                "titre": project.titre,
+                "label": f"{project.code} — {project.titre}",
+                "kind": "project",
+                "kind_label": SEARCH_KIND_LABELS["project"],
+                "url": project.get_absolute_url(),
+            }
+        )
+
+    for obj in (
+        StructureFinancement.objects.filter(project__is_archived=False)
+        .filter(related_q)
+        .select_related("project")
+        .order_by("-project__code")[:per_kind]
+    ):
+        results.append(
+            {
+                "code": obj.project.code,
+                "titre": obj.project.titre,
+                "label": f"{obj.project.code} — {obj.project.titre}",
+                "kind": "financement",
+                "kind_label": SEARCH_KIND_LABELS["financement"],
+                "url": f"{obj.project.get_absolute_url()}#financement",
+            }
+        )
+
+    for obj in (
+        PlanningExecution.objects.filter(project__is_archived=False)
+        .filter(related_q)
+        .select_related("project")
+        .order_by("-project__code")[:per_kind]
+    ):
+        results.append(
+            {
+                "code": obj.project.code,
+                "titre": obj.project.titre,
+                "label": f"{obj.project.code} — {obj.project.titre}",
+                "kind": "planning",
+                "kind_label": SEARCH_KIND_LABELS["planning"],
+                "url": f"{obj.project.get_absolute_url()}#planning",
+            }
+        )
+
+    for obj in (
+        AnnexeDossier.objects.filter(project__is_archived=False)
+        .filter(related_q)
+        .select_related("project")
+        .order_by("-project__code")[:per_kind]
+    ):
+        results.append(
+            {
+                "code": obj.project.code,
+                "titre": obj.project.titre,
+                "label": f"{obj.project.code} — {obj.project.titre}",
+                "kind": "annexe",
+                "kind_label": SEARCH_KIND_LABELS["annexe"],
+                "url": f"{obj.project.get_absolute_url()}#annexes",
+            }
+        )
+
+    return results
 
 
 # Dashboard ViewSet
@@ -676,6 +790,14 @@ def dashboard_callback(request: HttpRequest, context: DashboardData) -> Dashboar
     return context
 
 
+def _with_active_tab(fiche: ProjectFiche, active_tab: str) -> ProjectFiche:
+    tab = active_tab if active_tab in VALID_TABS else "general"
+    updated: ProjectFiche = dict(fiche)
+    updated["active_tab"] = tab
+    updated["pi_tabs"] = PI_TABS
+    return updated
+
+
 @staff_member_required
 def project_detail(request: HttpRequest, code: str) -> HttpResponse:
     get_object_or_404(Project, code=code)
@@ -684,7 +806,75 @@ def project_detail(request: HttpRequest, code: str) -> HttpResponse:
 
 
 @staff_member_required
-def project_search_autocomplete(request: HttpRequest) -> JsonResponse:
+def project_search_autocomplete(request: HttpRequest) -> HttpResponse:
     q = (request.GET.get("q") or "").strip()
-    results = ProjectViewSet().search(q)
-    return JsonResponse({"results": results})
+    results = global_admin_search(q) if q else []
+    return render(
+        request,
+        "projects/partials/search_autocomplete_results.html",
+        {"results": results, "q": q},
+    )
+
+
+@staff_member_required
+def dashboard_home(request: HttpRequest) -> HttpResponse:
+    return render(
+        request,
+        "projects/partials/dashboard_home.html",
+        DashboardViewSet().list(),
+    )
+
+
+@staff_member_required
+def dashboard_recent(request: HttpRequest) -> HttpResponse:
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        matches = ProjectViewSet().search(q)
+        recent: list[RecentProject] = []
+        for item in matches:
+            project = Project.objects.filter(code=item["code"]).first()
+            if project is None:
+                continue
+            recent.append(
+                {
+                    "code": project.code,
+                    "titre": project.titre,
+                    "commune": project.commune,
+                    "statut_actuel": project.statut_actuel,
+                    "statut_label": project.get_statut_actuel_display(),
+                    "url": f"{reverse('admin:index')}?projet={project.code}",
+                }
+            )
+    else:
+        recent = DashboardViewSet().list()["dash_recent"]
+    return render(
+        request,
+        "projects/partials/dashboard_recent_list.html",
+        {"dash_recent": recent, "q": q},
+    )
+
+
+@staff_member_required
+def project_fiche(request: HttpRequest, code: str) -> HttpResponse:
+    project_view = ProjectViewSet()
+    selected = project_view.get_object(code)
+    if selected is None:
+        return HttpResponseBadRequest("Projet introuvable")
+    fiche = _with_active_tab(project_view.retrieve(selected), "general")
+    return render(request, "projects/partials/project_fiche_root.html", fiche)
+
+
+@staff_member_required
+def project_tab(request: HttpRequest, code: str, tab: str) -> HttpResponse:
+    if tab not in VALID_TABS:
+        return HttpResponseBadRequest("Onglet invalide")
+    project_view = ProjectViewSet()
+    selected = project_view.get_object(code)
+    if selected is None:
+        return HttpResponseBadRequest("Projet introuvable")
+    fiche = _with_active_tab(project_view.retrieve(selected), tab)
+    return render(
+        request,
+        "projects/partials/project_tab_content.html",
+        {**fiche, "tab": tab},
+    )

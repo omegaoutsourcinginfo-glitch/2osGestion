@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,web,testserver"
+      DJANGO_SQLITE_PATH: /app/data/db.sqlite3
+    volumes:
+      # Keep database + uploads outside the image (writable)
+      - ./data:/app/data
+      - ./media:/app/media
+      # Live code reload while developing
+      - ./core:/app/core
+      - ./projects:/app/projects
+      - ./templates:/app/templates
+      - ./manage.py:/app/manage.py
+      - ./docker-entrypoint.sh:/app/docker-entrypoint.sh
+    command: python manage.py runserver 0.0.0.0:8000

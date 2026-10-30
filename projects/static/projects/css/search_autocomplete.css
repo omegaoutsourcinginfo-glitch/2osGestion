@@ -39,6 +39,25 @@
   color: inherit;
 }
 
+.search-autocomplete-kind {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.dark .search-autocomplete-kind {
+  color: #9ca3af;
+}
+
+#result_list tbody tr.search-row-highlight,
+table tbody tr.search-row-highlight {
+  outline: 2px solid #8b1e2d;
+  outline-offset: -2px;
+  background: rgba(139, 30, 45, 0.08) !important;
+}
+
 .search-autocomplete-item:hover,
 .search-autocomplete-item:focus {
   background: rgba(139, 30, 45, 0.08);
@@ -60,4 +79,18 @@
 
 .dark .search-autocomplete-titre {
   color: #e5e7eb;
+}
+
+.search-autocomplete-empty {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.84rem;
+  color: #6b7280;
+}
+
+.dark .search-autocomplete-empty {
+  color: #9ca3af;
+}
+
+#search-autocomplete-results:empty {
+  display: none;
 }

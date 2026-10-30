@@ -1,0 +1,62 @@
+{% extends 'unfold/layouts/skeleton.html' %}
+
+{% load i18n static unfold %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'projects/css/login.css' %}?v=2">
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }}bg-base-50 login dark:bg-base-900{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block title %}
+  {{ title }} | {{ site_title }}
+{% endblock %}
+
+{% block base %}
+  <div id="page" class="login-shell">
+    <aside class="login-brand" aria-label="{{ site_title|default:'2os Gestion' }}">
+      <div class="login-brand-top">
+        <div class="login-mark">
+          <span class="login-mark-icon" aria-hidden="true">
+            <span class="material-symbols-outlined">folder</span>
+          </span>
+          <span class="login-mark-text">
+            <strong>{{ site_title|default:"2os Gestion" }}</strong>
+            <span>{{ site_subheader|default:"Gestion des projets" }}</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="login-brand-copy">
+        <h1>Espace d’administration</h1>
+        <p>
+          Suivez vos projets, documents et plannings dans un seul endroit —
+          clair, rapide et sécurisé.
+        </p>
+      </div>
+
+      <div class="login-brand-foot">
+        <span>
+          <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
+          Accès réservé
+        </span>
+        <span>
+          <span class="material-symbols-outlined" aria-hidden="true">apartment</span>
+          Projets immobiliers
+        </span>
+      </div>
+    </aside>
+
+    <div class="login-panel">
+      {% include "unfold/helpers/unauthenticated_header.html" %}
+      <div class="login-panel-inner">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

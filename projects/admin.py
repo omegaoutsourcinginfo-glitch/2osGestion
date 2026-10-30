@@ -43,6 +43,27 @@ class EditUpdateActionsMixin:
         )
 
 
+class ProjectFicheListLinkMixin:
+    """Changelist code/titre open the project fiche (optional tab hash)."""
+
+    fiche_tab = ""
+
+    def _fiche_url(self, project):
+        url = project.get_absolute_url()
+        tab = getattr(self, "fiche_tab", "") or ""
+        if tab:
+            return f"{url}#{tab}"
+        return url
+
+    def _fiche_link(self, project, text):
+        return format_html(
+            '<a class="project-detail-link" href="{}" data-detail-url="{}">{}</a>',
+            self._fiche_url(project),
+            self._fiche_url(project),
+            text,
+        )
+
+
 class ProjectArchiveRowMixin:
     """Three-dot Voir archive + list Archives for models linked to Project."""
 
@@ -115,6 +136,28 @@ class SimpleSaveMixin:
         return super().changeform_view(request, object_id, form_url, extra_context)
 
 
+class RebindInlinesToSavedParentMixin:
+    """Fix inline saves when form.save() swaps to an existing OneToOne parent.
+
+    Admin builds formsets against a placeholder instance. If the form later
+    replaces ``instance`` with a row already in the DB (upsert-by-project),
+    inlines still point at the unsaved placeholder and raise:
+    ``save() prohibited … unsaved related object 'planning'``.
+    """
+
+    def save_related(self, request, form, formsets, change):
+        parent = form.instance
+        if parent.pk is None:
+            parent.save()
+        for formset in formsets:
+            formset.instance = parent
+            fk = getattr(formset, "fk", None)
+            if fk is not None:
+                for inline_form in formset.forms:
+                    setattr(inline_form.instance, fk.name, parent)
+        super().save_related(request, form, formsets, change)
+
+
 class TerrainMereAdminForm(forms.ModelForm):
     """Ignore model default on superficie_unite for empty extra inlines."""
 
@@ -150,17 +193,81 @@ class AutorisationInline(StackedInline):
     tab = True
 
 
+class ProjectIntervenantThroughForm(forms.ModelForm):
+    """Intervenants are optional on the project form (empty extra row is OK)."""
+
+    class Meta:
+        model = Project.intervenants.through
+        fields = ("intervenant",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "intervenant" in self.fields:
+            self.fields["intervenant"].required = False
+            self.fields["intervenant"].widget.attrs["data-placeholder"] = (
+                "Rechercher un intervenant…"
+            )
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        if not self.is_bound:
+            return False
+        return bool(str(self.data.get(self.add_prefix("intervenant"), "") or "").strip())
+
+
 class IntervenantInline(TabularInline):
     model = Project.intervenants.through
+    form = ProjectIntervenantThroughForm
     autocomplete_fields = ("intervenant",)
-    extra = 0
+    # Show one empty row on add — with extra=0 the tab looked blank.
+    extra = 1
     tab = True
     verbose_name = "Intervenant"
     verbose_name_plural = "Intervenants"
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "intervenant" and formfield is not None:
+            formfield.required = False
+            formfield.widget.attrs["data-placeholder"] = "Rechercher un intervenant…"
+        return formfield
+
+
+class ProjectDocumentAdminForm(forms.ModelForm):
+    class Meta:
+        model = ProjectDocument
+        fields = ("kind", "fichier")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Documents are optional on the project form.
+        self.fields["kind"].required = False
+        self.fields["fichier"].required = False
+
+    def has_changed(self):
+        # Extra row with only the default "kind" select must not count as filled
+        # (otherwise Django requires fichier and blocks Enregistrer).
+        if self.instance.pk:
+            return super().has_changed()
+        file_name = self.add_prefix("fichier")
+        if not self.files.get(file_name):
+            return False
+        return True
+
+    def clean(self):
+        cleaned = super().clean()
+        fichier = cleaned.get("fichier")
+        kind = cleaned.get("kind")
+        if fichier and not kind:
+            self.add_error("kind", "Indiquez le type de document.")
+        return cleaned
+
 
 class ProjectDocumentInline(TabularInline):
     model = ProjectDocument
+    form = ProjectDocumentAdminForm
+    # One empty row for UX; has_changed() ignores it until a file is chosen.
     extra = 1
     tab = True
     fields = ("kind", "fichier")
@@ -168,25 +275,88 @@ class ProjectDocumentInline(TabularInline):
     verbose_name_plural = "Documents techniques (plusieurs par type)"
 
 
+class ProjectImageAdminForm(forms.ModelForm):
+    class Meta:
+        model = ProjectImage
+        fields = ("image", "legende", "ordre")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Images are optional on the project form.
+        self.fields["image"].required = False
+        self.fields["legende"].required = False
+        self.fields["ordre"].required = False
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        file_name = self.add_prefix("image")
+        if not self.files.get(file_name):
+            return False
+        return True
+
+
 class ProjectImageInline(TabularInline):
     model = ProjectImage
-    extra = 2
+    form = ProjectImageAdminForm
+    # One empty row for UX; has_changed() ignores it until an image is chosen.
+    extra = 1
     tab = True
     fields = ("image", "legende", "ordre")
     verbose_name = "Image"
     verbose_name_plural = "Images du projet (plusieurs)"
 
 
+class FinancementDocumentAdminForm(forms.ModelForm):
+    class Meta:
+        model = FinancementDocument
+        fields = ("fichier",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fichier"].required = False
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        return bool(self.files.get(self.add_prefix("fichier")))
+
+
 class FinancementDocumentInline(TabularInline):
     model = FinancementDocument
+    form = FinancementDocumentAdminForm
     extra = 1
     fields = ("fichier",)
     verbose_name = "Document PDF"
     verbose_name_plural = "Documents financement (plusieurs PDF)"
 
 
+class PlanningDocumentAdminForm(forms.ModelForm):
+    class Meta:
+        model = PlanningDocument
+        fields = ("phase", "fichier")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Extra empty row: phase alone must not force a file.
+        self.fields["phase"].required = False
+        self.fields["fichier"].required = False
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        return bool(self.files.get(self.add_prefix("fichier")))
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("fichier") and not cleaned.get("phase"):
+            self.add_error("phase", "Indiquez la phase du document.")
+        return cleaned
+
+
 class PlanningDocumentInline(TabularInline):
     model = PlanningDocument
+    form = PlanningDocumentAdminForm
     extra = 1
     fields = ("phase", "fichier")
     verbose_name = "PDF"
@@ -194,8 +364,31 @@ class PlanningDocumentInline(TabularInline):
     tab = True
 
 
+class AnnexeDocumentAdminForm(forms.ModelForm):
+    class Meta:
+        model = AnnexeDocument
+        fields = ("kind", "fichier")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["kind"].required = False
+        self.fields["fichier"].required = False
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        return bool(self.files.get(self.add_prefix("fichier")))
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("fichier") and not cleaned.get("kind"):
+            self.add_error("kind", "Indiquez le type de pièce.")
+        return cleaned
+
+
 class AnnexeDocumentInline(TabularInline):
     model = AnnexeDocument
+    form = AnnexeDocumentAdminForm
     extra = 1
     fields = ("kind", "fichier")
     verbose_name = "PDF"
@@ -433,10 +626,18 @@ class StructureFinancementAdminForm(forms.ModelForm):
 
 
 @admin.register(StructureFinancement)
-class StructureFinancementAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
+class StructureFinancementAdmin(
+    ProjectFicheListLinkMixin,
+    RebindInlinesToSavedParentMixin,
+    ProjectArchiveRowMixin,
+    SimpleSaveMixin,
+    ModelAdmin,
+):
     form = StructureFinancementAdminForm
+    fiche_tab = "financement"
     # No bulk checkboxes on the changelist.
     actions = None
+    autocomplete_fields = ("project",)
     list_display = (
         "project_code",
         "project_titre",
@@ -444,7 +645,7 @@ class StructureFinancementAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAd
         "credit_moyen_terme_cmt",
         "investissement_total",
     )
-    list_display_links = ("project_code", "project_titre")
+    list_display_links = None
     list_per_page = 10
     show_full_result_count = False
     list_select_related = ("project",)
@@ -458,7 +659,10 @@ class StructureFinancementAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAd
     actions_list = ["voir_archives"]
 
     class Media:
-        js = ("projects/js/financement_total.js",)
+        js = (
+            "projects/js/financement_total.js",
+            "projects/js/changelist_row_detail.js",
+        )
         css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
@@ -527,11 +731,11 @@ class StructureFinancementAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAd
 
     @admin.display(description="Code projet", ordering="project__code")
     def project_code(self, obj):
-        return obj.project.code
+        return self._fiche_link(obj.project, obj.project.code)
 
     @admin.display(description="Titre projet", ordering="project__titre")
     def project_titre(self, obj):
-        return obj.project.titre
+        return self._fiche_link(obj.project, obj.project.titre)
 
     @action(
         description="Modifier",
@@ -579,11 +783,19 @@ class PlanningExecutionAdminForm(forms.ModelForm):
 
 
 @admin.register(PlanningExecution)
-class PlanningExecutionAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
+class PlanningExecutionAdmin(
+    ProjectFicheListLinkMixin,
+    RebindInlinesToSavedParentMixin,
+    ProjectArchiveRowMixin,
+    SimpleSaveMixin,
+    ModelAdmin,
+):
     form = PlanningExecutionAdminForm
+    fiche_tab = "planning"
     actions = None
+    autocomplete_fields = ("project",)
     list_display = ("project_code", "project_titre", "phases_count", "updated_at")
-    list_display_links = ("project_code", "project_titre")
+    list_display_links = None
     list_per_page = 10
     show_full_result_count = False
     list_select_related = ("project",)
@@ -598,6 +810,7 @@ class PlanningExecutionAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin
     change_form_show_cancel_button = True
 
     class Media:
+        js = ("projects/js/changelist_row_detail.js",)
         css = {
             "all": (
                 "projects/css/changelist_row.css",
@@ -653,11 +866,11 @@ class PlanningExecutionAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin
 
     @admin.display(description="Code projet", ordering="project__code")
     def project_code(self, obj):
-        return obj.project.code
+        return self._fiche_link(obj.project, obj.project.code)
 
     @admin.display(description="Titre projet", ordering="project__titre")
     def project_titre(self, obj):
-        return obj.project.titre
+        return self._fiche_link(obj.project, obj.project.titre)
 
     @admin.display(description="PDFs")
     def phases_count(self, obj):
@@ -709,11 +922,19 @@ class AnnexeDossierAdminForm(forms.ModelForm):
 
 
 @admin.register(AnnexeDossier)
-class AnnexeDossierAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
+class AnnexeDossierAdmin(
+    ProjectFicheListLinkMixin,
+    RebindInlinesToSavedParentMixin,
+    ProjectArchiveRowMixin,
+    SimpleSaveMixin,
+    ModelAdmin,
+):
     form = AnnexeDossierAdminForm
+    fiche_tab = "annexes"
     actions = None
+    autocomplete_fields = ("project",)
     list_display = ("project_code", "project_titre", "docs_count", "updated_at")
-    list_display_links = ("project_code", "project_titre")
+    list_display_links = None
     list_per_page = 10
     show_full_result_count = False
     list_select_related = ("project",)
@@ -726,6 +947,7 @@ class AnnexeDossierAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
     change_form_show_cancel_button = True
 
     class Media:
+        js = ("projects/js/changelist_row_detail.js",)
         css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
@@ -776,11 +998,11 @@ class AnnexeDossierAdmin(ProjectArchiveRowMixin, SimpleSaveMixin, ModelAdmin):
 
     @admin.display(description="Code projet", ordering="project__code")
     def project_code(self, obj):
-        return obj.project.code
+        return self._fiche_link(obj.project, obj.project.code)
 
     @admin.display(description="Titre projet", ordering="project__titre")
     def project_titre(self, obj):
-        return obj.project.titre
+        return self._fiche_link(obj.project, obj.project.titre)
 
     @admin.display(description="PDFs")
     def docs_count(self, obj):

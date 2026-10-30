@@ -143,6 +143,317 @@
   margin-bottom: 1rem;
 }
 
+/*
+ * Hard-hide Unfold primary tab panels that are not active.
+ * body.change-form carries data-active-tab (spa_nav.js). Important: .change-form
+ * is on <body>, so selectors must use body.change-form[…] — not body .change-form.
+ */
+body.change-form [data-inline-type],
+body.change-form [data-uf-tab]:not(.uf-tab-open) {
+  display: none !important;
+}
+
+/* On General: never show any inline, even if .uf-tab-open is stuck after a click */
+body.change-form[data-active-tab="general"] [data-inline-type] {
+  display: none !important;
+}
+
+/* Always force-show the open panel (Alpine may leave display:none after SPA) */
+body.change-form [data-uf-tab].uf-tab-open {
+  display: block !important;
+}
+
+/* On a non-general tab: only the matching open inline is visible */
+body.change-form:not([data-active-tab="general"]) [data-inline-type].uf-tab-open {
+  display: block !important;
+}
+
+/*
+ * Site-wide dropdown design (match Intervenants Select2 look).
+ * Applies to native <select> and Select2 containers everywhere in admin.
+ */
+.related-widget-wrapper {
+  display: flex !important;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 12rem;
+}
+
+/* Unfold puts expand_more on native selects; hide it once Select2 mounts
+   (otherwise two chevrons appear next to more_vert). */
+.grow.relative:has(.select2-container) > .material-symbols-outlined,
+.grow.relative:has(select.select2-hidden-accessible) > .material-symbols-outlined,
+.related-widget-wrapper:has(.select2-container) > .grow.relative > .material-symbols-outlined,
+.relative:has(> .select2-container) > .material-symbols-outlined {
+  display: none !important;
+}
+
+/* Never show the raw <select> once Select2 has mounted (avoids double dropdown). */
+select.select2-hidden-accessible {
+  border: 0 !important;
+  clip: rect(0, 0, 0, 0) !important;
+  height: 1px !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  position: absolute !important;
+  width: 1px !important;
+  opacity: 0 !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.related-widget-wrapper select:not(.select2-hidden-accessible),
+.related-widget-wrapper .select2-container {
+  flex: 1 1 auto;
+  min-width: 12rem !important;
+  width: 100% !important;
+  max-width: 28rem;
+}
+
+/* Native fallback only when Select2 is NOT mounted */
+select:not([multiple]):not(.select2-hidden-accessible),
+.change-form select:not([multiple]):not(.select2-hidden-accessible) {
+  box-sizing: border-box;
+  min-height: 2.5rem;
+  width: 100%;
+  max-width: 28rem;
+  padding: 0.5rem 2.25rem 0.5rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1rem;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* If a parent already has Select2, keep any leftover native select invisible */
+.relative:has(> .select2-container) > select:not(.select2-hidden-accessible),
+.grow.relative:has(> .select2-container) > select {
+  display: none !important;
+}
+
+select:not([multiple]):not(.select2-hidden-accessible):focus {
+  outline: none;
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.25);
+}
+
+.dark select:not([multiple]):not(.select2-hidden-accessible) {
+  background-color: #111827;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+.select2-container {
+  min-width: 12rem !important;
+  width: 100% !important;
+  max-width: 28rem;
+  display: inline-block !important;
+}
+
+.select2-container--admin-autocomplete .select2-selection--single,
+.select2-container .select2-selection--single {
+  min-height: 2.5rem !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  background-color: #fff !important;
+  padding: 0.15rem 0 !important;
+}
+
+.select2-container--admin-autocomplete .select2-selection--single:focus,
+.select2-container .select2-selection--single:focus,
+.select2-container--admin-autocomplete.select2-container--focus .select2-selection--single,
+.select2-container.select2-container--focus .select2-selection--single {
+  border-color: #9ca3af !important;
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.25) !important;
+  outline: none !important;
+}
+
+/* Open state: maroon border like Intervenants */
+.select2-container--admin-autocomplete.select2-container--open .select2-selection--single,
+.select2-container.select2-container--open .select2-selection--single {
+  border-color: #7f1d1d !important;
+  box-shadow: 0 0 0 1px #7f1d1d !important;
+  outline: none !important;
+}
+
+.select2-selection__rendered {
+  line-height: 1.4 !important;
+  padding-left: 0.85rem !important;
+  padding-right: 2rem !important;
+  color: #111827 !important;
+}
+
+.select2-selection__placeholder {
+  color: #9ca3af !important;
+}
+
+.select2-selection__arrow {
+  height: 100% !important;
+  top: 0 !important;
+  right: 0.35rem !important;
+}
+
+/* Dropdown panel (search + list) — same as Intervenants */
+.select2-dropdown,
+.select2-container--admin-autocomplete .select2-dropdown {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14) !important;
+  overflow: hidden;
+  background: #fff !important;
+  z-index: 10050 !important;
+  margin-top: 0.25rem;
+}
+
+.select2-search--dropdown {
+  padding: 0.55rem 0.65rem !important;
+  background: #f3f4f6 !important;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.select2-search--dropdown .select2-search__field {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 2.1rem;
+  padding: 0.4rem 0.65rem 0.4rem 2.1rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.375rem !important;
+  background-color: #fff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.55rem center;
+  background-size: 1rem;
+  font-size: 0.875rem !important;
+  color: #111827 !important;
+}
+
+.select2-search--dropdown .select2-search__field:focus {
+  outline: none !important;
+  border-color: #9ca3af !important;
+  box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.25) !important;
+}
+
+.select2-results__options {
+  max-height: 16rem !important;
+}
+
+.select2-results__option {
+  padding: 0.7rem 0.9rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.35 !important;
+  color: #111827 !important;
+}
+
+.select2-results__option--highlighted[aria-selected],
+.select2-results__option--highlighted {
+  background-color: #fdf2f4 !important;
+  color: #111827 !important;
+}
+
+.select2-results__option[aria-selected="true"] {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .select2-container--admin-autocomplete .select2-selection--single,
+.dark .select2-container .select2-selection--single {
+  background-color: #111827 !important;
+  border-color: #374151 !important;
+}
+
+.dark .select2-selection__rendered {
+  color: #f9fafb !important;
+}
+
+.dark .select2-dropdown,
+.dark .select2-container--admin-autocomplete .select2-dropdown {
+  background: #111827 !important;
+  border-color: #374151 !important;
+}
+
+.dark .select2-search--dropdown {
+  background: #1f2937 !important;
+  border-bottom-color: #374151;
+}
+
+.dark .select2-search--dropdown .select2-search__field {
+  background-color: #111827 !important;
+  border-color: #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+.dark .select2-results__option {
+  color: #f9fafb !important;
+}
+
+.dark .select2-results__option--highlighted[aria-selected],
+.dark .select2-results__option--highlighted {
+  background-color: #7f1d1d33 !important;
+}
+
+/* Required / invalid fields: red highlight, no top banner text */
+.errornote {
+  display: none !important;
+}
+
+form.was-validated input:required:invalid,
+form.was-validated select:required:invalid,
+form.was-validated textarea:required:invalid,
+input.field-invalid,
+select.field-invalid,
+textarea.field-invalid,
+input[data-twoos-invalid="1"],
+select[data-twoos-invalid="1"],
+textarea[data-twoos-invalid="1"],
+.field-invalid input,
+.field-invalid select,
+.field-invalid textarea,
+.form-row.errors input,
+.form-row.errors select,
+.form-row.errors textarea {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25) !important;
+}
+
+.dark form.was-validated input:required:invalid,
+.dark form.was-validated select:required:invalid,
+.dark form.was-validated textarea:required:invalid,
+.dark input.field-invalid,
+.dark select.field-invalid,
+.dark textarea.field-invalid,
+.dark .field-invalid input,
+.dark .field-invalid select,
+.dark .field-invalid textarea,
+.dark .form-row.errors input,
+.dark .form-row.errors select,
+.dark .form-row.errors textarea {
+  border-color: #f87171 !important;
+  background-color: rgba(127, 29, 29, 0.35) !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.25) !important;
+}
+
+form.was-validated .form-row:has(:required:invalid) label,
+.form-row.field-invalid label,
+.form-row.errors label {
+  color: #dc2626 !important;
+}
+
+
+
+
 /* Changelist: top count + centered pagination */
 .changelist-result-count {
   letter-spacing: 0.01em;

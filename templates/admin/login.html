@@ -1,0 +1,126 @@
+{% extends 'unfold/layouts/unauthenticated.html' %}
+
+{% load i18n static unfold %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {{ form.media }}
+{% endblock %}
+
+{% block title %}
+  {{ title }} | {{ site_title }}
+{% endblock %}
+
+{% block content %}
+  {% include "unfold/helpers/unauthenticated_title.html" with title=site_title|default:_('Django site admin') subtitle=_('Connexion') %}
+
+  {% include "unfold/helpers/messages.html" %}
+
+  {% if form.errors or form.non_field_errors %}
+    <div class="flex flex-col gap-4 mb-8 *:mb-0">
+      {% include "unfold/helpers/messages/errornote.html" with errors=form.errors %}
+      {% include "unfold/helpers/messages/error.html" with errors=form.non_field_errors %}
+
+      {% if user.is_authenticated %}
+        {% blocktranslate trimmed asvar message %}
+          You are authenticated as {{ username }}, but are not authorized to
+          access this page. Would you like to login to a different account?
+        {% endblocktranslate %}
+        {% include "unfold/helpers/messages/error.html" with error=message %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% block login_before %}{% endblock %}
+
+  <form action="{{ app_path }}" method="post" id="login-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next|default:'/admin/' }}">
+
+    {% include "unfold/helpers/field.html" with field=form.username %}
+
+    <div class="{% if form.password.errors %}errors {% endif %}form-field flex flex-col group mb-4 login-password-field">
+      <div class="flex flex-col gap-2">
+        {% include "unfold/helpers/form_label.html" with field=form.password %}
+        <div class="login-password-wrap">
+          {{ form.password }}
+          <button
+            type="button"
+            class="login-password-toggle"
+            id="login-password-toggle"
+            aria-label="Afficher le mot de passe"
+            aria-pressed="false"
+            title="Afficher le mot de passe"
+          >
+            <span class="material-symbols-outlined login-password-icon" aria-hidden="true">visibility</span>
+          </button>
+        </div>
+      </div>
+      {% include "unfold/helpers/form_errors.html" with errors=form.password.errors %}
+      {% include "unfold/helpers/help_text.html" with help_text=form.password.help_text %}
+    </div>
+
+    <div class="flex flex-col gap-3 mt-6">
+      {% component "unfold/components/button.html" with submit=1 variant="primary" class="submit-row w-full" %}
+        {% translate 'Log in' %}
+        <span class="material-symbols-outlined relative right-0 transition-all group-hover:-right-1 text-sm">arrow_forward</span>
+      {% endcomponent %}
+
+      {% url 'admin_password_reset' as password_reset_url %}
+      {% url 'admin:admin_password_reset' as unfold_password_reset_url %}
+
+      {% if password_reset_url or unfold_password_reset_url %}
+        {% component "unfold/components/button.html" with href=password_reset_url|default:unfold_password_reset_url variant="secondary" class="password-reset-link w-full" %}
+          {% translate 'Forgotten your password or username?' %}
+        {% endcomponent %}
+      {% endif %}
+    </div>
+  </form>
+
+  {% block login_after %}{% endblock %}
+
+  <p class="login-panel-note">
+    Utilisez votre compte administrateur pour accéder au tableau de bord.
+  </p>
+
+  <script>
+    (function () {
+      function bind() {
+        var form = document.getElementById("login-form");
+        var btn = document.getElementById("login-password-toggle");
+        if (!form || !btn) {
+          return;
+        }
+        var input =
+          form.querySelector("#id_password") ||
+          form.querySelector("input[name='password']") ||
+          form.querySelector("input[type='password']");
+        if (!input) {
+          return;
+        }
+        if (btn.dataset.bound === "1") {
+          return;
+        }
+        btn.dataset.bound = "1";
+        var icon = btn.querySelector(".login-password-icon");
+        btn.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          var show = input.getAttribute("type") === "password";
+          input.setAttribute("type", show ? "text" : "password");
+          btn.setAttribute("aria-pressed", show ? "true" : "false");
+          btn.setAttribute("aria-label", show ? "Masquer le mot de passe" : "Afficher le mot de passe");
+          btn.setAttribute("title", show ? "Masquer le mot de passe" : "Afficher le mot de passe");
+          if (icon) {
+            icon.textContent = show ? "visibility_off" : "visibility";
+          }
+        });
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bind);
+      } else {
+        bind();
+      }
+    })();
+  </script>
+{% endblock %}

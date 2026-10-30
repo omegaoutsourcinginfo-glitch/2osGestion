@@ -1,0 +1,60 @@
+{% load humanize %}
+<div class="studio" id="dash-root">
+  <div class="studio-body">
+    <header class="studio-head">
+      <div>
+        <p class="studio-eyebrow">{{ dash_today|date:"j M Y" }}</p>
+        <h1 class="studio-title">Tableau de bord</h1>
+      </div>
+      <div class="studio-cta">
+        <a href="{% url 'admin:projects_project_add' %}">Nouveau projet</a>
+        <a class="is-soft" href="{% url 'admin:projects_project_changelist' %}">Tous les projets</a>
+      </div>
+    </header>
+
+    <section class="studio-metrics" aria-label="Vue d'ensemble">
+      <a href="{% url 'admin:projects_project_changelist' %}">
+        <em>Projets</em>
+        <strong>{{ dash_total }}</strong>
+      </a>
+      <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=INSTRUCTION">
+        <em>En instruction</em>
+        <strong>{{ dash_instruction }}</strong>
+        <small>{{ dash_pct_instruction }}%</small>
+      </a>
+      <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=EXECUTION">
+        <em>En exécution</em>
+        <strong>{{ dash_execution }}</strong>
+        <small>{{ dash_pct_execution }}%</small>
+      </a>
+      <a href="{% url 'admin:projects_structurefinancement_changelist' %}">
+        <em>Investissement</em>
+        <strong class="is-money">{{ dash_investissement|floatformat:0|intcomma }}</strong>
+        <small>DH</small>
+      </a>
+    </section>
+
+    <section class="studio-list" aria-label="Projets récents">
+      <div class="studio-list-head">
+        <h2>Projets récents</h2>
+        <a href="{% url 'admin:projects_project_changelist' %}">Voir la liste</a>
+      </div>
+
+      <div class="studio-search">
+        <label class="sr-only" for="dash-recent-q">Rechercher un projet</label>
+        <input
+          id="dash-recent-q"
+          type="search"
+          name="q"
+          placeholder="Rechercher par code ou titre…"
+          hx-get="{% url 'projects:dashboard_recent' %}"
+          hx-trigger="keyup changed delay:200ms, search"
+          hx-target="#dash-recent-list"
+          hx-swap="outerHTML"
+        >
+      </div>
+
+      {% include "projects/partials/dashboard_recent_list.html" %}
+    </section>
+  </div>
+</div>

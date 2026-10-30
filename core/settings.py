@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from django.urls import reverse_lazy
@@ -22,12 +23,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^eoddq*_&cmm-f$y%38$2oa=4$@0$elb1)uvock+=!o62%d6i+'
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-^eoddq*_&cmm-f$y%38$2oa=4$@0$elb1)uvock+=!o62%d6i+",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        "DJANGO_ALLOWED_HOSTS",
+        "localhost,127.0.0.1,testserver",
+    ).split(",")
+    if host.strip()
+]
+if DEBUG and "testserver" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("testserver")
 
 
 # Application definition
@@ -77,10 +90,13 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+_sqlite_path = os.environ.get("DJANGO_SQLITE_PATH", str(BASE_DIR / "db.sqlite3"))
+Path(_sqlite_path).parent.mkdir(parents=True, exist_ok=True)
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": _sqlite_path,
     }
 }
 
@@ -131,12 +147,20 @@ UNFOLD = {
     "DASHBOARD_CALLBACK": "projects.views.dashboard_callback",
     "STYLES": [
         "projects.admin_assets.style_dashboard",
+        "projects.admin_assets.style_project_info",
+        "projects.admin_assets.style_login",
+        "projects.admin_assets.style_select2",
+        "projects.admin_assets.style_select2_admin",
         "projects.admin_assets.style_admin_form",
         "projects.admin_assets.style_search_autocomplete",
     ],
     "SCRIPTS": [
+        "projects.admin_assets.script_spa_nav",
         "projects.admin_assets.script_dashboard",
         "projects.admin_assets.script_search_autocomplete",
+        "projects.admin_assets.script_required_fields",
+        # Last: remount Select2 after Django admin form.media scripts
+        "projects.admin_assets.script_dropdowns",
     ],
     "COLORS": {
         # Maroon accent (brand)
@@ -195,7 +219,8 @@ UNFOLD = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# After logout, go to login (skip full "logged out" page)
+# After login / logout: stay in admin (Django default login redirect is /accounts/profile/)
+LOGIN_REDIRECT_URL = "/admin/"
 LOGOUT_REDIRECT_URL = "/admin/login/"
 
 

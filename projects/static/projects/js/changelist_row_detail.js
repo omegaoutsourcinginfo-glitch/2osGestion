@@ -12,7 +12,6 @@
     if (t.closest("[data-no-row-nav], td.field-actions_holder, .field-actions_holder")) {
       return true;
     }
-    // Last cell of the row = Actions column
     var td = t.closest("td");
     var tr = t.closest("tr");
     if (td && tr && tr.lastElementChild === td) {
@@ -20,12 +19,10 @@
       if (ths.length && /actions/i.test((ths[ths.length - 1].textContent || "").trim())) {
         return true;
       }
-      // Still treat last cell as actions when holder class missing
       if (td.classList.contains("field-actions_holder") || td.querySelector(".material-symbols-outlined")) {
         return true;
       }
     }
-    // Icon text "more_horiz"
     if ((t.textContent || "").trim() === "more_horiz") {
       return true;
     }
@@ -50,6 +47,10 @@
     if (isActionsClick(event)) {
       return;
     }
+    // Links are handled by spa_nav.js (project-detail-link).
+    if (event.target.closest("a.project-detail-link")) {
+      return;
+    }
     if (
       event.target.closest(
         "a, input, button, label, [role='menu'], .actions, summary, nav"
@@ -65,12 +66,17 @@
     if (!url) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
+    if (window.TwoosSpa && window.TwoosSpa.openFicheFromHref) {
+      window.TwoosSpa.openFicheFromHref(url);
+      return;
+    }
     window.location.href = url;
   }
 
   function bind() {
     markRows();
-    // Capture phase so we can ignore Actions before anything else
     document.addEventListener("click", onClick, true);
   }
 

@@ -1,0 +1,18 @@
+<ul class="search-autocomplete-list" id="search-autocomplete-results" role="listbox">
+  {% for item in results %}
+  <li role="option">
+    <a
+      class="search-autocomplete-item"
+      href="{{ item.url }}"
+      data-project-code="{{ item.code }}"
+      data-kind="{{ item.kind }}"
+    >
+      <span class="search-autocomplete-kind">{{ item.kind_label }}</span>
+      <span class="search-autocomplete-code">{{ item.code }}</span>
+      <span class="search-autocomplete-titre">{{ item.titre }}</span>
+    </a>
+  </li>
+  {% empty %}
+  <li class="search-autocomplete-empty" role="option">Aucun résultat</li>
+  {% endfor %}
+</ul>

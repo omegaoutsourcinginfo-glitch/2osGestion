@@ -1,7 +1,5 @@
 (function () {
   var ENDPOINT = "/projets/autocomplete/";
-  var MIN_CHARS = 1;
-  var DEBOUNCE_MS = 200;
 
   function ready(fn) {
     if (document.readyState === "loading") {
@@ -11,137 +9,169 @@
     }
   }
 
-  function debounce(fn, wait) {
-    var timer;
-    return function () {
-      var args = arguments;
-      var ctx = this;
-      clearTimeout(timer);
-      timer = setTimeout(function () {
-        fn.apply(ctx, args);
-      }, wait);
-    };
-  }
-
-  function ensureDropdown(wrapper) {
-    var list = wrapper.querySelector(".search-autocomplete-list");
-    if (list) {
-      return list;
+  function ensureResultsHost(wrapper) {
+    var host = document.getElementById("search-autocomplete-results");
+    if (host) {
+      return host;
     }
-    list = document.createElement("ul");
-    list.className = "search-autocomplete-list";
-    list.hidden = true;
-    wrapper.appendChild(list);
-    return list;
+    host = document.createElement("div");
+    host.id = "search-autocomplete-results";
+    wrapper.appendChild(host);
+    return host;
   }
 
-  function hideList(list) {
-    list.hidden = true;
-    list.innerHTML = "";
-  }
-
-  function selectSuggestion(input, form, item, list) {
-    input.value = item.titre;
-    hideList(list);
-    if (form) {
-      form.submit();
+  function clearResults() {
+    var host = document.getElementById("search-autocomplete-results");
+    if (host) {
+      host.innerHTML = "";
+      host.hidden = true;
     }
   }
 
-  function renderResults(list, input, form, results) {
-    list.innerHTML = "";
-    if (!results.length) {
-      hideList(list);
+  function highlightTableRow(code) {
+    if (!code) {
       return;
     }
-    results.forEach(function (item) {
-      var li = document.createElement("li");
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "search-autocomplete-item";
-      btn.innerHTML =
-        '<span class="search-autocomplete-code">' +
-        escapeHtml(item.code) +
-        '</span><span class="search-autocomplete-titre">' +
-        escapeHtml(item.titre) +
-        "</span>";
-      btn.addEventListener("mousedown", function (event) {
-        event.preventDefault();
-        selectSuggestion(input, form, item, list);
-      });
-      li.appendChild(btn);
-      list.appendChild(li);
-    });
-    list.hidden = false;
-  }
-
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function fetchSuggestions(q) {
-    return fetch(ENDPOINT + "?q=" + encodeURIComponent(q), {
-      headers: { Accept: "application/json" },
-      credentials: "same-origin",
-    }).then(function (response) {
-      if (!response.ok) {
-        throw new Error("autocomplete failed");
+    var needle = String(code).toLowerCase();
+    var rows = document.querySelectorAll("#result_list tbody tr");
+    var match = null;
+    rows.forEach(function (row) {
+      row.classList.remove("search-row-highlight");
+      var text = (row.textContent || "").toLowerCase();
+      if (!match && text.indexOf(needle) >= 0) {
+        match = row;
       }
-      return response.json();
     });
+    if (!match) {
+      return;
+    }
+    match.classList.add("search-row-highlight");
+    try {
+      match.scrollIntoView({ block: "center", behavior: "smooth" });
+    } catch (err) {
+      match.scrollIntoView(true);
+    }
+  }
+
+  function highlightFromUrl() {
+    try {
+      var q = new URL(window.location.href).searchParams.get("q");
+      if (q) {
+        highlightTableRow(q.trim());
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  function openItem(item) {
+    var href = item.getAttribute("href");
+    var code = item.getAttribute("data-project-code") || "";
+    clearResults();
+    if (!href) {
+      return;
+    }
+    // Changelist / admin URLs: SPA navigate, then highlight the row in the table.
+    if (window.TwoosSpa && typeof window.TwoosSpa.go === "function") {
+      window.TwoosSpa.go(href, item);
+      window.setTimeout(function () {
+        highlightTableRow(code);
+      }, 250);
+      window.setTimeout(function () {
+        highlightTableRow(code);
+      }, 600);
+      return;
+    }
+    window.location.href = href;
   }
 
   function bindSearch(input) {
-    if (input.dataset.autocompleteBound === "1") {
+    if (!input || input.dataset.htmxAutocomplete === "1") {
       return;
     }
-    input.dataset.autocompleteBound = "1";
-    input.setAttribute("autocomplete", "off");
+    if (typeof htmx === "undefined") {
+      return;
+    }
 
-    var form = input.closest("form");
+    input.dataset.htmxAutocomplete = "1";
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("name", input.getAttribute("name") || "q");
+
     var wrapper = input.closest(".relative") || input.parentElement;
     if (wrapper) {
       wrapper.classList.add("search-autocomplete-wrap");
     }
-    var list = ensureDropdown(wrapper);
+    ensureResultsHost(wrapper);
 
-    var onInput = debounce(function () {
-      var q = (input.value || "").trim();
-      if (q.length < MIN_CHARS) {
-        hideList(list);
-        return;
-      }
-      fetchSuggestions(q)
-        .then(function (data) {
-          renderResults(list, input, form, data.results || []);
-        })
-        .catch(function () {
-          hideList(list);
-        });
-    }, DEBOUNCE_MS);
+    input.setAttribute("hx-get", ENDPOINT);
+    input.setAttribute("hx-trigger", "keyup changed delay:200ms, focus");
+    input.setAttribute("hx-target", "#search-autocomplete-results");
+    input.setAttribute("hx-swap", "outerHTML");
+    input.setAttribute("hx-include", "this");
 
-    input.addEventListener("input", onInput);
-    input.addEventListener("focus", onInput);
-    input.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
-        hideList(list);
+    htmx.process(input);
+
+    var form = input.closest("form");
+    if (form && form.dataset.htmxAutocompleteSubmit !== "1") {
+      form.dataset.htmxAutocompleteSubmit = "1";
+      form.addEventListener("submit", function (event) {
+        var host = document.getElementById("search-autocomplete-results");
+        var first = host && host.querySelector("a.search-autocomplete-item[href]");
+        if (!first) {
+          return;
+        }
+        event.preventDefault();
+        openItem(first);
+      });
+    }
+  }
+
+  function bindAll() {
+    var input = document.getElementById("searchbar");
+    if (input) {
+      // After SPA swap the input is new — allow re-bind.
+      if (input.dataset.htmxAutocomplete === "1" && !input.getAttribute("hx-get")) {
+        delete input.dataset.htmxAutocomplete;
       }
-    });
-    document.addEventListener("click", function (event) {
-      if (!wrapper.contains(event.target)) {
-        hideList(list);
-      }
-    });
+      bindSearch(input);
+    }
+    highlightFromUrl();
   }
 
   ready(function () {
-    var input = document.getElementById("searchbar");
-    if (input) {
-      bindSearch(input);
-    }
+    bindAll();
+
+    document.addEventListener(
+      "click",
+      function (event) {
+        var item =
+          event.target.closest && event.target.closest("a.search-autocomplete-item[href]");
+        if (item) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          openItem(item);
+          return;
+        }
+        var host = document.getElementById("search-autocomplete-results");
+        var wrap = document.querySelector(".search-autocomplete-wrap");
+        if (!host || !wrap) {
+          return;
+        }
+        if (!wrap.contains(event.target)) {
+          clearResults();
+        }
+      },
+      true
+    );
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        clearResults();
+      }
+    });
+
+    document.addEventListener("htmx:afterSwap", bindAll);
+    document.addEventListener("htmx:afterSettle", bindAll);
+    document.addEventListener("twoos:spa-ready", bindAll);
   });
 })();

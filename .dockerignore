@@ -1,0 +1,17 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+.cursor
+node_modules
+media
+data
+db.sqlite3
+*.md
+docs
+agent-transcripts
+terminals
+**/.pytest_cache
+**/__pycache__

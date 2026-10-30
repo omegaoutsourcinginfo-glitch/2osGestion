@@ -7,6 +7,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 
 from .models import (
+    AnnexeDossier,
     Autorisation,
     FinancementDocument,
     Intervenant,
@@ -77,7 +78,7 @@ class ProjectCodeTests(TestCase):
         )
         project.refresh_from_db()
         self.assertEqual(project.nombre_lots, 120)
-        self.assertEqual(autorisation.get_type_permis_display(), "Permis d'aménager")
+        self.assertEqual(autorisation.get_type_permis_display(), "Permis d'amÃ©nager")
 
     def test_update_keeps_code(self):
         project = Project.objects.create(**FIELDS)
@@ -143,8 +144,8 @@ class ProjectAdminTests(TestCase):
         project = Project.objects.get()
         self.assertEqual(str(project.terrain_mere), f"TF 12345/R ({project.code})")
         self.assertEqual(project.terrain_mere.superficie_unite, "M2")
-        self.assertEqual(project.terrain_mere.superficie_affichee, "15000.50 m²")
-        self.assertEqual(str(project.autorisation), f"Autorisation de lotir n° 123/2026 ({project.code})")
+        self.assertEqual(project.terrain_mere.superficie_affichee, "15000.50 mÂ²")
+        self.assertEqual(str(project.autorisation), f"Autorisation de lotir nÂ° 123/2026 ({project.code})")
 
     def test_sidebar_only_lists_projects(self):
         response = self.client.get("/admin/")
@@ -534,7 +535,7 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Tableau de bord")
         self.assertContains(response, "studio-head")
-        self.assertContains(response, "Projets récents")
+        self.assertContains(response, "Projets rÃ©cents")
         self.assertContains(response, project.code)
         self.assertContains(response, "projects/css/dashboard.css")
         self.assertContains(response, "Investissement")
@@ -576,9 +577,9 @@ class ProjectAdminTests(TestCase):
         self.assertContains(detail, "pi-nav")
         self.assertContains(detail, "pi-sec")
         self.assertContains(detail, "pi-kpis")
-        self.assertContains(detail, "Général")
+        self.assertContains(detail, "GÃ©nÃ©ral")
         self.assertNotContains(detail, "studio-metrics")
-        self.assertNotContains(detail, "Projets récents")
+        self.assertNotContains(detail, "Projets rÃ©cents")
 
     def test_project_detail_shows_only_project_info(self):
         project = Project.objects.create(**FIELDS)
@@ -604,47 +605,77 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, project.titre)
         self.assertContains(detail, "Description")
-        self.assertContains(detail, "Voirie (VRD)")
-        self.assertContains(detail, "Documents financement")
-        self.assertContains(detail, "Total investissement")
         self.assertContains(detail, "Financement")
-        self.assertContains(detail, "pi-dist-bar")
-        self.assertContains(detail, 'class="pi-dist-fp"')
-        self.assertContains(detail, "picture_as_pdf")
-        self.assertContains(detail, "annexe-file-row")
         self.assertContains(detail, "pi-desc-box")
-        self.assertContains(detail, "Ouvrir dans Google Maps")
-        self.assertContains(detail, "google.com/maps")
-        self.assertContains(detail, "Non fourni")
-        self.assertContains(detail, "Joindre un fichier")
         self.assertContains(detail, "project-info")
         self.assertContains(detail, "is-full")
         self.assertContains(detail, "data-pi-tabs")
         self.assertContains(detail, 'data-tab="general"')
-        self.assertContains(detail, 'data-panel="financement"')
-        self.assertContains(detail, 'id="financement"')
-        self.assertContains(detail, 'id="photos"')
-        self.assertContains(detail, 'id="planning"')
-        self.assertContains(detail, "Planning d'exécution")
-        self.assertContains(detail, "Études techniques, géotechniques &amp; Permis")
-        self.assertContains(detail, "Travaux de Viabilisation (VRD &amp; Réseaux)")
-        self.assertContains(detail, "Réception provisoire &amp; Titres fonciers individuels")
-        self.assertContains(detail, 'id="annexes"')
-        self.assertContains(detail, "Éléments complémentaires")
-        self.assertContains(detail, "Certificat de propriété")
-        self.assertContains(detail, "documents fournis")
-        self.assertContains(detail, "Ajouter un document")
-        self.assertContains(detail, "En attente")
-        self.assertContains(detail, "Maître d")
-        self.assertContains(detail, "Administration / Commune")
-        self.assertContains(detail, "Programme technique")
+        self.assertContains(detail, 'hx-get="/projets/')
+        self.assertContains(detail, 'hx-target="#pi-tab-content"')
+        self.assertContains(detail, 'hx-get="/projets/dashboard/"')
+        self.assertContains(detail, "Retour")
+
+        home = self.client.get("/projets/dashboard/")
+        self.assertEqual(home.status_code, 200)
+        self.assertContains(home, 'id="dash-root"')
+        self.assertContains(home, "Tableau de bord")
+        self.assertContains(home, "Projets rÃ©cents")
+
+        technique = self.client.get(f"/projets/{project.code}/onglet/technique/")
+        self.assertEqual(technique.status_code, 200)
+        self.assertContains(technique, "Programme technique")
+
+        fichiers = self.client.get(f"/projets/{project.code}/onglet/fichiers/")
+        self.assertEqual(fichiers.status_code, 200)
+        self.assertContains(fichiers, "Voirie (VRD)")
+
+        financement_tab = self.client.get(f"/projets/{project.code}/onglet/financement/")
+        self.assertEqual(financement_tab.status_code, 200)
+        self.assertContains(financement_tab, "Documents financement")
+        self.assertContains(financement_tab, "Total investissement")
+        self.assertContains(financement_tab, "pi-dist-bar")
+        self.assertContains(financement_tab, 'class="pi-dist-fp"')
+        self.assertContains(financement_tab, "picture_as_pdf")
+        self.assertContains(financement_tab, "annexe-file-row")
+
+        localisation = self.client.get(f"/projets/{project.code}/onglet/localisation/")
+        self.assertEqual(localisation.status_code, 200)
+        self.assertContains(localisation, "Ouvrir dans Google Maps")
+        self.assertContains(localisation, "google.com/maps")
+
+        planning = self.client.get(f"/projets/{project.code}/onglet/planning/")
+        self.assertEqual(planning.status_code, 200)
+        self.assertContains(planning, "Planning d'exÃ©cution")
+        self.assertContains(planning, "Non fourni")
+        self.assertContains(planning, "Joindre un fichier")
+        self.assertContains(planning, 'id="planning"')
+        self.assertContains(planning, "Ãtudes techniques, gÃ©otechniques &amp; Permis")
+        self.assertContains(planning, "Travaux de Viabilisation (VRD &amp; RÃ©seaux)")
+        self.assertContains(planning, "RÃ©ception provisoire &amp; Titres fonciers individuels")
+
+        photos = self.client.get(f"/projets/{project.code}/onglet/photos/")
+        self.assertEqual(photos.status_code, 200)
+        self.assertContains(photos, 'id="photos"')
+
+        annexes = self.client.get(f"/projets/{project.code}/onglet/annexes/")
+        self.assertEqual(annexes.status_code, 200)
+        self.assertContains(annexes, 'id="annexes"')
+        self.assertContains(annexes, "ÃlÃ©ments complÃ©mentaires")
+        self.assertContains(annexes, "Certificat de propriÃ©tÃ©")
+        self.assertContains(annexes, "documents fournis")
+        self.assertContains(annexes, "Ajouter un document")
+        self.assertContains(annexes, "En attente")
+        self.assertContains(annexes, "MaÃ®tre d")
+        self.assertContains(annexes, "Administration / Commune")
         self.assertContains(detail, "Localisation")
-        self.assertContains(detail, "open_in_new")
-        self.assertContains(detail, "pi-icon-btn")
-        self.assertContains(detail, "Aucune photo")
-        self.assertNotContains(detail, "Date de début")
+        self.assertContains(detail, "Technique")
+        self.assertContains(financement_tab, "open_in_new")
+        self.assertContains(financement_tab, "pi-icon-btn")
+        self.assertContains(photos, "Aucune photo")
+        self.assertNotContains(detail, "Date de dÃ©but")
         self.assertNotContains(detail, "studio-metrics")
-        self.assertNotContains(detail, "Certificat de propriété récent (ANCFCC) du Titre Foncier Mère.")
+        self.assertNotContains(detail, "Certificat de propriÃ©tÃ© rÃ©cent (ANCFCC) du Titre Foncier MÃ¨re.")
 
         annexes_redirect = self.client.get("/admin/annexes/")
         self.assertEqual(annexes_redirect.status_code, 302)
@@ -657,8 +688,8 @@ class ProjectAdminTests(TestCase):
         add_page = self.client.get("/admin/projects/annexedossier/add/")
         self.assertEqual(add_page.status_code, 200)
         self.assertContains(add_page, "documents-TOTAL_FORMS")
-        self.assertContains(add_page, "Pièces jointes")
-        self.assertContains(add_page, "Certificat de propriété")
+        self.assertContains(add_page, "PiÃ¨ces jointes")
+        self.assertContains(add_page, "Certificat de propriÃ©tÃ©")
 
     def test_planning_execution_via_sidebar_admin(self):
         project = Project.objects.create(**FIELDS)
@@ -666,10 +697,10 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(add_page.status_code, 200)
         self.assertContains(add_page, "documents-TOTAL_FORMS")
         self.assertContains(add_page, "PDFs par phase")
-        self.assertContains(add_page, "Études techniques")
+        self.assertContains(add_page, "Ãtudes techniques")
         self.assertContains(add_page, "Viabilisation")
         self.assertNotContains(add_page, "date_debut")
-        self.assertNotContains(add_page, "Date de début")
+        self.assertNotContains(add_page, "Date de dÃ©but")
 
         data = {
             "project": project.pk,
@@ -682,6 +713,8 @@ class ProjectAdminTests(TestCase):
 
         list_page = self.client.get("/admin/projects/planningexecution/")
         self.assertContains(list_page, project.code)
+        self.assertContains(list_page, "project-detail-link")
+        self.assertContains(list_page, f"?projet={project.code}#planning")
         self.assertNotContains(list_page, 'name="_selected_action"')
         self.assertContains(list_page, "Actions")
         self.assertContains(list_page, "field-actions_holder")
@@ -741,9 +774,61 @@ class ProjectAdminTests(TestCase):
             )
 
             detail = self.client.get(f"/admin/?projet={project.code}")
-            self.assertContains(detail, "Études techniques, géotechniques &amp; Permis")
-            self.assertContains(detail, "Travaux de Viabilisation (VRD &amp; Réseaux)")
-            self.assertContains(detail, "etudes")
-            self.assertContains(detail, "viab-a")
-            self.assertContains(detail, "viab-b")
-            self.assertNotContains(detail, "Date de début")
+            self.assertEqual(detail.status_code, 200)
+            self.assertContains(detail, 'hx-get="/projets/')
+            self.assertNotContains(detail, "Date de dÃ©but")
+
+            planning = self.client.get(f"/projets/{project.code}/onglet/planning/")
+            self.assertEqual(planning.status_code, 200)
+            self.assertContains(planning, "Ãtudes techniques, gÃ©otechniques &amp; Permis")
+            self.assertContains(planning, "Travaux de Viabilisation (VRD &amp; RÃ©seaux)")
+            self.assertContains(planning, "etudes")
+            self.assertContains(planning, "viab-a")
+            self.assertContains(planning, "viab-b")
+
+    def test_planning_add_with_existing_parent_and_pdfs(self):
+        """Upsert-on-add must not raise unsaved related object 'planning'."""
+        project = Project.objects.create(**FIELDS)
+        PlanningExecution.objects.create(project=project)
+        data = {
+            "project": project.pk,
+            "documents-TOTAL_FORMS": "1",
+            "documents-INITIAL_FORMS": "0",
+            "documents-0-phase": PlanningDocument.Phase.ETUDES,
+            "documents-0-fichier": SimpleUploadedFile("etudes.pdf", b"%PDF-1.4"),
+        }
+        with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
+            response = self.client.post("/admin/projects/planningexecution/add/", data)
+            self.assertEqual(response.status_code, 302)
+            planning = PlanningExecution.objects.get(project=project)
+            self.assertEqual(PlanningExecution.objects.filter(project=project).count(), 1)
+            self.assertEqual(planning.documents.count(), 1)
+
+
+class GlobalSearchAutocompleteTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser("searcher", "s@test.com", "pass")
+        self.client.force_login(self.user)
+        fields = {**FIELDS, "titre": "Domaine Search Test"}
+        self.project = Project.objects.create(**fields)
+        StructureFinancement.objects.create(project=self.project, fonds_propres_fp=10)
+        PlanningExecution.objects.create(project=self.project)
+        AnnexeDossier.objects.create(project=self.project)
+
+    def test_autocomplete_lists_all_sidebar_types(self):
+        response = self.client.get("/projets/autocomplete/", {"q": self.project.code})
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode("utf-8")
+        self.assertIn('data-kind="project"', body)
+        self.assertIn('data-kind="financement"', body)
+        self.assertIn('data-kind="planning"', body)
+        self.assertIn('data-kind="annexe"', body)
+        self.assertIn("Projet", body)
+        self.assertIn("Planning financier", body)
+        self.assertIn("Annexes", body)
+        self.assertIn(self.project.code, body)
+        self.assertIn(f"?projet={self.project.code}", body)
+        self.assertIn("#financement", body)
+        self.assertIn("#planning", body)
+        self.assertIn("#annexes", body)

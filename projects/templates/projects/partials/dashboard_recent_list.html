@@ -1,0 +1,29 @@
+{% if dash_recent %}
+<ol id="dash-recent-list">
+  {% for project in dash_recent %}
+  <li>
+    <a
+      href="{{ project.url }}"
+      hx-get="{% url 'projects:project_fiche' project.code %}"
+      hx-target="#dash-root"
+      hx-swap="outerHTML"
+      hx-push-url="{{ project.url }}"
+      hx-sync="#dash-root:replace"
+    >
+      <span class="studio-code">{{ project.code }}</span>
+      <span class="studio-info">
+        <span class="studio-name">{{ project.titre }}</span>
+        <span class="studio-place">{{ project.commune|truncatechars:40 }}</span>
+      </span>
+      <span class="studio-status {% if project.statut_actuel == 'EXECUTION' %}is-exec{% endif %}">
+        {{ project.statut_label }}
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="studio-empty" id="dash-recent-list">
+  {% if q %}Aucun projet pour « {{ q }} ».{% else %}Aucun projet. <a href="{% url 'admin:projects_project_add' %}">Nouveau projet</a>{% endif %}
+</p>
+{% endif %}

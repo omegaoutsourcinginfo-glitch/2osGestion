@@ -27,6 +27,19 @@
                 <link href="{{ style }}" rel="stylesheet">
             {% endif %}
         {% endfor %}
+        {# Always-on invalid field styles (survives stale CSS cache) #}
+        <style id="twoos-invalid-fields">
+          input[data-twoos-invalid="1"],
+          select[data-twoos-invalid="1"],
+          textarea[data-twoos-invalid="1"],
+          input.field-invalid,
+          select.field-invalid,
+          textarea.field-invalid {
+            border-color: #dc2626 !important;
+            background-color: #fef2f2 !important;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25) !important;
+          }
+        </style>
 
         {% for favicon in site_favicons %}
             <link {% if favicon.rel %}rel="{{ favicon.rel }}"{% endif %} {% if favicon.href %}href="{{ favicon.href }}"{% endif %} {% if favicon.type %}type="{{ favicon.type }}"{% endif %} {% if favicon.sizes %}sizes="{{ favicon.sizes }}"{% endif %}>
