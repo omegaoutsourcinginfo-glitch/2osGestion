@@ -100,6 +100,12 @@ class Intervenant(TimeStampedModel):
         choices=TypeIntervenant.choices,
         verbose_name="Type d'intervenant",
     )
+    precision_autre = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Si Autre, préciser",
+        help_text="Obligatoire lorsque le type est « Autre ».",
+    )
     nom_ou_cabinet = models.CharField(max_length=255, verbose_name="Nom ou cabinet")
     contact = models.CharField(max_length=255, blank=True, verbose_name="Contact")
     projects: models.QuerySet["Project"]
@@ -110,7 +116,10 @@ class Intervenant(TimeStampedModel):
         ordering = ["nom_ou_cabinet"]
 
     def __str__(self) -> str:
-        return f"{self.nom_ou_cabinet} ({self.get_type_intervenant_display()})"
+        kind = self.get_type_intervenant_display()
+        if self.type_intervenant == TypeIntervenant.AUTRE and self.precision_autre:
+            kind = self.precision_autre
+        return f"{self.nom_ou_cabinet} ({kind})"
 
 
 # model of a project
@@ -246,6 +255,12 @@ class Autorisation(TimeStampedModel):
         choices=TypePermis.choices,
         verbose_name="Type de permis",
     )
+    precision_autre = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Si Autre, préciser",
+        help_text="Obligatoire lorsque le type est « Autre ».",
+    )
     numero_autorisation = models.CharField(
         max_length=100,
         verbose_name="Numéro d'autorisation",
@@ -253,12 +268,15 @@ class Autorisation(TimeStampedModel):
     date_delivrance = models.DateField(null=True, blank=True, verbose_name="Date de délivrance")
 
     class Meta:
-        verbose_name = "Permis d’aménager / construire"
-        verbose_name_plural = "Permis d’aménager / construire"
+        verbose_name = "Permis d'aménagement"
+        verbose_name_plural = "Permis d'aménagement"
         ordering = ["-date_delivrance"]
 
     def __str__(self) -> str:
-        return f"{self.get_type_permis_display()} n° {self.numero_autorisation} ({self.project.code})"
+        kind = self.get_type_permis_display()
+        if self.type_permis == TypePermis.AUTRE and self.precision_autre:
+            kind = self.precision_autre
+        return f"{kind} n° {self.numero_autorisation} ({self.project.code})"
 
 
 # model of a programme technique
@@ -325,7 +343,7 @@ class ProjectImage(TimeStampedModel):
         verbose_name="Image",
         help_text="JPG, PNG, WEBP ou GIF — plusieurs images possibles",
     )
-    legende = models.CharField(max_length=255, blank=True, verbose_name="Légende")
+    legende = models.CharField(max_length=255, blank=True, verbose_name="Titre")
     ordre = models.PositiveIntegerField(default=0, verbose_name="Ordre")
 
     class Meta:
@@ -337,13 +355,24 @@ class ProjectImage(TimeStampedModel):
         return self.legende or f"Image — {self.project.code}"
 
 
-# model of a structure financement
+# Planning financier: funding sources (FP/CMT) + Total investissement from CPC.
 class StructureFinancement(TimeStampedModel):
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
         related_name="structure_financement",
         verbose_name="Projet",
+    )
+    # Optional CPC workbook; when present, investissement_total comes from ligne IV.
+    cpc_excel = models.FileField(
+        upload_to="cpc/%Y/%m/",
+        blank=True,
+        validators=[FileExtensionValidator(["xlsx"])],
+        verbose_name="CPC Excel",
+        help_text=(
+            "Importer le Compte des Produits et Charges (.xlsx). "
+            "Le Total investissement (IV) est lu automatiquement."
+        ),
     )
     fonds_propres_fp = models.DecimalField(
         max_digits=16,
@@ -357,12 +386,14 @@ class StructureFinancement(TimeStampedModel):
         default=0,
         verbose_name="CMT : Crédit moyen terme (DH)",
     )
+    # Filled from CPC IV when cpc_excel is set; otherwise FP + CMT on save.
     investissement_total = models.DecimalField(
         max_digits=16,
         decimal_places=2,
         default=0,
         editable=False,
         verbose_name="Total investissement (DH)",
+        help_text="Issu de la ligne IV du CPC Excel (II + III1…III6).",
     )
     documents: models.QuerySet["FinancementDocument"]
 
@@ -373,8 +404,15 @@ class StructureFinancement(TimeStampedModel):
     def __str__(self) -> str:
         return f"Financement ({self.project.code})"
 
+    def apply_cpc_total(self, total) -> None:
+        """Store CPC ligne-IV amount as Total investissement (call before save)."""
+        self.investissement_total = total
+
     def save(self, *args, **kwargs):
-        self.investissement_total = self.fonds_propres_fp + self.credit_moyen_terme_cmt
+        # CPC file linked → keep the IV total set by apply_cpc_total / admin forms.
+        # No CPC file → legacy formula: Total investissement = FP + CMT.
+        if not self.cpc_excel:
+            self.investissement_total = self.fonds_propres_fp + self.credit_moyen_terme_cmt
         super().save(*args, **kwargs)
 
 
@@ -504,3 +542,170 @@ class AnnexeDocument(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} — {self.dossier.project.code}"
+
+
+DOSSIER_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "xlsx", "xls"]
+
+
+# model of a planning d'approvisionnement
+class PlanningApprovisionnement(TimeStampedModel):
+    project = models.OneToOneField(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="planning_approvisionnement",
+        verbose_name="Projet",
+    )
+    documents: models.QuerySet["ApprovisionnementDocument"]
+
+    class Meta:
+        verbose_name = "Planning d'approvisionnement"
+        verbose_name_plural = "Planning d'approvisionnement"
+
+    def __str__(self) -> str:
+        return f"Approvisionnement ({self.project.code})"
+
+
+class ApprovisionnementDocument(TimeStampedModel):
+    dossier = models.ForeignKey(
+        PlanningApprovisionnement,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Approvisionnement",
+    )
+    fichier = models.FileField(
+        upload_to="approvisionnement/%Y/%m/",
+        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        verbose_name="Fichier",
+        help_text="PDF, image, Word ou Excel",
+    )
+
+    class Meta:
+        verbose_name = "Fichier approvisionnement"
+        verbose_name_plural = "Fichiers approvisionnement"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Fichier approvisionnement ({self.dossier.project.code})"
+
+
+# model of a planning matériel
+class PlanningMateriel(TimeStampedModel):
+    project = models.OneToOneField(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="planning_materiel",
+        verbose_name="Projet",
+    )
+    documents: models.QuerySet["MaterielDocument"]
+
+    class Meta:
+        verbose_name = "Planning matériel"
+        verbose_name_plural = "Planning matériel"
+
+    def __str__(self) -> str:
+        return f"Planning matériel ({self.project.code})"
+
+
+class MaterielDocument(TimeStampedModel):
+    dossier = models.ForeignKey(
+        PlanningMateriel,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Planning matériel",
+    )
+    fichier = models.FileField(
+        upload_to="planning_materiel/%Y/%m/",
+        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        verbose_name="Fichier",
+        help_text="PDF, image, Word ou Excel",
+    )
+
+    class Meta:
+        verbose_name = "Fichier planning matériel"
+        verbose_name_plural = "Fichiers planning matériel"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Fichier planning matériel ({self.dossier.project.code})"
+
+
+# model of a dossier matériaux
+class MateriauxDossier(TimeStampedModel):
+    project = models.OneToOneField(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="materiaux_dossier",
+        verbose_name="Projet",
+    )
+    documents: models.QuerySet["MateriauxDocument"]
+
+    class Meta:
+        verbose_name = "Matériaux"
+        verbose_name_plural = "Matériaux"
+
+    def __str__(self) -> str:
+        return f"Matériaux ({self.project.code})"
+
+
+class MateriauxDocument(TimeStampedModel):
+    dossier = models.ForeignKey(
+        MateriauxDossier,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Matériaux",
+    )
+    fichier = models.FileField(
+        upload_to="materiaux/%Y/%m/",
+        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        verbose_name="Fichier",
+        help_text="PDF, image, Word ou Excel",
+    )
+
+    class Meta:
+        verbose_name = "Fichier matériaux"
+        verbose_name_plural = "Fichiers matériaux"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Fichier matériaux ({self.dossier.project.code})"
+
+
+# model of an inventaire
+class InventaireDossier(TimeStampedModel):
+    project = models.OneToOneField(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="inventaire_dossier",
+        verbose_name="Projet",
+    )
+    documents: models.QuerySet["InventaireDocument"]
+
+    class Meta:
+        verbose_name = "Inventaire"
+        verbose_name_plural = "Inventaire"
+
+    def __str__(self) -> str:
+        return f"Inventaire ({self.project.code})"
+
+
+class InventaireDocument(TimeStampedModel):
+    dossier = models.ForeignKey(
+        InventaireDossier,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        verbose_name="Inventaire",
+    )
+    fichier = models.FileField(
+        upload_to="inventaire/%Y/%m/",
+        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        verbose_name="Fichier",
+        help_text="PDF, image, Word ou Excel",
+    )
+
+    class Meta:
+        verbose_name = "Fichier inventaire"
+        verbose_name_plural = "Fichiers inventaire"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Fichier inventaire ({self.dossier.project.code})"

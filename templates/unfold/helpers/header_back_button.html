@@ -1,0 +1,24 @@
+{% load admin_urls i18n unfold %}
+
+{% if show_back_button %}
+    {% if object %}
+        {% admin_object_app_url object "changelist" as changelist_url %}
+        {% url changelist_url as resolved_changelist_url %}
+
+        {% if resolved_changelist_url %}
+            <a href="{{ resolved_changelist_url }}" class="inline-flex items-center gap-1 shrink-0 text-sm font-medium text-base-600 no-underline hover:text-primary-600 dark:text-base-300 dark:hover:text-primary-400" title="Retour à la liste">
+                <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">arrow_back</span>
+                <span>Retour</span>
+            </a>
+        {% endif %}
+    {% elif opts and adminform %}
+        {% url opts|admin_urlname:'changelist' as changelist_url %}
+
+        {% if changelist_url %}
+            <a href="{% add_preserved_filters changelist_url %}" class="inline-flex items-center gap-1 shrink-0 text-sm font-medium text-base-600 no-underline hover:text-primary-600 dark:text-base-300 dark:hover:text-primary-400" title="Retour à la liste">
+                <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">arrow_back</span>
+                <span>Retour</span>
+            </a>
+        {% endif %}
+    {% endif %}
+{% endif %}

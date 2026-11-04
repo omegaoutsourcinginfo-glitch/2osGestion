@@ -1,3 +1,6 @@
+/**
+ * Planning financier: live Total investissement = FP + CMT.
+ */
 (function () {
   function parseAmount(value) {
     if (value == null || value === "") {
@@ -20,25 +23,9 @@
     if (byId) {
       return byId;
     }
-
     var input = document.getElementById("id_investissement_total");
     if (input) {
       return input;
-    }
-
-    var labels = document.querySelectorAll("label");
-    for (var i = 0; i < labels.length; i++) {
-      if ((labels[i].textContent || "").indexOf("Total investissement") === -1) {
-        continue;
-      }
-      var row = labels[i].closest(".form-row, .field-box, div");
-      if (!row) {
-        continue;
-      }
-      var readonly = row.querySelector(".readonly, [class*='readonly']");
-      if (readonly) {
-        return readonly;
-      }
     }
     return null;
   }

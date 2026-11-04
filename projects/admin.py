@@ -11,11 +11,19 @@ from unfold.enums import ActionVariant
 from .models import (
     AnnexeDocument,
     AnnexeDossier,
+    ApprovisionnementDocument,
     Autorisation,
     FinancementDocument,
     Intervenant,
+    InventaireDocument,
+    InventaireDossier,
+    MaterielDocument,
+    MateriauxDocument,
+    MateriauxDossier,
+    PlanningApprovisionnement,
     PlanningDocument,
     PlanningExecution,
+    PlanningMateriel,
     Project,
     ProjectDocument,
     ProjectImage,
@@ -184,9 +192,54 @@ class TerrainMereInline(StackedInline):
     tab = True
 
 
+class AutorisationAdminForm(forms.ModelForm):
+    class Meta:
+        model = Autorisation
+        fields = (
+            "type_permis",
+            "precision_autre",
+            "numero_autorisation",
+            "date_delivrance",
+        )
+        widgets = {
+            "date_delivrance": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"type": "date"},
+            ),
+            "type_permis": forms.Select(attrs={"data-autre-precision": "1"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields.get("date_delivrance")
+        if field is not None:
+            field.input_formats = ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]
+        if "precision_autre" in self.fields:
+            self.fields["precision_autre"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("type_permis") == "AUTRE" and not (
+            cleaned.get("precision_autre") or ""
+        ).strip():
+            self.add_error(
+                "precision_autre",
+                "Précisez le type de permis lorsque « Autre » est sélectionné.",
+            )
+        if cleaned.get("type_permis") != "AUTRE":
+            cleaned["precision_autre"] = ""
+        return cleaned
+
+
 class AutorisationInline(StackedInline):
     model = Autorisation
-    fields = ("type_permis", "numero_autorisation", "date_delivrance")
+    form = AutorisationAdminForm
+    fields = (
+        "type_permis",
+        "precision_autre",
+        "numero_autorisation",
+        "date_delivrance",
+    )
     can_delete = False
     extra = 1
     max_num = 1
@@ -225,12 +278,23 @@ class IntervenantInline(TabularInline):
     tab = True
     verbose_name = "Intervenant"
     verbose_name_plural = "Intervenants"
+    show_change_link = False
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == "intervenant" and formfield is not None:
             formfield.required = False
             formfield.widget.attrs["data-placeholder"] = "Rechercher un intervenant…"
+            # Keep the row simple: select only (no ⋮ related links).
+            widget = formfield.widget
+            for attr in (
+                "can_add_related",
+                "can_change_related",
+                "can_delete_related",
+                "can_view_related",
+            ):
+                if hasattr(widget, attr):
+                    setattr(widget, attr, False)
         return formfield
 
 
@@ -272,20 +336,19 @@ class ProjectDocumentInline(TabularInline):
     tab = True
     fields = ("kind", "fichier")
     verbose_name = "Document technique"
-    verbose_name_plural = "Documents techniques (plusieurs par type)"
+    verbose_name_plural = "Documents techniques"
 
 
 class ProjectImageAdminForm(forms.ModelForm):
     class Meta:
         model = ProjectImage
-        fields = ("image", "legende", "ordre")
+        fields = ("image", "legende")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Images are optional on the project form.
         self.fields["image"].required = False
         self.fields["legende"].required = False
-        self.fields["ordre"].required = False
 
     def has_changed(self):
         if self.instance.pk:
@@ -302,9 +365,92 @@ class ProjectImageInline(TabularInline):
     # One empty row for UX; has_changed() ignores it until an image is chosen.
     extra = 1
     tab = True
-    fields = ("image", "legende", "ordre")
+    fields = ("image", "legende")
     verbose_name = "Image"
-    verbose_name_plural = "Images du projet (plusieurs)"
+    verbose_name_plural = "Images"
+
+
+class StructureFinancementCpcForm(forms.ModelForm):
+    """
+    Project-form CPC upload.
+
+    On a new .xlsx, parse ligne IV and store it in investissement_total.
+    Empty extra row is ignored until a file is chosen (has_changed).
+    """
+
+    class Meta:
+        model = StructureFinancement
+        fields = ("cpc_excel",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "cpc_excel" in self.fields:
+            self.fields["cpc_excel"].required = False
+
+    def has_changed(self):
+        # Do not create a blank StructureFinancement when the CPC tab is empty.
+        if self.instance.pk:
+            return super().has_changed()
+        return bool(self.files.get(self.add_prefix("cpc_excel")))
+
+    def clean_cpc_excel(self):
+        uploaded = self.cleaned_data.get("cpc_excel")
+        if not uploaded:
+            return uploaded
+        file_key = self.add_prefix("cpc_excel")
+        # Skip re-parse when the field still holds the already-saved file.
+        if not self.files.get(file_key):
+            return uploaded
+        from .cpc_import import CpcImportError, extract_total_investissement
+
+        try:
+            total = extract_total_investissement(uploaded)
+        except CpcImportError as exc:
+            raise ValidationError(str(exc)) from exc
+        except Exception as exc:  # noqa: BLE001
+            raise ValidationError(
+                f"Impossible de lire le fichier CPC Excel : {exc}"
+            ) from exc
+        # Stash IV amount for save(); rewind so FileField can store the upload.
+        self.cleaned_data["_cpc_investissement_total"] = total
+        if hasattr(uploaded, "seek"):
+            uploaded.seek(0)
+        return uploaded
+
+    def save(self, commit=True):
+        cpc_total = self.cleaned_data.get("_cpc_investissement_total")
+        if cpc_total is not None:
+            self.instance.apply_cpc_total(cpc_total)
+        return super().save(commit=commit)
+
+
+class StructureFinancementInline(StackedInline):
+    """
+    Project admin tab « CPC / Investissement ».
+
+    Shows CPC Excel upload + live Total investissement (DH).
+    One row max (OneToOne with Project).
+    """
+
+    model = StructureFinancement
+    form = StructureFinancementCpcForm
+    fields = ("cpc_excel", "total_live")
+    readonly_fields = ("total_live",)
+    extra = 1
+    max_num = 1
+    can_delete = False
+    tab = True
+    verbose_name = "CPC / Investissement"
+    verbose_name_plural = "CPC / Total investissement"
+
+    @admin.display(description="Total investissement (DH)")
+    def total_live(self, obj):
+        # Span id is updated by financement_total.js after file selection.
+        value = obj.investissement_total if obj and obj.pk else 0
+        return format_html(
+            '<span id="id_investissement_total_live">{}</span>',
+            f"{value:.2f}".replace(".", ","),
+        )
 
 
 class FinancementDocumentAdminForm(forms.ModelForm):
@@ -328,7 +474,7 @@ class FinancementDocumentInline(TabularInline):
     extra = 1
     fields = ("fichier",)
     verbose_name = "Document PDF"
-    verbose_name_plural = "Documents financement (plusieurs PDF)"
+    verbose_name_plural = "Documents financement"
 
 
 class PlanningDocumentAdminForm(forms.ModelForm):
@@ -360,7 +506,7 @@ class PlanningDocumentInline(TabularInline):
     extra = 1
     fields = ("phase", "fichier")
     verbose_name = "PDF"
-    verbose_name_plural = "PDFs par phase (plusieurs fichiers)"
+    verbose_name_plural = "PDFs par phase"
     tab = True
 
 
@@ -418,6 +564,7 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         IntervenantInline,
         ProjectDocumentInline,
         ProjectImageInline,
+        # StructureFinancementInline,  # CPC tab hidden on project form
     )
     actions_detail = ["voir_fiche", "modifier", "modifier_financement", "modifier_planning"]
     actions_list = ["voir_archives"]
@@ -425,14 +572,17 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
     actions_row = ["voir_fiche", "modifier", "voir_archive"]
 
     class Media:
-        js = ("projects/js/changelist_row_detail.js",)
+        js = (
+            "projects/js/autre_precision.js",
+            "projects/js/changelist_row_detail.js",
+        )
         css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
-        ("Identification", {"classes": ["tab"], "fields": ("code_display", "titre", "statut_actuel", "is_archived")}),
-        ("Localisation", {"classes": ["tab"], "fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
-        ("Description", {"classes": ["tab"], "fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
-        ("Historique", {"classes": ["tab"], "fields": ("created_at", "updated_at")}),
+        ("Identification", {"fields": ("code_display", "titre", "statut_actuel", "is_archived")}),
+        ("Localisation", {"fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
+        ("Description", {"fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
+        ("Historique", {"fields": ("created_at", "updated_at")}),
     )
 
     def changelist_view(self, request, extra_context=None):
@@ -451,9 +601,9 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if obj is None:
             return (
-                ("Identification", {"classes": ["tab"], "fields": ("code_display", "titre", "statut_actuel")}),
-                ("Localisation", {"classes": ["tab"], "fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
-                ("Description", {"classes": ["tab"], "fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
+                ("Identification", {"fields": ("code_display", "titre", "statut_actuel")}),
+                ("Localisation", {"fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
+                ("Description", {"fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
             )
         return self.fieldsets
 
@@ -579,12 +729,48 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         )
 
 
+class IntervenantAdminForm(forms.ModelForm):
+    class Meta:
+        model = Intervenant
+        fields = (
+            "type_intervenant",
+            "precision_autre",
+            "nom_ou_cabinet",
+            "contact",
+        )
+        widgets = {
+            "type_intervenant": forms.Select(attrs={"data-autre-precision": "1"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "precision_autre" in self.fields:
+            self.fields["precision_autre"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("type_intervenant") == "AUTRE" and not (
+            cleaned.get("precision_autre") or ""
+        ).strip():
+            self.add_error(
+                "precision_autre",
+                "Précisez le type d'intervenant lorsque « Autre » est sélectionné.",
+            )
+        if cleaned.get("type_intervenant") != "AUTRE":
+            cleaned["precision_autre"] = ""
+        return cleaned
+
+
 @admin.register(Intervenant)
 class IntervenantAdmin(EditUpdateActionsMixin, ModelAdmin):
-    list_display = ("nom_ou_cabinet", "type_intervenant", "contact")
-    search_fields = ("nom_ou_cabinet", "contact")
+    form = IntervenantAdminForm
+    list_display = ("nom_ou_cabinet", "type_intervenant", "precision_autre", "contact")
+    search_fields = ("nom_ou_cabinet", "contact", "precision_autre")
     list_filter = ("type_intervenant",)
-    fields = ("type_intervenant", "nom_ou_cabinet", "contact")
+    fields = ("type_intervenant", "precision_autre", "nom_ou_cabinet", "contact")
+
+    class Media:
+        js = ("projects/js/autre_precision.js",)
 
     def has_module_permission(self, request):
         # Hidden from the sidebar; reached from the project page's Intervenants tab.
@@ -596,7 +782,8 @@ class StructureFinancementAdminForm(forms.ModelForm):
 
     class Meta:
         model = StructureFinancement
-        fields = "__all__"
+        # CPC upload hidden from this form for now.
+        exclude = ("cpc_excel", "investissement_total")
 
     def validate_unique(self):
         exclude = self._get_validation_exclusions()
@@ -607,14 +794,49 @@ class StructureFinancementAdminForm(forms.ModelForm):
         except ValidationError as error:
             self._update_errors(error)
 
+    def clean_cpc_excel(self):
+        """Parse a newly uploaded CPC .xlsx and stash IV as Total investissement."""
+        uploaded = self.cleaned_data.get("cpc_excel")
+        if not uploaded:
+            return uploaded
+        # Parse only when a new .xlsx is posted (not the already-saved FieldFile).
+        if not self.files.get("cpc_excel"):
+            return uploaded
+        from .cpc_import import CpcImportError, extract_total_investissement
+
+        try:
+            total = extract_total_investissement(uploaded)
+        except CpcImportError as exc:
+            raise ValidationError(str(exc)) from exc
+        except Exception as exc:  # noqa: BLE001 — surface Excel parse errors in the form
+            raise ValidationError(
+                f"Impossible de lire le fichier CPC Excel : {exc}"
+            ) from exc
+        self.cleaned_data["_cpc_investissement_total"] = total
+        if hasattr(uploaded, "seek"):
+            uploaded.seek(0)
+        return uploaded
+
     def save(self, commit=True):
+        # Prefer CPC IV when present; otherwise FP+CMT (create / upsert paths).
+        cpc_total = self.cleaned_data.get("_cpc_investissement_total")
         if not self.instance.pk:
             existing = StructureFinancement.objects.filter(
                 project=self.cleaned_data["project"]
             ).first()
             if existing is not None:
                 existing.fonds_propres_fp = self.cleaned_data["fonds_propres_fp"]
-                existing.credit_moyen_terme_cmt = self.cleaned_data["credit_moyen_terme_cmt"]
+                existing.credit_moyen_terme_cmt = self.cleaned_data[
+                    "credit_moyen_terme_cmt"
+                ]
+                if self.cleaned_data.get("cpc_excel"):
+                    existing.cpc_excel = self.cleaned_data["cpc_excel"]
+                if cpc_total is not None:
+                    existing.apply_cpc_total(cpc_total)
+                elif not existing.investissement_total:
+                    existing.investissement_total = (
+                        existing.fonds_propres_fp + existing.credit_moyen_terme_cmt
+                    )
                 self.instance = existing
                 if commit:
                     existing.save()
@@ -622,6 +844,14 @@ class StructureFinancementAdminForm(forms.ModelForm):
                 else:
                     self.save_m2m = self._save_m2m
                 return existing
+
+        if cpc_total is not None:
+            self.instance.apply_cpc_total(cpc_total)
+        elif not self.instance.pk and not self.instance.investissement_total:
+            self.instance.investissement_total = (
+                self.cleaned_data["fonds_propres_fp"]
+                + self.cleaned_data["credit_moyen_terme_cmt"]
+            )
         return super().save(commit=commit)
 
 
@@ -676,9 +906,24 @@ class StructureFinancementAdmin(
                 ),
             },
         ),
-        ("Sources de financement", {
-            "fields": ("fonds_propres_fp", "credit_moyen_terme_cmt", "total_live"),
-        }),
+        # CPC section hidden from Planning financier form (kept in model for later use).
+        # (
+        #     "CPC — Total investissement",
+        #     {
+        #         "fields": ("cpc_excel", "total_live"),
+        #         "description": (
+        #             "Importez le fichier Excel CPC (.xlsx). Le montant de la ligne "
+        #             "« IV- Total Charge de Production (III1+…+III6)+II » "
+        #             "apparaît ci-dessous, puis cliquez Enregistrer pour le sauver."
+        #         ),
+        #     },
+        # ),
+        (
+            "Sources de financement",
+            {
+                "fields": ("fonds_propres_fp", "credit_moyen_terme_cmt", "total_live"),
+            },
+        ),
         ("Historique", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -1019,3 +1264,210 @@ class AnnexeDossierAdmin(
         return redirect(
             reverse("admin:projects_annexedossier_change", args=[object_id])
         )
+
+
+def _project_one_to_one_form(model_cls):
+    """Admin form: one dossier per project (re-save updates the existing row)."""
+
+    class ProjectOneToOneAdminForm(forms.ModelForm):
+        class Meta:
+            model = model_cls
+            fields = "__all__"
+
+        def validate_unique(self):
+            exclude = self._get_validation_exclusions()
+            if not self.instance.pk:
+                exclude.add("project")
+            try:
+                self.instance.validate_unique(exclude=exclude)
+            except ValidationError as error:
+                self._update_errors(error)
+
+        def save(self, commit=True):
+            if not self.instance.pk:
+                existing = model_cls.objects.filter(
+                    project=self.cleaned_data["project"]
+                ).first()
+                if existing is not None:
+                    for name, value in self.cleaned_data.items():
+                        if name == "project":
+                            continue
+                        setattr(existing, name, value)
+                    self.instance = existing
+                    if commit:
+                        existing.save()
+                        self._save_m2m()
+                    else:
+                        self.save_m2m = self._save_m2m
+                    return existing
+            return super().save(commit=commit)
+
+    ProjectOneToOneAdminForm.__name__ = f"{model_cls.__name__}AdminForm"
+    return ProjectOneToOneAdminForm
+
+
+def _dossier_file_inline(document_model, plural_label):
+    """Tabular inline: optional file rows for a project dossier."""
+
+    class DossierFileAdminForm(forms.ModelForm):
+        class Meta:
+            model = document_model
+            fields = ("fichier",)
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.fields["fichier"].required = False
+
+        def has_changed(self):
+            if self.instance.pk:
+                return super().has_changed()
+            return bool(self.files.get(self.add_prefix("fichier")))
+
+    class DossierFileInline(TabularInline):
+        model = document_model
+        form = DossierFileAdminForm
+        extra = 1
+        fields = ("fichier",)
+        verbose_name = "Fichier"
+        verbose_name_plural = plural_label
+        tab = True
+
+    DossierFileAdminForm.__name__ = f"{document_model.__name__}AdminForm"
+    DossierFileInline.__name__ = f"{document_model.__name__}Inline"
+    return DossierFileInline
+
+
+class ProjectLinkedDossierAdmin(
+    ProjectFicheListLinkMixin,
+    RebindInlinesToSavedParentMixin,
+    ProjectArchiveRowMixin,
+    SimpleSaveMixin,
+    ModelAdmin,
+):
+    """Shared admin for OneToOne project dossiers (approvisionnement, matériaux, inventaire)."""
+
+    actions = None
+    autocomplete_fields = ("project",)
+    list_display = ("project_code", "project_titre", "files_count", "updated_at")
+    list_display_links = None
+    list_per_page = 10
+    show_full_result_count = False
+    list_select_related = ("project",)
+    search_fields = ("project__code", "project__titre")
+    list_filter = ("project__is_archived",)
+    ordering = ("-project__code",)
+    actions_row = ["modifier_row", "voir_archive"]
+    actions_list = ["voir_archives"]
+    change_form_show_cancel_button = True
+    dossier_description = "Choisissez le projet, puis ajoutez les fichiers."
+
+    class Media:
+        js = ("projects/js/changelist_row_detail.js",)
+        css = {"all": ("projects/css/changelist_row.css",)}
+
+    def get_fieldsets(self, request, obj=None):
+        return (
+            (
+                "Projet",
+                {
+                    "fields": ("project",),
+                    "description": self.dossier_description,
+                },
+            ),
+        )
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            return ("project",)
+        return ()
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        project_id = request.GET.get("project")
+        if project_id and Project.objects.filter(pk=project_id).exists():
+            initial["project"] = project_id
+        return initial
+
+    def add_view(self, request, form_url="", extra_context=None):
+        if request.method == "GET":
+            project_id = request.GET.get("project")
+            if project_id:
+                existing = self.model.objects.filter(project_id=project_id).first()
+                if existing is not None:
+                    messages.info(
+                        request,
+                        f"Le projet a déjà une fiche — modification de {existing.project.code}.",
+                    )
+                    return redirect(
+                        reverse(
+                            f"admin:{self.opts.app_label}_{self.opts.model_name}_change",
+                            args=[existing.pk],
+                        )
+                    )
+        return super().add_view(request, form_url, extra_context)
+
+    def get_actions(self, request):
+        return {}
+
+    @admin.display(description="Code projet", ordering="project__code")
+    def project_code(self, obj):
+        return self._fiche_link(obj.project, obj.project.code)
+
+    @admin.display(description="Titre projet", ordering="project__titre")
+    def project_titre(self, obj):
+        return self._fiche_link(obj.project, obj.project.titre)
+
+    @admin.display(description="Fichiers")
+    def files_count(self, obj):
+        return obj.documents.count()
+
+    @action(
+        description="Modifier",
+        icon="edit",
+        variant=ActionVariant.PRIMARY,
+        url_path="modifier-row",
+        permissions=["change"],
+    )
+    def modifier_row(self, request, object_id):
+        return redirect(
+            reverse(
+                f"admin:{self.opts.app_label}_{self.opts.model_name}_change",
+                args=[object_id],
+            )
+        )
+
+
+@admin.register(PlanningApprovisionnement)
+class PlanningApprovisionnementAdmin(ProjectLinkedDossierAdmin):
+    form = _project_one_to_one_form(PlanningApprovisionnement)
+    inlines = (
+        _dossier_file_inline(ApprovisionnementDocument, "Fichiers approvisionnement"),
+    )
+    dossier_description = (
+        "Choisissez le projet, puis ajoutez les fichiers d'approvisionnement."
+    )
+
+
+@admin.register(PlanningMateriel)
+class PlanningMaterielAdmin(ProjectLinkedDossierAdmin):
+    form = _project_one_to_one_form(PlanningMateriel)
+    inlines = (
+        _dossier_file_inline(MaterielDocument, "Fichiers planning matériel"),
+    )
+    dossier_description = (
+        "Choisissez le projet, puis ajoutez les fichiers du planning matériel."
+    )
+
+
+@admin.register(MateriauxDossier)
+class MateriauxDossierAdmin(ProjectLinkedDossierAdmin):
+    form = _project_one_to_one_form(MateriauxDossier)
+    inlines = (_dossier_file_inline(MateriauxDocument, "Fichiers matériaux"),)
+    dossier_description = "Choisissez le projet, puis ajoutez les fichiers matériaux."
+
+
+@admin.register(InventaireDossier)
+class InventaireDossierAdmin(ProjectLinkedDossierAdmin):
+    form = _project_one_to_one_form(InventaireDossier)
+    inlines = (_dossier_file_inline(InventaireDocument, "Fichiers inventaire"),)
+    dossier_description = "Choisissez le projet, puis ajoutez les fichiers d'inventaire."

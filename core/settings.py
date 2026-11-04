@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    'projects',
+    'projects.apps.ProjectsConfig',
 ]
 
 MIDDLEWARE = [
@@ -200,6 +200,46 @@ UNFOLD = {
                         "icon": "calendar_month",
                         "link": reverse_lazy("admin:projects_planningexecution_changelist"),
                         "permission": lambda request: request.user.has_perm("projects.view_planningexecution"),
+                    },
+                    {
+                        "title": "Planning d'approvisionnement",
+                        "icon": "local_shipping",
+                        "link": reverse_lazy(
+                            "admin:projects_planningapprovisionnement_changelist"
+                        ),
+                        "permission": lambda request: request.user.has_perm(
+                            "projects.view_planningapprovisionnement"
+                        ),
+                    },
+                    {
+                        "title": "Planning matériel",
+                        "icon": "handyman",
+                        "link": reverse_lazy(
+                            "admin:projects_planningmateriel_changelist"
+                        ),
+                        "permission": lambda request: request.user.has_perm(
+                            "projects.view_planningmateriel"
+                        ),
+                    },
+                    {
+                        "title": "Matériaux",
+                        "icon": "construction",
+                        "link": reverse_lazy(
+                            "admin:projects_materiauxdossier_changelist"
+                        ),
+                        "permission": lambda request: request.user.has_perm(
+                            "projects.view_materiauxdossier"
+                        ),
+                    },
+                    {
+                        "title": "Inventaire",
+                        "icon": "inventory_2",
+                        "link": reverse_lazy(
+                            "admin:projects_inventairedossier_changelist"
+                        ),
+                        "permission": lambda request: request.user.has_perm(
+                            "projects.view_inventairedossier"
+                        ),
                     },
                     {
                         "title": "Annexes",

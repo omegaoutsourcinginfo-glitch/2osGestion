@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exposé détaillé — 2os Gestion</title>
+  <style>
+    :root {
+      --ink: #1a1614;
+      --muted: #5c534e;
+      --brand: #8b1e2d;
+      --brand-dark: #5c1421;
+      --line: #e4dbd4;
+      --paper: #fff;
+      --bg: #f3eee9;
+      --soft: #faf7f5;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+      font-size: 16px;
+    }
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--paper);
+      box-shadow: 0 0 0 1px var(--line), 0 24px 60px rgba(26,22,20,.08);
+    }
+    .cover {
+      min-height: 100vh;
+      padding: 3.5rem 3.5rem 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        linear-gradient(135deg, rgba(139,30,45,.08), transparent 42%),
+        linear-gradient(180deg, #fff, #f8f3ef);
+      border-bottom: 1px solid var(--line);
+    }
+    .cover-top { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+    .logo-mark {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: var(--brand); color: #fff;
+      display: grid; place-items: center; font-weight: 800; font-size: 1.1rem;
+    }
+    .doc-meta { text-align: right; color: var(--muted); font-size: .9rem; }
+    .cover h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.08;
+      margin: 2.5rem 0 .8rem;
+      max-width: 14ch;
+    }
+    .cover .subtitle {
+      font-size: 1.25rem;
+      color: var(--muted);
+      max-width: 36rem;
+      margin: 0 0 2rem;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .badge {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: .35rem .85rem;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .cover-foot {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--line);
+      margin-top: 2rem;
+    }
+    .cover-foot h3 { margin: 0 0 .4rem; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+    .cover-foot p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+    .toc, .section {
+      padding: 2.75rem 3.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .toc h2, .section h2 {
+      margin: 0 0 1.2rem;
+      font-size: 1.55rem;
+      color: var(--brand-dark);
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      gap: .45rem;
+    }
+    .toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+    .toc a:hover { border-bottom-color: var(--brand); color: var(--brand); }
+
+    .kicker {
+      margin: 0 0 .35rem;
+      font-size: .75rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--brand);
+      font-weight: 700;
+    }
+    .section h3 {
+      margin: 1.6rem 0 .6rem;
+      font-size: 1.15rem;
+    }
+    .section p { margin: 0 0 .9rem; color: var(--ink); }
+    .section p.muted, .muted { color: var(--muted); }
+    ul, ol.plain { margin: 0 0 1rem; padding-left: 1.2rem; }
+    li { margin: .35rem 0; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .75rem;
+      margin: 1.2rem 0 1.5rem;
+    }
+    .stat {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: .9rem 1rem;
+    }
+    .stat b { display: block; font-size: 1.45rem; color: var(--brand-dark); }
+    .stat span { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+    .figure {
+      margin: 1.2rem 0 1.6rem;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .figure img {
+      display: block;
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      object-position: top left;
+    }
+    .figure figcaption {
+      padding: .7rem 1rem;
+      font-size: .88rem;
+      color: var(--muted);
+      background: var(--soft);
+      border-top: 1px solid var(--line);
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1rem 0 1.4rem;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      background: var(--soft);
+    }
+    .card strong { display: block; margin-bottom: .35rem; color: var(--brand-dark); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.4rem;
+      font-size: .95rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: .65rem .75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--soft); font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+    .arch {
+      display: grid;
+      gap: .7rem;
+      margin: 1rem 0 1.4rem;
+    }
+    .arch-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: .75rem;
+      align-items: stretch;
+    }
+    .arch-label {
+      background: var(--brand);
+      color: #fff;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: .85rem;
+      text-align: center;
+      padding: .6rem;
+    }
+    .arch-body {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: .75rem 1rem;
+      background: #fff;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      align-items: center;
+      margin: 1rem 0 1.4rem;
+    }
+    .flow span {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: .45rem .85rem;
+      font-size: .9rem;
+    }
+    .flow i { color: var(--brand); font-style: normal; font-weight: 700; }
+
+    .note {
+      border-left: 3px solid var(--brand);
+      background: #fdf6f7;
+      padding: .8rem 1rem;
+      margin: 1rem 0 1.4rem;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .end {
+      text-align: center;
+      padding: 3.5rem 2rem 4rem;
+    }
+    .end h2 { margin: 0 0 .6rem; color: var(--brand-dark); }
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      gap: .5rem;
+      justify-content: flex-end;
+      padding: .55rem .8rem;
+      background: rgba(243,238,233,.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .sticky-nav a, .sticky-nav button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      border-radius: 8px;
+      padding: .35rem .7rem;
+      font: inherit;
+      font-size: .85rem;
+      cursor: pointer;
+    }
+    .sticky-nav a:hover, .sticky-nav button:hover { border-color: var(--brand); color: var(--brand); }
+
+    @media (max-width: 800px) {
+      .cover, .toc, .section { padding: 1.6rem 1.2rem; }
+      .stats, .two, .cover-foot, .arch-row { grid-template-columns: 1fr; }
+      .cover-top { flex-direction: column; }
+      .doc-meta { text-align: left; }
+    }
+    @media print {
+      body { background: #fff; }
+      .sticky-nav { display: none; }
+      .page { box-shadow: none; max-width: none; }
+      .cover { min-height: auto; page-break-after: always; }
+      .section, .toc { page-break-inside: avoid; }
+      .figure img { max-height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sticky-nav">
+    <a href="#sommaire">Sommaire</a>
+    <button type="button" onclick="window.print()">Imprimer / PDF</button>
+  </div>
+
+  <article class="page">
+    <!-- COUVERTURE -->
+    <header class="cover" id="couverture">
+      <div>
+        <div class="cover-top">
+          <div class="logo-mark">2os</div>
+          <div class="doc-meta">
+            <div><strong>Document d’exposé</strong></div>
+            <div>Version 1.0 — Novembre 2026</div>
+            <div>Application web — Administration projets</div>
+          </div>
+        </div>
+        <h1>2os Gestion</h1>
+        <p class="subtitle">
+          Plateforme de gestion des projets immobiliers : fiches techniques,
+          financement, planning d’exécution et annexes documentaires.
+        </p>
+        <div class="badge-row">
+          <span class="badge">Django 6 + Unfold Admin</span>
+          <span class="badge">HTMX / navigation SPA</span>
+          <span class="badge">Documents PDF</span>
+          <span class="badge">Recherche unifiée</span>
+        </div>
+      </div>
+      <div class="cover-foot">
+        <div>
+          <h3>Objet du document</h3>
+          <p>
+            Présenter le contexte, les fonctionnalités, l’architecture et les
+            écrans clés de l’application, avec captures réelles de l’interface.
+          </p>
+        </div>
+        <div>
+          <h3>Public cible</h3>
+          <p>
+            Équipe métier, direction de projet, développeurs et formateurs
+            chargés du déploiement / démonstration.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- SOMMAIRE -->
+    <nav class="toc" id="sommaire">
+      <h2>Sommaire</h2>
+      <ol>
+        <li><a href="#s1">1. Introduction et contexte</a></li>
+        <li><a href="#s2">2. Problématique et objectifs</a></li>
+        <li><a href="#s3">3. Périmètre fonctionnel</a></li>
+        <li><a href="#s4">4. Architecture technique</a></li>
+        <li><a href="#s5">5. Modèle métier (données)</a></li>
+        <li><a href="#s6">6. Parcours utilisateur</a></li>
+        <li><a href="#s7">7. Interfaces détaillées (captures)</a></li>
+        <li><a href="#s8">8. Fonctionnalités transverses</a></li>
+        <li><a href="#s9">9. Sécurité et qualité</a></li>
+        <li><a href="#s10">10. Bilan et perspectives</a></li>
+      </ol>
+    </nav>
+
+    <!-- 1 -->
+    <section class="section" id="s1">
+      <p class="kicker">Chapitre 1</p>
+      <h2>1. Introduction et contexte</h2>
+      <p>
+        <strong>2os Gestion</strong> est une application web d’administration destinée
+        au suivi opérationnel de projets immobiliers (lotissements, résidences,
+        opérations commerciales). Elle centralise, dans un seul espace sécurisé,
+        les informations de référence du projet et les documents associés.
+      </p>
+      <p class="muted">
+        L’interface est en français. L’accès se fait via un compte administrateur /
+        staff Django. L’application tourne en local sur
+        <code>http://127.0.0.1:8000/admin/</code>.
+      </p>
+
+      <h3>1.1 Chiffres actuels (base de démonstration)</h3>
+      <div class="stats">
+        <div class="stat"><b>52</b><span>Projets actifs</span></div>
+        <div class="stat"><b>51</b><span>Financements</span></div>
+        <div class="stat"><b>52</b><span>Plannings</span></div>
+        <div class="stat"><b>538+</b><span>Fichiers PDF / docs</span></div>
+      </div>
+
+      <h3>1.2 Positionnement</h3>
+      <div class="two">
+        <div class="card">
+          <strong>Ce que c’est</strong>
+          Un back-office métier (CRM / GED léger) pour piloter le cycle de vie
+          d’un projet : instruction → exécution, avec pièces PDF.
+        </div>
+        <div class="card">
+          <strong>Ce que ce n’est pas</strong>
+          Ni un site public, ni un ERP comptable complet. L’accent est mis sur
+          la fiche projet, le financement et le planning documentaire.
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="section" id="s2">
+      <p class="kicker">Chapitre 2</p>
+      <h2>2. Problématique et objectifs</h2>
+      <h3>2.1 Problématique</h3>
+      <p>
+        Sans outil dédié, les informations projets (titres fonciers, permis,
+        plans, PDF de phases, montants FP/CMT) sont dispersées dans des dossiers
+        partagés et des tableurs. Cela complique le suivi du statut, la
+        recherche d’un dossier et la traçabilité des pièces.
+      </p>
+      <h3>2.2 Objectifs</h3>
+      <ul>
+        <li>Donner un <strong>code projet unique</strong> (ex. A2649) et une fiche complète.</li>
+        <li>Suivre le <strong>statut</strong> (instruction / exécution) et l’archivage.</li>
+        <li>Rattacher les documents PDF au bon module (technique, planning, annexes).</li>
+        <li>Offrir une <strong>navigation rapide</strong> (recherche, listes, fiche à onglets).</li>
+        <li>Permettre la saisie multi-onglets sans perte de données.</li>
+      </ul>
+      <div class="note">
+        Objectif UX prioritaire : depuis une liste (Planning, Financement, Annexes),
+        un clic sur le titre ouvre directement la fiche projet sur l’onglet concerné.
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="section" id="s3">
+      <p class="kicker">Chapitre 3</p>
+      <h2>3. Périmètre fonctionnel</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Rôle</th>
+            <th>Contenu principal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Projets</strong></td>
+            <td>Cœur métier</td>
+            <td>Identification, localisation, description, terrain mère, permis, intervenants, documents techniques, images</td>
+          </tr>
+          <tr>
+            <td><strong>Planning financier</strong></td>
+            <td>Structure financière</td>
+            <td>Fonds propres (FP), crédit moyen terme (CMT), total investissement, PDF de financement</td>
+          </tr>
+          <tr>
+            <td><strong>Planning d’exécution</strong></td>
+            <td>Suivi de phases</td>
+            <td>Études / Viabilisation / Réception — plusieurs PDF par phase</td>
+          </tr>
+          <tr>
+            <td><strong>Annexes</strong></td>
+            <td>Pièces administratives</td>
+            <td>Dossier PDF (ANCFCC, plans, attestations, cahier des charges…)</td>
+          </tr>
+          <tr>
+            <td><strong>Tableau de bord</strong></td>
+            <td>Pilotage</td>
+            <td>Compteurs, investissement agrégé, projets récents, accès fiche</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 4 -->
+    <section class="section" id="s4">
+      <p class="kicker">Chapitre 4</p>
+      <h2>4. Architecture technique</h2>
+      <p>
+        L’application repose sur <strong>Django</strong> avec le thème admin
+        <strong>Unfold</strong>. La navigation interne utilise <strong>HTMX</strong>
+        pour une expérience de type SPA (sans rechargement complet), tout en
+        conservant des rechargements complets pour l’authentification (CSRF).
+      </p>
+      <div class="arch">
+        <div class="arch-row">
+          <div class="arch-label">Présentation</div>
+          <div class="arch-body">Admin Unfold · Templates HTML · CSS projet · Alpine (onglets) · Select2 (listes)</div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Interaction</div>
+          <div class="arch-body">HTMX + spa_nav.js · Recherche autocomplete · Ouverture fiche projet · Sync onglets</div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Métier</div>
+          <div class="arch-body">Models Django · Admin ModelAdmin / Inlines · Validations OneToOne (1 financement / 1 planning / 1 dossier annexes par projet)</div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Données</div>
+          <div class="arch-body">SQLite (dev) · Fichiers média dans <code>media/</code> · Auth Django (staff / superuser)</div>
+        </div>
+      </div>
+      <h3>4.1 Stack</h3>
+      <ul>
+        <li>Python / Django 6.1</li>
+        <li>django-unfold (UI admin)</li>
+        <li>HTMX 2, Alpine.js</li>
+        <li>Select2 (listes recherchables)</li>
+        <li>Stockage fichiers PDF / images via FileField</li>
+      </ul>
+    </section>
+
+    <!-- 5 -->
+    <section class="section" id="s5">
+      <p class="kicker">Chapitre 5</p>
+      <h2>5. Modèle métier (données)</h2>
+      <p>
+        Le modèle pivot est <strong>Project</strong> (code auto, titre, commune,
+        statut, archive…). Autour de lui gravitent des entités liées :
+      </p>
+      <table>
+        <thead>
+          <tr><th>Entité</th><th>Relation</th><th>Exemple de champs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>TerrainMere</td><td>1–n / formulaire inline</td><td>Titre foncier, superficie, unité</td></tr>
+          <tr><td>Autorisation</td><td>Permis</td><td>Type, numéro, date</td></tr>
+          <tr><td>Intervenant</td><td>M2M</td><td>Nom / cabinet, contact, type</td></tr>
+          <tr><td>StructureFinancement</td><td>OneToOne</td><td>FP, CMT, total</td></tr>
+          <tr><td>PlanningExecution</td><td>OneToOne</td><td>Documents PDF par phase</td></tr>
+          <tr><td>AnnexeDossier</td><td>OneToOne</td><td>Pièces PDF typées</td></tr>
+          <tr><td>ProjectDocument / ProjectImage</td><td>1–n</td><td>Techniques, photos chantier</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        Règle métier importante : un projet ne possède qu’un seul financement,
+        qu’un seul planning d’exécution et qu’un seul dossier d’annexes.
+        La création « add » met à jour l’existant si le projet est déjà lié.
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="section" id="s6">
+      <p class="kicker">Chapitre 6</p>
+      <h2>6. Parcours utilisateur</h2>
+      <h3>6.1 Création d’un projet</h3>
+      <div class="flow">
+        <span>Login admin</span><i>→</i>
+        <span>Projets → Ajouter</span><i>→</i>
+        <span>Onglets General / Terrain / Permis / …</span><i>→</i>
+        <span>Enregistrer</span><i>→</i>
+        <span>Code généré (A26xx)</span>
+      </div>
+      <h3>6.2 Consultation métier</h3>
+      <div class="flow">
+        <span>Liste (Planning / Financement / Annexes)</span><i>→</i>
+        <span>Clic code ou titre</span><i>→</i>
+        <span>Fiche projet</span><i>→</i>
+        <span>Onglet ciblé (#planning, #financement…)</span>
+      </div>
+      <h3>6.3 Recherche globale</h3>
+      <p>
+        La barre <em>Type to search</em> interroge les 4 types (Projet, Planning
+        financier, Planning d’exécution, Annexes) et renvoie vers la fiche ou
+        la liste filtrée, avec mise en évidence de la ligne.
+      </p>
+    </section>
+
+    <!-- 7 -->
+    <section class="section" id="s7">
+      <p class="kicker">Chapitre 7</p>
+      <h2>7. Interfaces détaillées (captures réelles)</h2>
+
+      <h3>7.1 Tableau de bord</h3>
+      <p>
+        Point d’entrée après connexion. Affiche le volume de projets, la
+        répartition instruction / exécution, l’investissement total et la liste
+        des projets récents.
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/01-dashboard.png" alt="Tableau de bord">
+        <figcaption>Figure 1 — Tableau de bord : indicateurs et projets récents.</figcaption>
+      </figure>
+
+      <h3>7.2 Liste des projets</h3>
+      <p>
+        Changelist filtrable (statut, préfecture, commune, archivé). Les colonnes
+        Code / Titre / Statut ouvrent la fiche projet.
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/02-projets.png" alt="Liste des projets">
+        <figcaption>Figure 2 — Liste Projets avec recherche et filtres.</figcaption>
+      </figure>
+
+      <h3>7.3 Formulaire d’ajout / édition</h3>
+      <p>
+        Saisie structurée par onglets Unfold : Identification, Localisation,
+        Description, puis Terrain Mère, Permis, Intervenants, Documents, Images.
+        Le code projet est prévisualisé puis attribué à l’enregistrement.
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/06-projet-add.png" alt="Ajout de projet">
+        <figcaption>Figure 3 — Formulaire d’ajout (onglet General / Identification).</figcaption>
+      </figure>
+
+      <h3>7.4 Fiche projet (consultation)</h3>
+      <p>
+        Vue lecture orientée métier : en-tête (titre, code, statut), résumé
+        (préfecture, commune, terrain, investissement) et navigation par onglets
+        (Général → Annexes).
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/03-fiche.png" alt="Fiche projet">
+        <figcaption>Figure 4 — Fiche projet A2649 — Résidence Les Jardins de Bouregreg.</figcaption>
+      </figure>
+
+      <h3>7.5 Planning d’exécution</h3>
+      <p>
+        Liste des plannings avec compteur de PDF. Un clic ouvre la fiche sur
+        l’onglet <strong>Planning</strong> (phases études / VRD / réception).
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/04-planning-list.png" alt="Planning d'exécution">
+        <figcaption>Figure 5 — Liste Planning d’exécution (code, titre, nb PDF).</figcaption>
+      </figure>
+
+      <h3>7.6 Planning financier</h3>
+      <p>
+        Visualisation des montants FP / CMT et du total. Lien vers la fiche onglet
+        <strong>Financement</strong>.
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/05-financement.png" alt="Planning financier">
+        <figcaption>Figure 6 — Structure de financement (FP, CMT, totaux).</figcaption>
+      </figure>
+
+      <h3>7.7 Annexes</h3>
+      <p>
+        Dossiers de pièces jointes PDF par projet. Accès fiche onglet
+        <strong>Annexes</strong>.
+      </p>
+      <figure class="figure">
+        <img src="expose-assets/07-annexes.png" alt="Annexes">
+        <figcaption>Figure 7 — Liste des dossiers Annexes.</figcaption>
+      </figure>
+    </section>
+
+    <!-- 8 -->
+    <section class="section" id="s8">
+      <p class="kicker">Chapitre 8</p>
+      <h2>8. Fonctionnalités transverses</h2>
+      <div class="two">
+        <div class="card">
+          <strong>Recherche unifiée</strong>
+          Barre globale : résultats typés (Projet, Financier, Exécution, Annexes)
+          et navigation contextuelle.
+        </div>
+        <div class="card">
+          <strong>Navigation SPA</strong>
+          Les listes et fiches se chargent dans <code>#main</code> sans recharger
+          toute la page, sauf login / logout (CSRF).
+        </div>
+        <div class="card">
+          <strong>Onglets formulaire</strong>
+          Les valeurs saisies restent en mémoire lors du changement d’onglet
+          (pas de rechargement destructeur du formulaire).
+        </div>
+        <div class="card">
+          <strong>Archives</strong>
+          Archivage projet + vues Archives dédiées sur chaque module lié.
+        </div>
+        <div class="card">
+          <strong>Listes Select2</strong>
+          Dropdowns recherchables (intervenants, projet lié, etc.).
+        </div>
+        <div class="card">
+          <strong>Contrôles de saisie</strong>
+          Champs obligatoires mis en évidence ; focus automatique sur l’onglet en erreur.
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="section" id="s9">
+      <p class="kicker">Chapitre 9</p>
+      <h2>9. Sécurité et qualité</h2>
+      <ul>
+        <li>Authentification Django (staff / superuser) — pages admin protégées.</li>
+        <li>Protection CSRF sur les formulaires POST (login inclus).</li>
+        <li>Uploads restreints (extensions PDF / images selon le champ).</li>
+        <li>Tests unitaires / fonctionnels sur parcours clés (codes projet, upsert planning, recherche, etc.).</li>
+      </ul>
+      <div class="note">
+        Compte de démonstration local : utilisateur <code>maryam</code> —
+        mot de passe <code>mary1234</code>. À ne pas réutiliser en production.
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="section" id="s10">
+      <p class="kicker">Chapitre 10</p>
+      <h2>10. Bilan et perspectives</h2>
+      <h3>10.1 Apports</h3>
+      <ul>
+        <li>Un référentiel projet unique et consultable rapidement.</li>
+        <li>Traçabilité documentaire (financement, planning, annexes).</li>
+        <li>UX admin moderne (Unfold) adaptée au métier immobilier marocain (préfecture, commune, titres fonciers…).</li>
+      </ul>
+      <h3>10.2 Pistes d’évolution</h3>
+      <ul>
+        <li>Export Excel / reporting consolidé.</li>
+        <li>Droits fins par rôle (lecture seule / saisie documents).</li>
+        <li>Notifications d’échéance (permis, réception).</li>
+        <li>Base PostgreSQL et déploiement Docker en production.</li>
+        <li>Historique d’audit des modifications sensibles.</li>
+      </ul>
+      <h3>10.3 Conclusion</h3>
+      <p>
+        <strong>2os Gestion</strong> répond au besoin de centraliser le suivi des
+        projets immobiliers : de la fiche d’identification jusqu’aux PDF de
+        planning et d’annexes, avec une interface d’administration cohérente et
+        démontrable.
+      </p>
+    </section>
+
+    <footer class="end">
+      <h2>Fin de l’exposé</h2>
+      <p class="muted">2os Gestion — Document généré pour présentation — Novembre 2026</p>
+      <p class="muted">Utiliser « Imprimer / PDF » en haut à droite pour exporter.</p>
+    </footer>
+  </article>
+</body>
+</html>

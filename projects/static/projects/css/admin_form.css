@@ -95,6 +95,29 @@
   text-decoration: underline;
 }
 
+/* Simple intervenants / FK rows: hide ⋮ related-object chrome */
+.change-form .related-widget-wrapper-link.change-related,
+.change-form .related-widget-wrapper-link.view-related,
+.change-form .related-widget-wrapper-link.delete-related,
+.change-form .related-widget-wrapper > a[data-popup="yes"],
+.change-form .related-widget-wrapper .related-widget-wrapper-link {
+  display: none !important;
+}
+
+/* Cleaner tabular inline: one select + delete only */
+.change-form .tabular .related-widget-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 36rem;
+}
+
+.change-form .tabular .related-widget-wrapper select,
+.change-form .tabular .related-widget-wrapper .select2-container {
+  width: 100% !important;
+  max-width: 36rem;
+}
+
 /* ---- Submit row: primary blue save, muted gray delete ---- */
 #submit-row button[name="_save"],
 #submit-row input[name="_save"] {

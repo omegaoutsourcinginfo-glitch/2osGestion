@@ -9,11 +9,12 @@ from urllib.parse import quote_plus
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Prefetch, Q, QuerySet, Sum
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.db.models import Prefetch, Q, QuerySet
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .models import (
     AnnexeDocument,
@@ -163,7 +164,6 @@ class DashboardData(TypedDict):
     dash_total: int
     dash_instruction: int
     dash_execution: int
-    dash_investissement: Decimal | int
     dash_recent: list[RecentProject]
     dash_pct_instruction: int
     dash_pct_execution: int
@@ -619,10 +619,10 @@ class ProjectViewSet:
         return fp, cmt
 
     def search(self, q: str = "") -> list[SearchResult]:
-        """Project-only search (dashboard recent filter)."""
+        """Project-only search (dashboard recent filter) — first letter(s) of code/title."""
         projects = Project.objects.filter(is_archived=False).order_by("-code")
         if q:
-            projects = projects.filter(Q(titre__icontains=q) | Q(code__icontains=q))
+            projects = projects.filter(_prefix_q(q, "titre", "code"))
 
         results: list[SearchResult] = []
         for project in projects[:12]:
@@ -639,14 +639,29 @@ class ProjectViewSet:
         return results
 
 
-def global_admin_search(q: str = "", per_kind: int = 4) -> list[SearchResult]:
-    """Search Projets + Planning financier + Planning d'exécution + Annexes."""
+def _prefix_q(q: str, *fields: str) -> Q:
+    """Match only from the start (first letter / prefix) of the given fields."""
+    query = Q()
+    for field in fields:
+        query |= Q(**{f"{field}__istartswith": q})
+    return query
+
+
+def _related_prefix_q(q: str) -> Q:
+    return _prefix_q(q, "project__titre", "project__code")
+
+
+def global_admin_search(q: str = "", per_kind: int = 8) -> list[SearchResult]:
+    """Search Projets + Planning financier + Planning d'exécution + Annexes.
+
+    Matches from the first letter of the code/title only (prefix / startswith).
+    """
     q = (q or "").strip()
     if not q:
         return []
 
-    project_q = Q(titre__icontains=q) | Q(code__icontains=q)
-    related_q = Q(project__titre__icontains=q) | Q(project__code__icontains=q)
+    project_q = _prefix_q(q, "titre", "code")
+    related_q = _related_prefix_q(q)
     results: list[SearchResult] = []
 
     for project in (
@@ -738,13 +753,6 @@ class DashboardViewSet:
             statut_actuel=Project.StatutProjet.EXECUTION
         ).count()
 
-        investissement = (
-            StructureFinancement.objects.filter(project__is_archived=False).aggregate(
-                total=Sum("investissement_total")
-            )["total"]
-            or 0
-        )
-
         recent: list[RecentProject] = []
         latest = active_projects.order_by("-updated_at", "-code")[:12]
         for project in latest:
@@ -765,7 +773,6 @@ class DashboardViewSet:
             "dash_total": total,
             "dash_instruction": instruction,
             "dash_execution": execution,
-            "dash_investissement": investissement,
             "dash_recent": recent,
             "dash_pct_instruction": FileHelper.percent(instruction, total),
             "dash_pct_execution": FileHelper.percent(execution, total),
@@ -851,6 +858,45 @@ def dashboard_recent(request: HttpRequest) -> HttpResponse:
         request,
         "projects/partials/dashboard_recent_list.html",
         {"dash_recent": recent, "q": q},
+    )
+
+
+@staff_member_required
+@require_POST
+def cpc_preview_total(request: HttpRequest) -> JsonResponse:
+    """
+    AJAX preview: parse uploaded CPC .xlsx and return ligne-IV total.
+
+    Called by financement_total.js when the user selects a CPC file
+    (project tab or Planning financier form), before Enregistrer.
+    """
+    uploaded = request.FILES.get("cpc_excel")
+    if uploaded is None:
+        return JsonResponse({"ok": False, "error": "Aucun fichier CPC reçu."}, status=400)
+    name = (uploaded.name or "").lower()
+    if not name.endswith(".xlsx"):
+        return JsonResponse(
+            {"ok": False, "error": "Format invalide — utilisez un fichier .xlsx."},
+            status=400,
+        )
+    from .cpc_import import CpcImportError, extract_total_investissement
+
+    try:
+        total = extract_total_investissement(uploaded)
+    except CpcImportError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+    except Exception as exc:  # noqa: BLE001
+        return JsonResponse(
+            {"ok": False, "error": f"Impossible de lire le fichier CPC : {exc}"},
+            status=400,
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "total": f"{total:.2f}",
+            # French display for the readonly Total investissement span.
+            "total_display": f"{total:,.2f}".replace(",", " ").replace(".", ","),
+        }
     )
 
 

@@ -1,11 +1,14 @@
 import tempfile
 from decimal import Decimal
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import TestCase
+from openpyxl import Workbook
 
+from .cpc_import import extract_total_investissement
 from .models import (
     AnnexeDossier,
     Autorisation,
@@ -19,6 +22,44 @@ from .models import (
     StructureFinancement,
     TerrainMere,
 )
+
+
+def make_cpc_xlsx(total_components=None) -> bytes:
+    """Minimal CPC workbook with IV = sum of II + III totals."""
+    parts = total_components or {
+        "N32": 1_000_000,
+        "N49": 200_000,
+        "N62": 3_000_000,
+        "N67": 50_000,
+        "N81": 150_000,
+        "N92": 80_000,
+        "N93": 70_000,
+    }
+    wb = Workbook()
+    ws = wb.active
+    ws["B16"] = "DESIGNATION"
+    ws["N16"] = "MONTANT TOTAL"
+    ws["B32"] = " Total Achat de Terrain"
+    ws["N32"] = parts["N32"]
+    ws["B49"] = "Total complement des Etudes"
+    ws["N49"] = parts["N49"]
+    ws["B62"] = " Total  Travaux "
+    ws["N62"] = parts["N62"]
+    ws["B67"] = " Total Assurance"
+    ws["N67"] = parts["N67"]
+    ws["B81"] = " Total Frais Divers de Gestion "
+    ws["N81"] = parts["N81"]
+    ws["B92"] = "Total Equipements"
+    ws["N92"] = parts["N92"]
+    ws["B93"] = "III-6/ Divers et Imprevu  (3% du CA) "
+    ws["N93"] = parts["N93"]
+    ws["B94"] = (
+        "IV- Total Charge de Production (III1+III2+III3+III4+III5+III6)+II "
+    )
+    ws["N94"] = "=N32+(N49+N62+N67+N81+N92+N93)"
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
 
 FIELDS = dict(
     prefecture="Rabat",
@@ -302,6 +343,7 @@ class ProjectAdminTests(TestCase):
         project = Project.objects.create(**FIELDS)
         response = self.client.get(f"/admin/projects/project/{project.pk}/change/")
         self.assertNotContains(response, "structure_financement-TOTAL_FORMS")
+        self.assertNotContains(response, "CPC / Investissement")
 
     def test_structure_financement_total_is_computed(self):
         project = Project.objects.create(**FIELDS)
@@ -533,14 +575,16 @@ class ProjectAdminTests(TestCase):
         )
         response = self.client.get("/admin/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Tableau de bord")
-        self.assertContains(response, "studio-head")
-        self.assertContains(response, "Projets rÃ©cents")
-        self.assertContains(response, project.code)
-        self.assertContains(response, "projects/css/dashboard.css")
-        self.assertContains(response, "Investissement")
-        self.assertContains(response, f"?projet={project.code}")
-        self.assertNotContains(response, "project-info")
+        body = response.content.decode("utf-8")
+        self.assertIn("Tableau de bord", body)
+        self.assertIn("studio-head", body)
+        self.assertIn("Projets récents", body)
+        self.assertIn(project.code, body)
+        self.assertIn("projects/css/dashboard.css", body)
+        self.assertNotIn("<em>Investissement</em>", body)
+        self.assertNotIn("<em>Annexes</em>", body)
+        self.assertIn(f"?projet={project.code}", body)
+        self.assertNotIn("project-info", body)
 
     def test_financing_list_hides_pdf_column(self):
         project = Project.objects.create(**FIELDS)
@@ -832,3 +876,62 @@ class GlobalSearchAutocompleteTests(TestCase):
         self.assertIn("#financement", body)
         self.assertIn("#planning", body)
         self.assertIn("#annexes", body)
+
+    def test_autocomplete_matches_first_letter_only(self):
+        other = Project.objects.create(
+            **{**FIELDS, "titre": "Autre Projet Sans D"}
+        )
+        response = self.client.get("/projets/autocomplete/", {"q": "D"})
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode("utf-8")
+        self.assertIn(self.project.code, body)
+        self.assertIn("Domaine Search Test", body)
+        self.assertNotIn(other.code, body)
+
+    def test_dashboard_recent_filters_by_first_letter(self):
+        other = Project.objects.create(
+            **{**FIELDS, "titre": "Autre Projet Sans D"}
+        )
+        response = self.client.get("/projets/dashboard/recent/", {"q": "D"})
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode("utf-8")
+        self.assertIn(self.project.code, body)
+        self.assertIn("Domaine Search Test", body)
+        self.assertNotIn(other.code, body)
+        self.assertNotIn("Autre Projet Sans D", body)
+
+
+class CpcImportTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser("cpcadmin", "cpc@test.com", "pass")
+        self.client.force_login(self.user)
+
+    def test_extract_iv_total_from_excel(self):
+        total = extract_total_investissement(make_cpc_xlsx())
+        self.assertEqual(total, Decimal("4550000.00"))
+
+    def test_add_form_hides_cpc_import(self):
+        Project.objects.create(**FIELDS)
+        response = self.client.get("/admin/projects/structurefinancement/add/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "cpc_excel")
+        self.assertNotContains(response, "CPC — Total investissement")
+        self.assertContains(response, "id_investissement_total_live")
+
+    def test_cpc_preview_total_endpoint(self):
+        excel = SimpleUploadedFile(
+            "cpc.xlsx",
+            make_cpc_xlsx(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response = self.client.post(
+            "/projets/cpc/preview-total/",
+            {"cpc_excel": excel},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["total"], "4550000.00")

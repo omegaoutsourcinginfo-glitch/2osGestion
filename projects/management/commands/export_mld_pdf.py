@@ -40,6 +40,7 @@ TABLES = [
         [
             ("id", "INTEGER", "PK"),
             ("type_intervenant", "VARCHAR(20)", ""),
+            ("precision_autre", "VARCHAR(255)", ""),
             ("nom_ou_cabinet", "VARCHAR(255)", ""),
             ("contact", "VARCHAR(255)", ""),
             ("created_at", "DATETIME", ""),
@@ -73,6 +74,7 @@ TABLES = [
             ("id", "INTEGER", "PK"),
             ("project_id", "INTEGER UNIQUE", "FK"),
             ("type_permis", "VARCHAR(20)", ""),
+            ("precision_autre", "VARCHAR(255)", ""),
             ("numero_autorisation", "VARCHAR(100)", ""),
             ("date_delivrance", "DATE NULL", ""),
             ("created_at", "DATETIME", ""),
@@ -118,6 +120,7 @@ TABLES = [
         [
             ("id", "INTEGER", "PK"),
             ("project_id", "INTEGER UNIQUE", "FK"),
+            ("cpc_excel", "VARCHAR (path)", ""),
             ("fonds_propres_fp", "DECIMAL(16,2)", ""),
             ("credit_moyen_terme_cmt", "DECIMAL(16,2)", ""),
             ("investissement_total", "DECIMAL(16,2)", ""),
@@ -175,23 +178,110 @@ TABLES = [
             ("updated_at", "DATETIME", ""),
         ],
     ),
+    (
+        "PLANNING_APPROVISIONNEMENT",
+        [
+            ("id", "INTEGER", "PK"),
+            ("project_id", "INTEGER UNIQUE", "FK"),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "APPROVISIONNEMENT_DOCUMENT",
+        [
+            ("id", "INTEGER", "PK"),
+            ("dossier_id", "INTEGER", "FK"),
+            ("fichier", "VARCHAR (path)", ""),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "PLANNING_MATERIEL",
+        [
+            ("id", "INTEGER", "PK"),
+            ("project_id", "INTEGER UNIQUE", "FK"),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "MATERIEL_DOCUMENT",
+        [
+            ("id", "INTEGER", "PK"),
+            ("dossier_id", "INTEGER", "FK"),
+            ("fichier", "VARCHAR (path)", ""),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "MATERIAUX_DOSSIER",
+        [
+            ("id", "INTEGER", "PK"),
+            ("project_id", "INTEGER UNIQUE", "FK"),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "MATERIAUX_DOCUMENT",
+        [
+            ("id", "INTEGER", "PK"),
+            ("dossier_id", "INTEGER", "FK"),
+            ("fichier", "VARCHAR (path)", ""),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "INVENTAIRE_DOSSIER",
+        [
+            ("id", "INTEGER", "PK"),
+            ("project_id", "INTEGER UNIQUE", "FK"),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
+    (
+        "INVENTAIRE_DOCUMENT",
+        [
+            ("id", "INTEGER", "PK"),
+            ("dossier_id", "INTEGER", "FK"),
+            ("fichier", "VARCHAR (path)", ""),
+            ("created_at", "DATETIME", ""),
+            ("updated_at", "DATETIME", ""),
+        ],
+    ),
 ]
 
-FK_LINKS = [
-    "PROJECT_INTERVENANTS.project_id  -->  PROJECT.id",
-    "PROJECT_INTERVENANTS.intervenant_id  -->  INTERVENANT.id",
-    "TERRAIN_MERE.project_id  -->  PROJECT.id   (1:1)",
-    "AUTORISATION.project_id  -->  PROJECT.id   (1:1)",
-    "PROGRAMME_TECHNIQUE.project_id  -->  PROJECT.id   (1:1)",
-    "PROJECT_DOCUMENT.project_id  -->  PROJECT.id   (1:N)",
-    "PROJECT_IMAGE.project_id  -->  PROJECT.id   (1:N)",
-    "STRUCTURE_FINANCEMENT.project_id  -->  PROJECT.id   (1:1)",
-    "FINANCEMENT_DOCUMENT.financement_id  -->  STRUCTURE_FINANCEMENT.id   (1:N)",
-    "PLANNING_EXECUTION.project_id  -->  PROJECT.id   (1:1)",
-    "PLANNING_DOCUMENT.planning_id  -->  PLANNING_EXECUTION.id   (1:N)",
-    "ANNEXE_DOSSIER.project_id  -->  PROJECT.id   (1:1)",
-    "ANNEXE_DOCUMENT.dossier_id  -->  ANNEXE_DOSSIER.id   (1:N)",
+# (child_table, parent_table, cardinality_label)
+FK_EDGES = [
+    ("PROJECT_INTERVENANTS (M2M)", "PROJECT", "N:1"),
+    ("PROJECT_INTERVENANTS (M2M)", "INTERVENANT", "N:1"),
+    ("TERRAIN_MERE", "PROJECT", "1:1"),
+    ("AUTORISATION", "PROJECT", "1:1"),
+    ("PROGRAMME_TECHNIQUE", "PROJECT", "1:1"),
+    ("PROJECT_DOCUMENT", "PROJECT", "N:1"),
+    ("PROJECT_IMAGE", "PROJECT", "N:1"),
+    ("STRUCTURE_FINANCEMENT", "PROJECT", "1:1"),
+    ("FINANCEMENT_DOCUMENT", "STRUCTURE_FINANCEMENT", "N:1"),
+    ("PLANNING_EXECUTION", "PROJECT", "1:1"),
+    ("PLANNING_DOCUMENT", "PLANNING_EXECUTION", "N:1"),
+    ("ANNEXE_DOSSIER", "PROJECT", "1:1"),
+    ("ANNEXE_DOCUMENT", "ANNEXE_DOSSIER", "N:1"),
+    ("PLANNING_APPROVISIONNEMENT", "PROJECT", "1:1"),
+    ("APPROVISIONNEMENT_DOCUMENT", "PLANNING_APPROVISIONNEMENT", "N:1"),
+    ("PLANNING_MATERIEL", "PROJECT", "1:1"),
+    ("MATERIEL_DOCUMENT", "PLANNING_MATERIEL", "N:1"),
+    ("MATERIAUX_DOSSIER", "PROJECT", "1:1"),
+    ("MATERIAUX_DOCUMENT", "MATERIAUX_DOSSIER", "N:1"),
+    ("INVENTAIRE_DOSSIER", "PROJECT", "1:1"),
+    ("INVENTAIRE_DOCUMENT", "INVENTAIRE_DOSSIER", "N:1"),
 ]
+
+FK_LINKS = [f"{child}  -->  {parent}   ({card})" for child, parent, card in FK_EDGES]
 
 MAROON = colors.HexColor("#8b1e2d")
 NAVY = colors.HexColor("#1e3a5f")
@@ -230,7 +320,6 @@ def _draw_table_box(c, x, y_top, width, title, columns):
     c.drawCentredString(x + width / 2, y_top - 13, title)
 
     # Column rows
-    y = y_top - title_h - pad - 10
     for i, (col, typ, flag) in enumerate(columns):
         row_top = y_top - title_h - pad - i * row_h
         row_bot = row_top - row_h
@@ -260,6 +349,139 @@ def _draw_table_box(c, x, y_top, width, title, columns):
     c.line(x, y_top - title_h, x + width, y_top - title_h)
 
     return height
+
+
+def _box_center(x, y_top, width, n_rows):
+    height = _table_height(n_rows)
+    return x + width / 2, y_top - height / 2, width / 2, height / 2
+
+
+def _edge_point(cx, cy, hw, hh, tx, ty):
+    """Point on rectangle border from center toward target."""
+    dx, dy = tx - cx, ty - cy
+    if dx == 0 and dy == 0:
+        return cx, cy
+    sx = hw / abs(dx) if dx else 1e9
+    sy = hh / abs(dy) if dy else 1e9
+    s = min(sx, sy)
+    return cx + dx * s, cy + dy * s
+
+
+def _draw_arrow(c, x1, y1, x2, y2, label=""):
+    """Draw a relation line with arrow head and optional cardinality label."""
+    c.setStrokeColor(colors.HexColor("#2563eb"))
+    c.setFillColor(colors.HexColor("#2563eb"))
+    c.setLineWidth(1.1)
+    c.line(x1, y1, x2, y2)
+
+    # Arrow head at (x2, y2)
+    import math
+
+    angle = math.atan2(y2 - y1, x2 - x1)
+    size = 7
+    ax = x2 - size * math.cos(angle - 0.4)
+    ay = y2 - size * math.sin(angle - 0.4)
+    bx = x2 - size * math.cos(angle + 0.4)
+    by = y2 - size * math.sin(angle + 0.4)
+    path = c.beginPath()
+    path.moveTo(x2, y2)
+    path.lineTo(ax, ay)
+    path.lineTo(bx, by)
+    path.close()
+    c.drawPath(path, fill=1, stroke=0)
+
+    if label:
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        c.setFillColor(colors.HexColor("#1d4ed8"))
+        c.setFont("Helvetica-Bold", 7)
+        c.drawCentredString(mx, my + 3, label)
+
+
+def _draw_relations_on_page(c, boxes):
+    """Draw FK lines between table boxes present on the same page."""
+    # title -> (cx, cy, hw, hh)
+    positions = {}
+    for x, y_top, w, title, cols in boxes:
+        positions[title] = _box_center(x, y_top, w, len(cols))
+
+    for child, parent, card in FK_EDGES:
+        if child not in positions or parent not in positions:
+            continue
+        cx1, cy1, hw1, hh1 = positions[child]
+        cx2, cy2, hw2, hh2 = positions[parent]
+        p1 = _edge_point(cx1, cy1, hw1, hh1, cx2, cy2)
+        p2 = _edge_point(cx2, cy2, hw2, hh2, cx1, cy1)
+        _draw_arrow(c, p1[0], p1[1], p2[0], p2[1], card)
+
+
+def _draw_overview_page(c, page_w, page_h, margin):
+    """Star diagram: PROJECT in the center, related tables around with lines."""
+    c.setFillColor(MAROON)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(margin, page_h - 22, "2os Gestion — MLD : Schema relationnel (lignes FK)")
+    c.setFillColor(colors.HexColor("#64748b"))
+    c.setFont("Helvetica", 9)
+    c.drawString(
+        margin,
+        page_h - 36,
+        "PROJECT au centre — fleches = cles etrangeres (cardinalites)",
+    )
+
+    cx, cy = page_w / 2, page_h / 2 - 10
+    # Center PROJECT
+    pw, ph = 120, 36
+    c.setFillColor(MAROON)
+    c.roundRect(cx - pw / 2, cy - ph / 2, pw, ph, 6, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(cx, cy - 4, "PROJECT")
+
+    # Satellites around PROJECT (direct 1:1 / 1:N children)
+    satellites = [
+        ("INTERVENANT", "N:N"),
+        ("TERRAIN_MERE", "1:1"),
+        ("AUTORISATION", "1:1"),
+        ("PROGRAMME_TECHNIQUE", "1:1"),
+        ("PROJECT_DOCUMENT", "1:N"),
+        ("PROJECT_IMAGE", "1:N"),
+        ("STRUCTURE_FINANCEMENT", "1:1"),
+        ("PLANNING_EXECUTION", "1:1"),
+        ("ANNEXE_DOSSIER", "1:1"),
+        ("PLANNING_APPROVISIONNEMENT", "1:1"),
+        ("PLANNING_MATERIEL", "1:1"),
+        ("MATERIAUX_DOSSIER", "1:1"),
+        ("INVENTAIRE_DOSSIER", "1:1"),
+    ]
+    import math
+
+    n = len(satellites)
+    radius_x = page_w * 0.38
+    radius_y = page_h * 0.32
+    for i, (name, card) in enumerate(satellites):
+        angle = -math.pi / 2 + (2 * math.pi * i / n)
+        sx = cx + radius_x * math.cos(angle)
+        sy = cy + radius_y * math.sin(angle)
+        bw, bh = 118, 28
+        c.setStrokeColor(NAVY)
+        c.setLineWidth(1)
+        c.setFillColor(colors.white)
+        c.roundRect(sx - bw / 2, sy - bh / 2, bw, bh, 4, fill=1, stroke=1)
+        c.setFillColor(NAVY)
+        c.setFont("Helvetica-Bold", 7)
+        c.drawCentredString(sx, sy - 2, name[:22])
+
+        p1 = _edge_point(cx, cy, pw / 2, ph / 2, sx, sy)
+        p2 = _edge_point(sx, sy, bw / 2, bh / 2, cx, cy)
+        _draw_arrow(c, p2[0], p2[1], p1[0], p1[1], card)
+
+    # Second-level docs note
+    c.setFillColor(colors.HexColor("#64748b"))
+    c.setFont("Helvetica", 8)
+    c.drawString(
+        margin,
+        margin + 8,
+        "Documents (*_DOCUMENT) : 1:N vers leur dossier parent — voir pages tables + fleches.",
+    )
 
 
 class Command(BaseCommand):
@@ -318,11 +540,14 @@ class Command(BaseCommand):
         if current:
             pages_content.append(current)
 
-        # FK links page
         for path in targets:
             path.parent.mkdir(parents=True, exist_ok=True)
             c = canvas.Canvas(str(path), pagesize=page)
-            c.setTitle("MLD 2os Gestion — Tables")
+            c.setTitle("MLD 2os Gestion — Tables + relations")
+
+            # Page 0: relational overview with lines
+            _draw_overview_page(c, page_w, page_h, margin)
+            c.showPage()
 
             for page_idx, boxes in enumerate(pages_content):
                 # Header
@@ -331,16 +556,25 @@ class Command(BaseCommand):
                 c.drawString(margin, page_h - 22, "2os Gestion — MLD (Modele Logique de Donnees)")
                 c.setFillColor(colors.HexColor("#64748b"))
                 c.setFont("Helvetica", 9)
-                c.drawString(margin, page_h - 36, "Tables SQL / Django — PK = jaune  |  FK = bleu")
+                c.drawString(
+                    margin,
+                    page_h - 36,
+                    "Tables SQL / Django — PK = jaune | FK = bleu | fleches = relations",
+                )
                 c.setFont("Helvetica", 8)
-                c.drawRightString(page_w - margin, page_h - 22, f"Page {page_idx + 1}")
+                c.drawRightString(
+                    page_w - margin, page_h - 22, f"Page {page_idx + 2}"
+                )
 
                 for x, y_top, w, title, cols in boxes:
                     _draw_table_box(c, x, y_top, w, title, cols)
 
+                # Relational lines between tables on this page
+                _draw_relations_on_page(c, boxes)
+
                 c.showPage()
 
-            # Last page: foreign keys
+            # Last page: foreign keys list
             c.setFillColor(MAROON)
             c.setFont("Helvetica-Bold", 16)
             c.drawString(margin, page_h - 22, "2os Gestion — MLD : Cles etrangeres (FK)")
@@ -374,6 +608,12 @@ class Command(BaseCommand):
             c.rect(margin, y - 2, 14, 12, fill=1, stroke=1)
             c.setFillColor(colors.black)
             c.drawString(margin + 20, y, "FK — cle etrangere")
+            y -= 16
+            c.setStrokeColor(colors.HexColor("#2563eb"))
+            c.setLineWidth(1.2)
+            c.line(margin, y + 4, margin + 14, y + 4)
+            c.setFillColor(colors.black)
+            c.drawString(margin + 20, y, "Fleche — relation FK (cardinalite)")
 
             c.save()
             self.stdout.write(self.style.SUCCESS(f"MLD PDF : {path.resolve()}"))

@@ -95,7 +95,10 @@
 
     input.dataset.htmxAutocomplete = "1";
     input.setAttribute("autocomplete", "off");
-    input.setAttribute("name", input.getAttribute("name") || "q");
+    input.setAttribute("name", "q");
+    if (!input.getAttribute("placeholder") || /type to search/i.test(input.getAttribute("placeholder") || "")) {
+      input.setAttribute("placeholder", "Code ou titre (ex. A, A26, Domaine…)");
+    }
 
     var wrapper = input.closest(".relative") || input.parentElement;
     if (wrapper) {
@@ -104,10 +107,18 @@
     ensureResultsHost(wrapper);
 
     input.setAttribute("hx-get", ENDPOINT);
-    input.setAttribute("hx-trigger", "keyup changed delay:200ms, focus");
+    // input event keeps the full typed string (not only the first letter).
+    input.setAttribute("hx-trigger", "input changed delay:180ms, keyup changed delay:180ms, focus");
     input.setAttribute("hx-target", "#search-autocomplete-results");
     input.setAttribute("hx-swap", "outerHTML");
-    input.setAttribute("hx-include", "this");
+    input.removeAttribute("hx-include");
+
+    // Always send the complete current value as q.
+    input.addEventListener("htmx:configRequest", function (event) {
+      var detail = event.detail || {};
+      detail.parameters = detail.parameters || {};
+      detail.parameters.q = input.value || "";
+    });
 
     htmx.process(input);
 

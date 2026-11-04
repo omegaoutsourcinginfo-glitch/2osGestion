@@ -10,6 +10,12 @@ urlpatterns = [
         views.project_search_autocomplete,
         name="search_autocomplete",
     ),
+    # Live CPC IV preview used by financement_total.js (before save).
+    path(
+        "cpc/preview-total/",
+        views.cpc_preview_total,
+        name="cpc_preview_total",
+    ),
     path(
         "dashboard/",
         views.dashboard_home,

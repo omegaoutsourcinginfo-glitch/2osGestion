@@ -1,0 +1,24 @@
+{% spaceless %}
+    {% for part in parts %}
+        {% if forloop.first and forloop.revcounter0 >= 1 %}
+            {% with next=parts.1 %}
+                {% if part.title|lower == next.title|lower %}
+                    {# Skip redundant app crumb (e.g. Projets > Projets) #}
+                {% else %}
+                    <{% if part.link and part.link != "" %}a href="{{ part.link }}"{% else %}span{% endif %} class="align-middle inline-block leading-5 min-w-0 truncate tracking-tight">
+                    {{ part.title|capfirst }}
+                    </{% if part.link %}a{% else %}span{% endif %} >
+                    <span class="material-symbols-outlined inline-block align-middle leading-5 mx-2 text-base-400 dark:text-base-500">chevron_right</span>
+                {% endif %}
+            {% endwith %}
+        {% else %}
+            <{% if part.link and part.link != "" %}a href="{{ part.link }}"{% else %}span{% endif %} class="align-middle inline-block leading-5 min-w-0 truncate tracking-tight">
+            {{ part.title|capfirst }}
+            </{% if part.link %}a{% else %}span{% endif %} >
+
+            {% if not forloop.last %}
+                <span class="material-symbols-outlined inline-block align-middle leading-5 mx-2 text-base-400 dark:text-base-500">chevron_right</span>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endspaceless %}

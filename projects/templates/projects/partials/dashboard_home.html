@@ -1,4 +1,3 @@
-{% load humanize %}
 <div class="studio" id="dash-root">
   <div class="studio-body">
     <header class="studio-head">
@@ -27,11 +26,6 @@
         <strong>{{ dash_execution }}</strong>
         <small>{{ dash_pct_execution }}%</small>
       </a>
-      <a href="{% url 'admin:projects_structurefinancement_changelist' %}">
-        <em>Investissement</em>
-        <strong class="is-money">{{ dash_investissement|floatformat:0|intcomma }}</strong>
-        <small>DH</small>
-      </a>
     </section>
 
     <section class="studio-list" aria-label="Projets récents">
@@ -46,9 +40,11 @@
           id="dash-recent-q"
           type="search"
           name="q"
-          placeholder="Rechercher par code ou titre…"
+          autocomplete="off"
+          placeholder="1re lettre du code ou titre (ex. D, A26…)"
+          data-hx-get="{% url 'projects:dashboard_recent' %}"
           hx-get="{% url 'projects:dashboard_recent' %}"
-          hx-trigger="keyup changed delay:200ms, search"
+          hx-trigger="input changed delay:150ms, keyup changed delay:150ms, search"
           hx-target="#dash-recent-list"
           hx-swap="outerHTML"
         >
