@@ -445,11 +445,11 @@ class StructureFinancementInline(StackedInline):
 
     @admin.display(description="Total investissement (DH)")
     def total_live(self, obj):
-        # Span id is updated by financement_total.js after file selection.
+        # Class is updated by financement_total.js after CPC file selection.
         value = obj.investissement_total if obj and obj.pk else 0
         return format_html(
-            '<span id="id_investissement_total_live">{}</span>',
-            f"{value:.2f}".replace(".", ","),
+            '<span id="id_investissement_total_live" class="js-investissement-total-live font-semibold text-lg">{}</span>',
+            f"{value:,.2f}".replace(",", " ").replace(".", ","),
         )
 
 
@@ -564,7 +564,7 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         IntervenantInline,
         ProjectDocumentInline,
         ProjectImageInline,
-        # StructureFinancementInline,  # CPC tab hidden on project form
+        StructureFinancementInline,
     )
     actions_detail = ["voir_fiche", "modifier", "modifier_financement", "modifier_planning"]
     actions_list = ["voir_archives"]
@@ -574,6 +574,7 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
     class Media:
         js = (
             "projects/js/autre_precision.js",
+            "projects/js/financement_total.js",
             "projects/js/changelist_row_detail.js",
         )
         css = {"all": ("projects/css/changelist_row.css",)}
@@ -782,8 +783,23 @@ class StructureFinancementAdminForm(forms.ModelForm):
 
     class Meta:
         model = StructureFinancement
-        # CPC upload hidden from this form for now.
+        # CPC Excel upload hidden from this form (kept on the model).
         exclude = ("cpc_excel", "investissement_total")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # FP / CMT optional (default 0) — no red asterisk.
+        for name in ("fonds_propres_fp", "credit_moyen_terme_cmt"):
+            if name in self.fields:
+                self.fields[name].required = False
+
+    def clean_fonds_propres_fp(self):
+        value = self.cleaned_data.get("fonds_propres_fp")
+        return value if value is not None else 0
+
+    def clean_credit_moyen_terme_cmt(self):
+        value = self.cleaned_data.get("credit_moyen_terme_cmt")
+        return value if value is not None else 0
 
     def validate_unique(self):
         exclude = self._get_validation_exclusions()
@@ -794,32 +810,9 @@ class StructureFinancementAdminForm(forms.ModelForm):
         except ValidationError as error:
             self._update_errors(error)
 
-    def clean_cpc_excel(self):
-        """Parse a newly uploaded CPC .xlsx and stash IV as Total investissement."""
-        uploaded = self.cleaned_data.get("cpc_excel")
-        if not uploaded:
-            return uploaded
-        # Parse only when a new .xlsx is posted (not the already-saved FieldFile).
-        if not self.files.get("cpc_excel"):
-            return uploaded
-        from .cpc_import import CpcImportError, extract_total_investissement
-
-        try:
-            total = extract_total_investissement(uploaded)
-        except CpcImportError as exc:
-            raise ValidationError(str(exc)) from exc
-        except Exception as exc:  # noqa: BLE001 — surface Excel parse errors in the form
-            raise ValidationError(
-                f"Impossible de lire le fichier CPC Excel : {exc}"
-            ) from exc
-        self.cleaned_data["_cpc_investissement_total"] = total
-        if hasattr(uploaded, "seek"):
-            uploaded.seek(0)
-        return uploaded
-
     def save(self, commit=True):
-        # Prefer CPC IV when present; otherwise FP+CMT (create / upsert paths).
-        cpc_total = self.cleaned_data.get("_cpc_investissement_total")
+        # FP/CMT are independent from Total on this form.
+        # Keep stored Total (CPC IV) when updating an existing financement.
         if not self.instance.pk:
             existing = StructureFinancement.objects.filter(
                 project=self.cleaned_data["project"]
@@ -829,25 +822,22 @@ class StructureFinancementAdminForm(forms.ModelForm):
                 existing.credit_moyen_terme_cmt = self.cleaned_data[
                     "credit_moyen_terme_cmt"
                 ]
-                if self.cleaned_data.get("cpc_excel"):
-                    existing.cpc_excel = self.cleaned_data["cpc_excel"]
-                if cpc_total is not None:
-                    existing.apply_cpc_total(cpc_total)
-                elif not existing.investissement_total:
-                    existing.investissement_total = (
-                        existing.fonds_propres_fp + existing.credit_moyen_terme_cmt
-                    )
                 self.instance = existing
                 if commit:
-                    existing.save()
+                    # Avoid model.save() recomputing Total = FP+CMT when no CPC file.
+                    existing.save(
+                        update_fields=[
+                            "fonds_propres_fp",
+                            "credit_moyen_terme_cmt",
+                            "updated_at",
+                        ]
+                    )
                     self._save_m2m()
                 else:
                     self.save_m2m = self._save_m2m
                 return existing
 
-        if cpc_total is not None:
-            self.instance.apply_cpc_total(cpc_total)
-        elif not self.instance.pk and not self.instance.investissement_total:
+        if not self.instance.pk and not self.instance.investissement_total:
             self.instance.investissement_total = (
                 self.cleaned_data["fonds_propres_fp"]
                 + self.cleaned_data["credit_moyen_terme_cmt"]
@@ -902,26 +892,20 @@ class StructureFinancementAdmin(
                 "fields": ("project",),
                 "description": (
                     "Choisissez le projet (A2601, A2602, …). "
-                    "Un seul financement par projet : s'il existe déjà, l'enregistrement le met à jour."
+                    "Un seul financement par projet : s'il existe déjà, "
+                    "FP, CMT et Total se chargent automatiquement (Total issu du CPC si importé)."
                 ),
             },
         ),
-        # CPC section hidden from Planning financier form (kept in model for later use).
-        # (
-        #     "CPC — Total investissement",
-        #     {
-        #         "fields": ("cpc_excel", "total_live"),
-        #         "description": (
-        #             "Importez le fichier Excel CPC (.xlsx). Le montant de la ligne "
-        #             "« IV- Total Charge de Production (III1+…+III6)+II » "
-        #             "apparaît ci-dessous, puis cliquez Enregistrer pour le sauver."
-        #         ),
-        #     },
-        # ),
         (
             "Sources de financement",
             {
                 "fields": ("fonds_propres_fp", "credit_moyen_terme_cmt", "total_live"),
+                "description": (
+                    "FP et CMT sont indépendants du Total. "
+                    "Le Total investissement se charge depuis le financement enregistré "
+                    "(ligne IV du CPC Excel si disponible)."
+                ),
             },
         ),
         ("Historique", {"fields": ("created_at", "updated_at")}),
@@ -967,8 +951,8 @@ class StructureFinancementAdmin(
     def total_live(self, obj):
         value = obj.investissement_total if obj and obj.pk else 0
         return format_html(
-            '<span id="id_investissement_total_live">{}</span>',
-            f"{value:.2f}".replace(".", ","),
+            '<span id="id_investissement_total_live" class="js-investissement-total-live font-semibold text-lg">{}</span>',
+            f"{value:,.2f}".replace(",", " ").replace(".", ","),
         )
 
     def get_actions(self, request):

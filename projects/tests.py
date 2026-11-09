@@ -339,11 +339,11 @@ class ProjectAdminTests(TestCase):
         self.assertContains(self.client.get("/admin/projects/structurefinancement/"), project.code)
         self.assertContains(self.client.get("/admin/projects/structurefinancement/add/"), free.code)
 
-    def test_financement_no_longer_a_project_tab(self):
+    def test_cpc_tab_on_project_form(self):
         project = Project.objects.create(**FIELDS)
         response = self.client.get(f"/admin/projects/project/{project.pk}/change/")
-        self.assertNotContains(response, "structure_financement-TOTAL_FORMS")
-        self.assertNotContains(response, "CPC / Investissement")
+        self.assertContains(response, "structure_financement-TOTAL_FORMS")
+        self.assertContains(response, "CPC / Investissement")
 
     def test_structure_financement_total_is_computed(self):
         project = Project.objects.create(**FIELDS)
@@ -935,3 +935,32 @@ class CpcImportTests(TestCase):
         payload = response.json()
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["total"], "4550000.00")
+
+    def test_financement_by_project_endpoint(self):
+        project = Project.objects.create(**FIELDS)
+        empty = self.client.get(
+            "/projets/financement/by-project/",
+            {"project": project.pk},
+        )
+        self.assertEqual(empty.status_code, 200)
+        empty_payload = empty.json()
+        self.assertTrue(empty_payload["ok"])
+        self.assertFalse(empty_payload["exists"])
+        self.assertEqual(empty_payload["fonds_propres_fp"], "0.00")
+
+        StructureFinancement.objects.create(
+            project=project,
+            fonds_propres_fp=Decimal("1000.00"),
+            credit_moyen_terme_cmt=Decimal("2500.50"),
+        )
+        filled = self.client.get(
+            "/projets/financement/by-project/",
+            {"project": project.pk},
+        )
+        self.assertEqual(filled.status_code, 200)
+        payload = filled.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["exists"])
+        self.assertEqual(payload["fonds_propres_fp"], "1000.00")
+        self.assertEqual(payload["credit_moyen_terme_cmt"], "2500.50")
+        self.assertEqual(payload["investissement_total"], "3500.50")

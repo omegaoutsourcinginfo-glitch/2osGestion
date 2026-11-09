@@ -10,6 +10,12 @@ urlpatterns = [
         views.project_search_autocomplete,
         name="search_autocomplete",
     ),
+    # Autofill FP/CMT/Total when a Projet is chosen on Planning financier.
+    path(
+        "financement/by-project/",
+        views.financement_by_project,
+        name="financement_by_project",
+    ),
     # Live CPC IV preview used by financement_total.js (before save).
     path(
         "cpc/preview-total/",

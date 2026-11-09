@@ -160,6 +160,12 @@
       </div>
       {% endif %}
     </div>
+    {% if cpc_doc %}
+    <h3 class="pi-subhead">CPC Excel</h3>
+    <ul class="pi-docs">
+      <li>{% include "projects/partials/doc_file_row.html" with doc=cpc_doc %}</li>
+    </ul>
+    {% endif %}
     {% else %}
     <p class="muted">Non renseigné</p>
     {% endif %}

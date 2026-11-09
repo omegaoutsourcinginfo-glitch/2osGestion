@@ -14,7 +14,7 @@ from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonR
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import (
     AnnexeDocument,
@@ -137,6 +137,7 @@ class ProjectFiche(TypedDict):
     financement: StructureFinancement | None
     fp_pct: float
     cmt_pct: float
+    cpc_doc: FileInfo | None
     documents: list[FileInfo]
     programme_docs: list[FileInfo]
     finance_docs: list[FileInfo]
@@ -367,10 +368,22 @@ class ProjectViewSet:
     def retrieve(self, project: Project) -> ProjectFiche:
         financement = self._get_financement(project)
         fp_pct, cmt_pct = self.finance_percents(financement)
+        cpc_doc = None
+        if financement is not None and financement.cpc_excel:
+            cpc_doc = FileHelper.make_file_info(
+                label="CPC Excel",
+                file_field=financement.cpc_excel,
+                group="Financement",
+                uploaded_at=getattr(financement, "updated_at", None),
+            )
 
         all_docs = self.documents(project)
         programme_docs = [d for d in all_docs if d["group"] == "Programme technique"]
-        finance_docs = [d for d in all_docs if d["group"] == "Financement"]
+        finance_docs = [
+            d
+            for d in all_docs
+            if d["group"] == "Financement" and d.get("label") != "CPC Excel"
+        ]
         planning_docs = [d for d in all_docs if d["group"] == "Planning"]
 
         planning_phases = self.planning_phases(project)
@@ -396,6 +409,7 @@ class ProjectViewSet:
             "financement": financement,
             "fp_pct": fp_pct,
             "cmt_pct": cmt_pct,
+            "cpc_doc": cpc_doc,
             "documents": all_docs,
             "programme_docs": programme_docs,
             "finance_docs": finance_docs,
@@ -446,6 +460,14 @@ class ProjectViewSet:
 
         financement = self._get_financement(project)
         if financement is not None:
+            cpc_info = FileHelper.make_file_info(
+                label="CPC Excel",
+                file_field=financement.cpc_excel or None,
+                group="Financement",
+                uploaded_at=getattr(financement, "updated_at", None),
+            )
+            if cpc_info is not None:
+                documents.append(cpc_info)
             documents += FileHelper.list_uploaded_files(
                 document_list=_financement_documents(financement),
                 group="Financement",
@@ -858,6 +880,57 @@ def dashboard_recent(request: HttpRequest) -> HttpResponse:
         request,
         "projects/partials/dashboard_recent_list.html",
         {"dash_recent": recent, "q": q},
+    )
+
+
+@staff_member_required
+@require_GET
+def financement_by_project(request: HttpRequest) -> JsonResponse:
+    """
+    AJAX: return existing FP / CMT / Total for a project.
+
+    Used by financement_total.js when the user picks a Projet
+    on Planning financier /add/.
+    """
+    project_id = request.GET.get("project")
+    if not project_id:
+        return JsonResponse({"ok": False, "error": "Projet manquant."}, status=400)
+    if not Project.objects.filter(pk=project_id).exists():
+        return JsonResponse({"ok": False, "error": "Projet introuvable."}, status=404)
+
+    financement = (
+        StructureFinancement.objects.filter(project_id=project_id)
+        .only(
+            "fonds_propres_fp",
+            "credit_moyen_terme_cmt",
+            "investissement_total",
+        )
+        .first()
+    )
+    if financement is None:
+        return JsonResponse(
+            {
+                "ok": True,
+                "exists": False,
+                "fonds_propres_fp": "0.00",
+                "credit_moyen_terme_cmt": "0.00",
+                "investissement_total": "0.00",
+                "investissement_total_display": "0,00",
+            }
+        )
+
+    total = financement.investissement_total
+    return JsonResponse(
+        {
+            "ok": True,
+            "exists": True,
+            "fonds_propres_fp": f"{financement.fonds_propres_fp:.2f}",
+            "credit_moyen_terme_cmt": f"{financement.credit_moyen_terme_cmt:.2f}",
+            "investissement_total": f"{total:.2f}",
+            "investissement_total_display": (
+                f"{total:,.2f}".replace(",", " ").replace(".", ",")
+            ),
+        }
     )
 
 
