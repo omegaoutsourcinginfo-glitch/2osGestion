@@ -1,11 +1,12 @@
 /**
- * Planning financier:
+ * Planning financier + CPC tab:
  * - choosing a Projet autofills FP, CMT and Total (if a financement exists)
  * - FP / CMT are independent: editing them does NOT change Total
- * - Total comes from the saved investissement_total (ex: CPC ligne IV)
+ * - Total comes from CPC ligne IV (live preview) or saved investissement_total
  */
 (function () {
   var BY_PROJECT_URL = "/projets/financement/by-project/";
+  var CPC_PREVIEW_URL = "/projets/cpc/preview-total/";
   var lastProjectId = null;
 
   function jq() {
@@ -13,6 +14,25 @@
       return window.django.jQuery;
     }
     return window.jQuery || window.$ || null;
+  }
+
+  function getCookie(name) {
+    var cookies = document.cookie ? document.cookie.split(";") : [];
+    for (var i = 0; i < cookies.length; i += 1) {
+      var cookie = cookies[i].trim();
+      if (cookie.indexOf(name + "=") === 0) {
+        return decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    }
+    return "";
+  }
+
+  function csrfToken() {
+    var input = document.querySelector("input[name=csrfmiddlewaretoken]");
+    if (input && input.value) {
+      return input.value;
+    }
+    return getCookie("csrftoken");
   }
 
   function findTotalTargets() {
@@ -94,6 +114,61 @@
     loadFinancementForProject(projectEl.value || "");
   }
 
+  function isCpcFileInput(el) {
+    if (!el || el.type !== "file") {
+      return false;
+    }
+    var name = el.name || "";
+    var id = el.id || "";
+    return (
+      name === "cpc_excel" ||
+      name.indexOf("-cpc_excel") !== -1 ||
+      id === "id_cpc_excel" ||
+      id.indexOf("-cpc_excel") !== -1
+    );
+  }
+
+  function previewCpcTotal(fileInput) {
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      setTotals("0,00");
+      return;
+    }
+    var file = fileInput.files[0];
+    var formData = new FormData();
+    formData.append("cpc_excel", file, file.name);
+
+    fetch(CPC_PREVIEW_URL, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrfToken(),
+      },
+      body: formData,
+    })
+      .then(function (response) {
+        return response.json().then(function (payload) {
+          return { ok: response.ok, payload: payload };
+        });
+      })
+      .then(function (result) {
+        if (result.ok && result.payload && result.payload.ok) {
+          setTotals(result.payload.total_display || result.payload.total || "0,00");
+          return;
+        }
+        var err =
+          (result.payload && result.payload.error) ||
+          "Impossible de lire le fichier CPC.";
+        setTotals("0,00");
+        window.console && console.warn("[CPC preview]", err);
+      })
+      .catch(function (err) {
+        setTotals("0,00");
+        window.console && console.warn("[CPC preview]", err);
+      });
+  }
+
   function bindSelect2Project(project) {
     var $ = jq();
     if (!$ || !project) {
@@ -170,6 +245,9 @@
       var target = event.target;
       if (target && target.id === "id_project") {
         onProjectSelected(target);
+      }
+      if (isCpcFileInput(target)) {
+        previewCpcTotal(target);
       }
     },
     true

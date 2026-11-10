@@ -1,6 +1,7 @@
 import tempfile
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -83,6 +84,9 @@ EMPTY_INLINES = {
     "documents-INITIAL_FORMS": "0",
     "images-TOTAL_FORMS": "0",
     "images-INITIAL_FORMS": "0",
+    # CPC / Investissement tab (StructureFinancementInline)
+    "structure_financement-TOTAL_FORMS": "1",
+    "structure_financement-INITIAL_FORMS": "0",
 }
 
 EMPTY_FINANCE_DOCS = {
@@ -119,7 +123,7 @@ class ProjectCodeTests(TestCase):
         )
         project.refresh_from_db()
         self.assertEqual(project.nombre_lots, 120)
-        self.assertEqual(autorisation.get_type_permis_display(), "Permis d'amÃ©nager")
+        self.assertEqual(autorisation.get_type_permis_display(), "Permis d'aménager")
 
     def test_update_keeps_code(self):
         project = Project.objects.create(**FIELDS)
@@ -156,7 +160,8 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, ">Tous</span>")
         self.assertNotContains(response, "addlink")
-        self.assertContains(response, 'title="Go back"')
+        self.assertContains(response, 'title="Retour à la liste"')
+        self.assertContains(response, ">Retour</span>")
 
     def test_changeform_hides_extra_save_buttons(self):
         response = self.client.get("/admin/projects/project/add/")
@@ -185,8 +190,8 @@ class ProjectAdminTests(TestCase):
         project = Project.objects.get()
         self.assertEqual(str(project.terrain_mere), f"TF 12345/R ({project.code})")
         self.assertEqual(project.terrain_mere.superficie_unite, "M2")
-        self.assertEqual(project.terrain_mere.superficie_affichee, "15000.50 mÂ²")
-        self.assertEqual(str(project.autorisation), f"Autorisation de lotir nÂ° 123/2026 ({project.code})")
+        self.assertEqual(project.terrain_mere.superficie_affichee, "15000.50 m²")
+        self.assertEqual(str(project.autorisation), f"Autorisation de lotir n° 123/2026 ({project.code})")
 
     def test_sidebar_only_lists_projects(self):
         response = self.client.get("/admin/")
@@ -262,6 +267,8 @@ class ProjectAdminTests(TestCase):
             "documents-INITIAL_FORMS": "0",
             "images-TOTAL_FORMS": "0",
             "images-INITIAL_FORMS": "0",
+            "structure_financement-TOTAL_FORMS": "1",
+            "structure_financement-INITIAL_FORMS": "0",
         }
         response = self.client.post(f"/admin/projects/project/{project.pk}/change/", data)
         self.assertEqual(response.status_code, 302)
@@ -621,9 +628,9 @@ class ProjectAdminTests(TestCase):
         self.assertContains(detail, "pi-nav")
         self.assertContains(detail, "pi-sec")
         self.assertContains(detail, "pi-kpis")
-        self.assertContains(detail, "GÃ©nÃ©ral")
+        self.assertContains(detail, "Général")
         self.assertNotContains(detail, "studio-metrics")
-        self.assertNotContains(detail, "Projets rÃ©cents")
+        self.assertNotContains(detail, "Projets récents")
 
     def test_project_detail_shows_only_project_info(self):
         project = Project.objects.create(**FIELDS)
@@ -664,7 +671,7 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(home.status_code, 200)
         self.assertContains(home, 'id="dash-root"')
         self.assertContains(home, "Tableau de bord")
-        self.assertContains(home, "Projets rÃ©cents")
+        self.assertContains(home, "Projets récents")
 
         technique = self.client.get(f"/projets/{project.code}/onglet/technique/")
         self.assertEqual(technique.status_code, 200)
@@ -690,13 +697,13 @@ class ProjectAdminTests(TestCase):
 
         planning = self.client.get(f"/projets/{project.code}/onglet/planning/")
         self.assertEqual(planning.status_code, 200)
-        self.assertContains(planning, "Planning d'exÃ©cution")
+        self.assertContains(planning, "Planning d'exécution")
         self.assertContains(planning, "Non fourni")
         self.assertContains(planning, "Joindre un fichier")
         self.assertContains(planning, 'id="planning"')
-        self.assertContains(planning, "Ãtudes techniques, gÃ©otechniques &amp; Permis")
-        self.assertContains(planning, "Travaux de Viabilisation (VRD &amp; RÃ©seaux)")
-        self.assertContains(planning, "RÃ©ception provisoire &amp; Titres fonciers individuels")
+        self.assertContains(planning, "Études techniques, géotechniques &amp; Permis")
+        self.assertContains(planning, "Travaux de Viabilisation (VRD &amp; Réseaux)")
+        self.assertContains(planning, "Réception provisoire &amp; Titres fonciers individuels")
 
         photos = self.client.get(f"/projets/{project.code}/onglet/photos/")
         self.assertEqual(photos.status_code, 200)
@@ -705,21 +712,21 @@ class ProjectAdminTests(TestCase):
         annexes = self.client.get(f"/projets/{project.code}/onglet/annexes/")
         self.assertEqual(annexes.status_code, 200)
         self.assertContains(annexes, 'id="annexes"')
-        self.assertContains(annexes, "ÃlÃ©ments complÃ©mentaires")
-        self.assertContains(annexes, "Certificat de propriÃ©tÃ©")
+        self.assertContains(annexes, "Éléments complémentaires")
+        self.assertContains(annexes, "Certificat de propriété")
         self.assertContains(annexes, "documents fournis")
         self.assertContains(annexes, "Ajouter un document")
         self.assertContains(annexes, "En attente")
-        self.assertContains(annexes, "MaÃ®tre d")
+        self.assertContains(annexes, "Maître d")
         self.assertContains(annexes, "Administration / Commune")
         self.assertContains(detail, "Localisation")
         self.assertContains(detail, "Technique")
         self.assertContains(financement_tab, "open_in_new")
         self.assertContains(financement_tab, "pi-icon-btn")
         self.assertContains(photos, "Aucune photo")
-        self.assertNotContains(detail, "Date de dÃ©but")
+        self.assertNotContains(detail, "Date de début")
         self.assertNotContains(detail, "studio-metrics")
-        self.assertNotContains(detail, "Certificat de propriÃ©tÃ© rÃ©cent (ANCFCC) du Titre Foncier MÃ¨re.")
+        self.assertNotContains(detail, "Certificat de propriété rÃ©cent (ANCFCC) du Titre Foncier MÃ¨re.")
 
         annexes_redirect = self.client.get("/admin/annexes/")
         self.assertEqual(annexes_redirect.status_code, 302)
@@ -732,8 +739,8 @@ class ProjectAdminTests(TestCase):
         add_page = self.client.get("/admin/projects/annexedossier/add/")
         self.assertEqual(add_page.status_code, 200)
         self.assertContains(add_page, "documents-TOTAL_FORMS")
-        self.assertContains(add_page, "PiÃ¨ces jointes")
-        self.assertContains(add_page, "Certificat de propriÃ©tÃ©")
+        self.assertContains(add_page, "Pièces jointes")
+        self.assertContains(add_page, "Certificat de propriété")
 
     def test_planning_execution_via_sidebar_admin(self):
         project = Project.objects.create(**FIELDS)
@@ -741,10 +748,10 @@ class ProjectAdminTests(TestCase):
         self.assertEqual(add_page.status_code, 200)
         self.assertContains(add_page, "documents-TOTAL_FORMS")
         self.assertContains(add_page, "PDFs par phase")
-        self.assertContains(add_page, "Ãtudes techniques")
+        self.assertContains(add_page, "Études techniques")
         self.assertContains(add_page, "Viabilisation")
         self.assertNotContains(add_page, "date_debut")
-        self.assertNotContains(add_page, "Date de dÃ©but")
+        self.assertNotContains(add_page, "Date de début")
 
         data = {
             "project": project.pk,
@@ -820,12 +827,12 @@ class ProjectAdminTests(TestCase):
             detail = self.client.get(f"/admin/?projet={project.code}")
             self.assertEqual(detail.status_code, 200)
             self.assertContains(detail, 'hx-get="/projets/')
-            self.assertNotContains(detail, "Date de dÃ©but")
+            self.assertNotContains(detail, "Date de début")
 
             planning = self.client.get(f"/projets/{project.code}/onglet/planning/")
             self.assertEqual(planning.status_code, 200)
-            self.assertContains(planning, "Ãtudes techniques, gÃ©otechniques &amp; Permis")
-            self.assertContains(planning, "Travaux de Viabilisation (VRD &amp; RÃ©seaux)")
+            self.assertContains(planning, "Études techniques, géotechniques &amp; Permis")
+            self.assertContains(planning, "Travaux de Viabilisation (VRD &amp; Réseaux)")
             self.assertContains(planning, "etudes")
             self.assertContains(planning, "viab-a")
             self.assertContains(planning, "viab-b")
@@ -964,3 +971,34 @@ class CpcImportTests(TestCase):
         self.assertEqual(payload["fonds_propres_fp"], "1000.00")
         self.assertEqual(payload["credit_moyen_terme_cmt"], "2500.50")
         self.assertEqual(payload["investissement_total"], "3500.50")
+
+
+class ProtectedMediaTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser("mediauser", "m@test.com", "pass")
+        self.media = tempfile.TemporaryDirectory()
+        self.addCleanup(self.media.cleanup)
+        self.override = self.settings(MEDIA_ROOT=self.media.name)
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+        self.rel = Path("annexes/2026/01/secret.pdf")
+        full = Path(self.media.name) / self.rel
+        full.parent.mkdir(parents=True, exist_ok=True)
+        full.write_bytes(b"%PDF-1.4 secret-doc")
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.get(f"/media/{self.rel.as_posix()}")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response["Location"])
+
+    def test_staff_can_download(self):
+        self.client.force_login(self.user)
+        response = self.client.get(f"/media/{self.rel.as_posix()}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4 secret-doc")
+
+    def test_path_traversal_rejected(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/media/../settings.py")
+        self.assertEqual(response.status_code, 404)

@@ -943,6 +943,8 @@ def cpc_preview_total(request: HttpRequest) -> JsonResponse:
     Called by financement_total.js when the user selects a CPC file
     (project tab or Planning financier form), before Enregistrer.
     """
+    from django.conf import settings
+
     uploaded = request.FILES.get("cpc_excel")
     if uploaded is None:
         return JsonResponse({"ok": False, "error": "Aucun fichier CPC reçu."}, status=400)
@@ -950,6 +952,21 @@ def cpc_preview_total(request: HttpRequest) -> JsonResponse:
     if not name.endswith(".xlsx"):
         return JsonResponse(
             {"ok": False, "error": "Format invalide — utilisez un fichier .xlsx."},
+            status=400,
+        )
+    max_size = getattr(settings, "MAX_UPLOAD_SIZE", 25 * 1024 * 1024)
+    if uploaded.size and uploaded.size > max_size:
+        return JsonResponse(
+            {"ok": False, "error": "Fichier CPC trop volumineux."},
+            status=400,
+        )
+    # .xlsx is a ZIP container; reject non-ZIP payloads despite .xlsx name.
+    header = uploaded.read(4)
+    if hasattr(uploaded, "seek"):
+        uploaded.seek(0)
+    if header != b"PK\x03\x04":
+        return JsonResponse(
+            {"ok": False, "error": "Format invalide — fichier .xlsx attendu."},
             status=400,
         )
     from .cpc_import import CpcImportError, extract_total_investissement

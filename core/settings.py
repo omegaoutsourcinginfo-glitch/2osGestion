@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,14 +23,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-^eoddq*_&cmm-f$y%38$2oa=4$@0$elb1)uvock+=!o62%d6i+",
-)
-
-# SECURITY WARNING: don't run with debug turned on in production!
+# DEBUG defaults to on for local DX; production MUST set DJANGO_DEBUG=0.
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+
+# Never ship with a hardcoded production secret. Dev-only fallback when DEBUG.
+_secret = os.environ.get("DJANGO_SECRET_KEY", "").strip()
+if _secret:
+    SECRET_KEY = _secret
+elif DEBUG:
+    SECRET_KEY = "django-insecure-dev-only-do-not-use-in-production"
+else:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=0."
+    )
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -136,6 +142,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Admin theme (Unfold) — slate professional
 UNFOLD = {
@@ -255,13 +262,41 @@ UNFOLD = {
     },
 }
 
-# Uploaded files (PDF documents)
+# Uploaded files (PDF documents) — served only via staff-authenticated view.
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Reject oversized uploads early (25 MiB request / in-memory file).
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(
+    os.environ.get("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 25 * 1024 * 1024)
+)
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(
+    os.environ.get("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 25 * 1024 * 1024)
+)
+# Soft limit used by CPC preview / helpers (bytes).
+MAX_UPLOAD_SIZE = int(os.environ.get("DJANGO_MAX_UPLOAD_SIZE", 25 * 1024 * 1024))
 
 # After login / logout: stay in admin (Django default login redirect is /accounts/profile/)
 LOGIN_REDIRECT_URL = "/admin/"
 LOGOUT_REDIRECT_URL = "/admin/login/"
+LOGIN_URL = "/admin/login/"
+
+# Production hardening when DEBUG is off.
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    X_FRAME_OPTIONS = "DENY"
+    # Set DJANGO_SECURE_SSL_REDIRECT=1 behind HTTPS reverse proxy.
+    SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "0") == "1"
+    if os.environ.get("DJANGO_SECURE_HSTS_SECONDS"):
+        SECURE_HSTS_SECONDS = int(os.environ["DJANGO_SECURE_HSTS_SECONDS"])
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
+    # Trust X-Forwarded-Proto from reverse proxy when enabled.
+    if os.environ.get("DJANGO_BEHIND_PROXY", "0") == "1":
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Email

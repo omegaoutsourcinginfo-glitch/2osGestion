@@ -1,1 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Django / local data (never commit secrets or live DB/uploads)
+db.sqlite3
+*.sqlite3
+data/
 media/
+staticfiles/
+*.log
+local_settings.py
+
+# Node / frontend build
+node_modules/
+frontend/dist/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+.DS_Store

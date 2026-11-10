@@ -5,6 +5,8 @@ services:
       - "8000:8000"
     environment:
       DJANGO_DEBUG: "1"
+      # Dev-only key for Docker; override in production compose/secrets.
+      DJANGO_SECRET_KEY: "django-insecure-docker-dev-only-change-me"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,web,testserver"
       DJANGO_SQLITE_PATH: /app/data/db.sqlite3
     volumes:
