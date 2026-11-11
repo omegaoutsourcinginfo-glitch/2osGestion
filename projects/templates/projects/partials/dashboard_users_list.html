@@ -1,0 +1,19 @@
+<ol id="dash-users-list" class="studio-users">
+  {% for u in dash_users %}
+  <li>
+    <a href="{{ u.url }}">
+      <span class="studio-user-status {% if u.is_online %}is-online{% endif %}" title="{% if u.is_online %}En ligne{% else %}Hors ligne{% endif %}"></span>
+      <span class="studio-user-main">
+        <strong>{{ u.username }}</strong>
+        {% if u.full_name %}<em>{{ u.full_name }}</em>{% endif %}
+      </span>
+      <span class="studio-user-meta">
+        {% if u.is_superuser %}<small class="studio-user-role">Admin</small>{% endif %}
+        <small>{{ u.last_seen_at }}</small>
+      </span>
+    </a>
+  </li>
+  {% empty %}
+  <li class="studio-users-empty">Aucun utilisateur staff actif.</li>
+  {% endfor %}
+</ol>

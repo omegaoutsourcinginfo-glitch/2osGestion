@@ -1,0 +1,32 @@
+# Production-oriented override:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Set secrets via environment or a local .env (never commit real secrets).
+
+services:
+  web:
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:?set DJANGO_ALLOWED_HOSTS}"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-}"
+      DJANGO_SECURE_SSL_REDIRECT: "${DJANGO_SECURE_SSL_REDIRECT:-0}"
+      DJANGO_SECURE_HSTS_SECONDS: "${DJANGO_SECURE_HSTS_SECONDS:-}"
+      DJANGO_BEHIND_PROXY: "${DJANGO_BEHIND_PROXY:-0}"
+      # Optional Postgres:
+      # DATABASE_URL: "${DATABASE_URL}"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+      # No live source mounts in production
+    command:
+      [
+        "gunicorn",
+        "core.wsgi:application",
+        "--bind",
+        "0.0.0.0:8000",
+        "--workers",
+        "3",
+        "--timeout",
+        "60",
+      ]

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
@@ -48,6 +49,13 @@ ALLOWED_HOSTS = [
 if DEBUG and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("testserver")
 
+# Comma-separated origins, e.g. https://app.example.com
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 
 # Application definition
 
@@ -60,15 +68,18 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'accounts.apps.AccountsConfig',
     'projects.apps.ProjectsConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.UserPresenceMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -95,16 +106,52 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+#
+# Default: SQLite. Production: set DATABASE_URL=postgres://user:pass@host:5432/db
+# or DJANGO_DB_ENGINE=postgres + POSTGRES_* variables.
 
-_sqlite_path = os.environ.get("DJANGO_SQLITE_PATH", str(BASE_DIR / "db.sqlite3"))
-Path(_sqlite_path).parent.mkdir(parents=True, exist_ok=True)
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": _sqlite_path,
+def _database_from_url(url: str) -> dict:
+    parsed = urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in {"postgres", "postgresql", "pgsql"}:
+        raise ImproperlyConfigured(
+            f"Unsupported DATABASE_URL scheme: {scheme or '(empty)'}"
+        )
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": (parsed.path or "/").lstrip("/") or "postgres",
+        "USER": parsed.username or "",
+        "PASSWORD": parsed.password or "",
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or 5432),
     }
-}
+
+
+_database_url = os.environ.get("DATABASE_URL", "").strip()
+_db_engine = os.environ.get("DJANGO_DB_ENGINE", "").strip().lower()
+
+if _database_url:
+    DATABASES = {"default": _database_from_url(_database_url)}
+elif _db_engine in {"postgres", "postgresql", "pgsql"}:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "2osgestion"),
+            "USER": os.environ.get("POSTGRES_USER", "2osgestion"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
+    }
+else:
+    _sqlite_path = os.environ.get("DJANGO_SQLITE_PATH", str(BASE_DIR / "db.sqlite3"))
+    Path(_sqlite_path).parent.mkdir(parents=True, exist_ok=True)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": _sqlite_path,
+        }
+    }
 
 
 # Password validation
@@ -143,6 +190,18 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 # Admin theme (Unfold) — slate professional
 UNFOLD = {
@@ -187,6 +246,37 @@ UNFOLD = {
     },
     "SIDEBAR": {
         "navigation": [
+            {
+                "title": "Comptes",
+                "items": [
+                    {
+                        "title": "Utilisateurs",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_user_changelist"),
+                        "permission": lambda request: request.user.has_perm(
+                            "auth.view_user"
+                        ),
+                    },
+                    {
+                        "title": "Groupes",
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "permission": lambda request: request.user.has_perm(
+                            "auth.view_group"
+                        ),
+                    },
+                    {
+                        "title": "Présences",
+                        "icon": "sensors",
+                        "link": reverse_lazy(
+                            "admin:accounts_userpresence_changelist"
+                        ),
+                        "permission": lambda request: request.user.has_perm(
+                            "accounts.view_userpresence"
+                        ),
+                    },
+                ],
+            },
             {
                 "title": "Projets",
                 "items": [

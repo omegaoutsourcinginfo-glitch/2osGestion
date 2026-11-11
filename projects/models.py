@@ -1,9 +1,15 @@
-﻿from django.core.validators import FileExtensionValidator
+﻿from django.core.validators import MinValueValidator
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from projects.validators import file_validators
+
 
 DOCUMENT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "dwg"]
+IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"]
+PDF_EXTENSIONS = ["pdf"]
+XLSX_EXTENSIONS = ["xlsx"]
+DOSSIER_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "xlsx", "xls"]
 
 
 class TimeStampedModel(models.Model):
@@ -162,6 +168,11 @@ class Project(TimeStampedModel):
     class Meta:
         verbose_name = "Projet"
         verbose_name_plural = "Projets"
+        indexes = [
+            models.Index(fields=["statut_actuel"]),
+            models.Index(fields=["is_archived"]),
+            models.Index(fields=["commune"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.code} - {self.titre}"
@@ -184,6 +195,10 @@ class Project(TimeStampedModel):
         number = int(last.code[3:]) + 1
 
         if number > 99:
+            if letter >= "Z":
+                raise IntegrityError(
+                    "Capacité des codes projet atteinte pour cette année (Z99)."
+                )
             letter = chr(ord(letter) + 1)
             number = 1
 
@@ -219,6 +234,7 @@ class TerrainMere(TimeStampedModel):
     superficie_totale = models.DecimalField(
         max_digits=12,
         decimal_places=2,
+        validators=[MinValueValidator(0)],
         verbose_name="Superficie totale",
     )
     superficie_unite = models.CharField(
@@ -315,7 +331,7 @@ class ProjectDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="programme_technique/%Y/%m/",
-        validators=[FileExtensionValidator(DOCUMENT_EXTENSIONS)],
+        validators=file_validators(DOCUMENT_EXTENSIONS),
         verbose_name="Fichier",
         help_text="PDF, image (JPG, PNG), Word (DOC, DOCX) ou AutoCAD (DWG)",
     )
@@ -339,7 +355,7 @@ class ProjectImage(TimeStampedModel):
     )
     image = models.ImageField(
         upload_to="projets/images/%Y/%m/",
-        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp", "gif"])],
+        validators=file_validators(IMAGE_EXTENSIONS),
         verbose_name="Image",
         help_text="JPG, PNG, WEBP ou GIF — plusieurs images possibles",
     )
@@ -367,7 +383,7 @@ class StructureFinancement(TimeStampedModel):
     cpc_excel = models.FileField(
         upload_to="cpc/%Y/%m/",
         blank=True,
-        validators=[FileExtensionValidator(["xlsx"])],
+        validators=file_validators(XLSX_EXTENSIONS),
         verbose_name="CPC Excel",
         help_text=(
             "Importer le Compte des Produits et Charges (.xlsx). "
@@ -378,12 +394,14 @@ class StructureFinancement(TimeStampedModel):
         max_digits=16,
         decimal_places=2,
         default=0,
+        validators=[MinValueValidator(0)],
         verbose_name="FP : Fonds propres (DH)",
     )
     credit_moyen_terme_cmt = models.DecimalField(
         max_digits=16,
         decimal_places=2,
         default=0,
+        validators=[MinValueValidator(0)],
         verbose_name="CMT : Crédit moyen terme (DH)",
     )
     # Filled from CPC IV when cpc_excel is set; otherwise FP + CMT on save.
@@ -392,6 +410,7 @@ class StructureFinancement(TimeStampedModel):
         decimal_places=2,
         default=0,
         editable=False,
+        validators=[MinValueValidator(0)],
         verbose_name="Total investissement (DH)",
         help_text="Issu de la ligne IV du CPC Excel (II + III1…III6).",
     )
@@ -426,7 +445,7 @@ class FinancementDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="financement/%Y/%m/",
-        validators=[FileExtensionValidator(["pdf"])],
+        validators=file_validators(PDF_EXTENSIONS),
         verbose_name="Document financement (PDF)",
         help_text="PDF uniquement — plusieurs fichiers possibles",
     )
@@ -481,7 +500,7 @@ class PlanningDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="planning_execution/%Y/%m/",
-        validators=[FileExtensionValidator(["pdf"])],
+        validators=file_validators(PDF_EXTENSIONS),
         verbose_name="PDF",
         help_text="PDF uniquement — plusieurs fichiers possibles par phase",
     )
@@ -530,7 +549,7 @@ class AnnexeDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="annexes/%Y/%m/",
-        validators=[FileExtensionValidator(["pdf"])],
+        validators=file_validators(PDF_EXTENSIONS),
         verbose_name="PDF",
         help_text="PDF uniquement",
     )
@@ -542,9 +561,6 @@ class AnnexeDocument(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} — {self.dossier.project.code}"
-
-
-DOSSIER_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "xlsx", "xls"]
 
 
 # model of a planning d'approvisionnement
@@ -574,7 +590,7 @@ class ApprovisionnementDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="approvisionnement/%Y/%m/",
-        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        validators=file_validators(DOSSIER_FILE_EXTENSIONS),
         verbose_name="Fichier",
         help_text="PDF, image, Word ou Excel",
     )
@@ -615,7 +631,7 @@ class MaterielDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="planning_materiel/%Y/%m/",
-        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        validators=file_validators(DOSSIER_FILE_EXTENSIONS),
         verbose_name="Fichier",
         help_text="PDF, image, Word ou Excel",
     )
@@ -656,7 +672,7 @@ class MateriauxDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="materiaux/%Y/%m/",
-        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        validators=file_validators(DOSSIER_FILE_EXTENSIONS),
         verbose_name="Fichier",
         help_text="PDF, image, Word ou Excel",
     )
@@ -697,7 +713,7 @@ class InventaireDocument(TimeStampedModel):
     )
     fichier = models.FileField(
         upload_to="inventaire/%Y/%m/",
-        validators=[FileExtensionValidator(DOSSIER_FILE_EXTENSIONS)],
+        validators=file_validators(DOSSIER_FILE_EXTENSIONS),
         verbose_name="Fichier",
         help_text="PDF, image, Word ou Excel",
     )

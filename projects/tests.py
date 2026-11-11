@@ -25,6 +25,32 @@ from .models import (
 )
 
 
+def sample_upload_bytes(filename: str) -> bytes:
+    """Minimal magic-byte payloads accepted by FileSignatureValidator."""
+    ext = filename.rsplit(".", 1)[-1].lower()
+    if ext == "pdf":
+        return b"%PDF-1.4\n"
+    if ext in {"jpg", "jpeg"}:
+        return b"\xff\xd8\xff\xe0\x00\x10JFIF"
+    if ext == "png":
+        return b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+    if ext == "gif":
+        return b"GIF89a"
+    if ext == "webp":
+        return b"RIFF\x00\x00\x00\x00WEBP"
+    if ext in {"docx", "xlsx"}:
+        return b"PK\x03\x04" + b"\x00" * 8
+    if ext in {"doc", "xls"}:
+        return b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    if ext == "dwg":
+        return b"AC1027"
+    return b"content"
+
+
+def uploaded(filename: str, content: bytes | None = None) -> SimpleUploadedFile:
+    return SimpleUploadedFile(filename, content if content is not None else sample_upload_bytes(filename))
+
+
 def make_cpc_xlsx(total_components=None) -> bytes:
     """Minimal CPC workbook with IV = sum of II + III totals."""
     parts = total_components or {
@@ -297,7 +323,7 @@ class ProjectAdminTests(TestCase):
                     "documents-TOTAL_FORMS": "1",
                     "documents-INITIAL_FORMS": "0",
                     "documents-0-kind": ProjectDocument.Kind.VOIRIE_VRD,
-                    "documents-0-fichier": SimpleUploadedFile(filename, b"content"),
+                    "documents-0-fichier": uploaded(filename),
                 }
                 with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
                     response = self.client.post("/admin/projects/project/add/", data)
@@ -316,11 +342,11 @@ class ProjectAdminTests(TestCase):
             "documents-TOTAL_FORMS": "3",
             "documents-INITIAL_FORMS": "0",
             "documents-0-kind": ProjectDocument.Kind.TELECOM_FIBRE,
-            "documents-0-fichier": SimpleUploadedFile("fibre.pdf", b"content"),
+            "documents-0-fichier": uploaded("fibre.pdf"),
             "documents-1-kind": ProjectDocument.Kind.AMENAGEMENT_PAYSAGER,
-            "documents-1-fichier": SimpleUploadedFile("jardin.png", b"content"),
+            "documents-1-fichier": uploaded("jardin.png"),
             "documents-2-kind": ProjectDocument.Kind.TELECOM_FIBRE,
-            "documents-2-fichier": SimpleUploadedFile("fibre-2.pdf", b"content"),
+            "documents-2-fichier": uploaded("fibre-2.pdf"),
         }
         with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
             response = self.client.post("/admin/projects/project/add/", data)
@@ -378,8 +404,8 @@ class ProjectAdminTests(TestCase):
             "credit_moyen_terme_cmt": "0",
             "documents-TOTAL_FORMS": "2",
             "documents-INITIAL_FORMS": "0",
-            "documents-0-fichier": SimpleUploadedFile("bilan.pdf", b"content"),
-            "documents-1-fichier": SimpleUploadedFile("bilan-2.pdf", b"content"),
+            "documents-0-fichier": uploaded("bilan.pdf"),
+            "documents-1-fichier": uploaded("bilan-2.pdf"),
         }
         with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
             response = self.client.post("/admin/projects/structurefinancement/add/", data)
@@ -399,7 +425,7 @@ class ProjectAdminTests(TestCase):
             "credit_moyen_terme_cmt": "0",
             "documents-TOTAL_FORMS": "1",
             "documents-INITIAL_FORMS": "0",
-            "documents-0-fichier": SimpleUploadedFile("bilan.docx", b"content"),
+            "documents-0-fichier": uploaded("bilan.docx"),
         }
         with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
             response = self.client.post("/admin/projects/structurefinancement/add/", data)
@@ -586,6 +612,7 @@ class ProjectAdminTests(TestCase):
         self.assertIn("Tableau de bord", body)
         self.assertIn("studio-head", body)
         self.assertIn("Projets récents", body)
+        self.assertIn("Utilisateurs", body)
         self.assertIn(project.code, body)
         self.assertIn("projects/css/dashboard.css", body)
         self.assertNotIn("<em>Investissement</em>", body)
@@ -971,6 +998,24 @@ class CpcImportTests(TestCase):
         self.assertEqual(payload["fonds_propres_fp"], "1000.00")
         self.assertEqual(payload["credit_moyen_terme_cmt"], "2500.50")
         self.assertEqual(payload["investissement_total"], "3500.50")
+
+
+class FileSignatureValidatorTests(TestCase):
+    def test_rejects_extension_content_mismatch(self):
+        from django.core.exceptions import ValidationError
+
+        from projects.validators import FileSignatureValidator
+
+        validator = FileSignatureValidator(["pdf"])
+        fake_pdf = SimpleUploadedFile("fake.pdf", b"not-a-pdf")
+        with self.assertRaises(ValidationError):
+            validator(fake_pdf)
+
+    def test_accepts_matching_pdf(self):
+        from projects.validators import FileSignatureValidator
+
+        validator = FileSignatureValidator(["pdf"])
+        validator(uploaded("ok.pdf"))
 
 
 class ProtectedMediaTests(TestCase):

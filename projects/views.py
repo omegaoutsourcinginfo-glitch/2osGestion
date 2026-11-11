@@ -114,6 +114,15 @@ class RecentProject(TypedDict):
     url: str
 
 
+class DashboardUserRow(TypedDict):
+    username: str
+    full_name: str
+    is_online: bool
+    is_superuser: bool
+    last_seen_at: str
+    url: str
+
+
 PI_TABS: list[tuple[str, str]] = [
     ("general", "Général"),
     ("localisation", "Localisation"),
@@ -168,6 +177,9 @@ class DashboardData(TypedDict):
     dash_recent: list[RecentProject]
     dash_pct_instruction: int
     dash_pct_execution: int
+    dash_users_total: int
+    dash_users_online: int
+    dash_users: list[DashboardUserRow]
 
 
 def _typed_list(items: Iterable[RelatedT], item_type: type[RelatedT]) -> list[RelatedT]:
@@ -789,6 +801,9 @@ class DashboardViewSet:
                 }
             )
 
+        from accounts.services import dashboard_users
+
+        users_data = dashboard_users()
         return {
             "dash_project": None,
             "dash_today": timezone.localdate(),
@@ -798,6 +813,9 @@ class DashboardViewSet:
             "dash_recent": recent,
             "dash_pct_instruction": FileHelper.percent(instruction, total),
             "dash_pct_execution": FileHelper.percent(execution, total),
+            "dash_users_total": users_data["dash_users_total"],
+            "dash_users_online": users_data["dash_users_online"],
+            "dash_users": users_data["dash_users"],
         }
 
 

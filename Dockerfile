@@ -13,6 +13,7 @@ RUN apt-get update \
         build-essential \
         libjpeg62-turbo-dev \
         zlib1g-dev \
+        libpq-dev \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,6 +23,7 @@ RUN pip install --upgrade pip \
 
 COPY manage.py ./
 COPY core ./core
+COPY accounts ./accounts
 COPY projects ./projects
 COPY templates ./templates
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
@@ -32,4 +34,4 @@ RUN mkdir -p /app/data /app/media /app/staticfiles \
 EXPOSE 8000
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]

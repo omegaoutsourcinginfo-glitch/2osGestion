@@ -9,14 +9,40 @@ services:
       DJANGO_SECRET_KEY: "django-insecure-docker-dev-only-change-me"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,web,testserver"
       DJANGO_SQLITE_PATH: /app/data/db.sqlite3
+      # For Postgres instead of SQLite, uncomment and start the db service:
+      # DJANGO_DB_ENGINE: postgres
+      # POSTGRES_DB: 2osgestion
+      # POSTGRES_USER: 2osgestion
+      # POSTGRES_PASSWORD: change-me
+      # POSTGRES_HOST: db
+      # POSTGRES_PORT: "5432"
     volumes:
       # Keep database + uploads outside the image (writable)
       - ./data:/app/data
       - ./media:/app/media
       # Live code reload while developing
       - ./core:/app/core
+      - ./accounts:/app/accounts
       - ./projects:/app/projects
       - ./templates:/app/templates
       - ./manage.py:/app/manage.py
       - ./docker-entrypoint.sh:/app/docker-entrypoint.sh
+    # Local DX: runserver. Production image default is gunicorn.
     command: python manage.py runserver 0.0.0.0:8000
+    # depends_on:
+    #   - db
+
+  # Optional PostgreSQL — enable with the web env vars above.
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: 2osgestion
+  #     POSTGRES_USER: 2osgestion
+  #     POSTGRES_PASSWORD: change-me
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   pgdata:
