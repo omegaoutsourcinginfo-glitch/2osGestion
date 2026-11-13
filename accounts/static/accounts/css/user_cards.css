@@ -1,0 +1,419 @@
+/* Utilisateurs — studio card grid (brand maroon + slate) */
+
+.user-studio {
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --soft: #f8fafc;
+  --surface: #ffffff;
+  --brand: #8b1e2d;
+  --brand-soft: #fdf2f4;
+  --brand-mid: #c96b7d;
+  --ok: #059669;
+  --ok-soft: #ecfdf5;
+  margin: 0.15rem 0 0.75rem;
+  padding: 1.1rem 1.15rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(1200px 280px at 0% 0%, rgba(139, 30, 45, 0.06), transparent 55%),
+    linear-gradient(180deg, #fff 0%, var(--soft) 100%);
+}
+
+.user-studio-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-studio-eyebrow {
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+.user-studio-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.user-studio-count {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.user-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.9rem;
+}
+
+.user-card {
+  --card-i: 0;
+  position: relative;
+  display: grid;
+  gap: 0.95rem;
+  padding: 1.05rem 1.05rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--surface);
+  text-decoration: none !important;
+  color: inherit !important;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transform: translateY(6px);
+  opacity: 0;
+  animation: user-card-in 0.42s ease forwards;
+  animation-delay: calc(var(--card-i) * 45ms);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.user-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--brand-mid), var(--brand));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.user-card:hover {
+  border-color: #e2a8b4;
+  box-shadow: 0 12px 28px rgba(139, 30, 45, 0.1);
+  transform: translateY(-2px);
+}
+
+.user-card:hover::before {
+  opacity: 1;
+}
+
+.user-card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.user-card.is-inactive {
+  opacity: 0.72;
+  filter: grayscale(0.15);
+}
+
+.user-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.user-card-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.1rem;
+  height: 3.1rem;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #fdf2f4 0%, #f0d0d7 100%);
+  color: var(--brand);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(139, 30, 45, 0.08);
+}
+
+.user-card.is-online .user-card-avatar {
+  background: linear-gradient(145deg, #ecfdf5 0%, #a7f3d0 100%);
+  color: #047857;
+  box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.12);
+}
+
+.user-card-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 58%;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 650;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-card-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+
+.user-card.is-online .user-card-presence {
+  color: #047857;
+  background: var(--ok-soft);
+  border-color: #a7f3d0;
+}
+
+.user-card.is-online .user-card-dot {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.16);
+  animation: user-pulse 1.8s ease-in-out infinite;
+}
+
+.user-card-body {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.user-card-name {
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-card-fullname {
+  font-size: 0.82rem;
+  color: #475569;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-card-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.user-card-email .material-symbols-outlined {
+  font-size: 0.95rem !important;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.user-card-email.is-empty {
+  font-style: italic;
+  color: #94a3b8;
+}
+
+.user-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.user-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.user-card-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 0.4rem;
+  padding: 0.18rem 0.45rem;
+}
+
+.user-card-badge.is-admin {
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid #f0d0d7;
+}
+
+.user-card-badge.is-staff {
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.user-card-badge.is-user {
+  color: #64748b;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.user-card-badge.is-inactive {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.user-card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.user-card-open .material-symbols-outlined {
+  font-size: 1rem !important;
+}
+
+.user-card:hover .user-card-open {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@keyframes user-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes user-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(5, 150, 105, 0.08);
+  }
+}
+
+/* Dark mode */
+.dark .user-studio {
+  background:
+    radial-gradient(1000px 240px at 0% 0%, rgba(168, 51, 74, 0.16), transparent 55%),
+    linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+  border-color: #1e293b;
+}
+
+.dark .user-studio-title {
+  color: #f8fafc;
+}
+
+.dark .user-studio-head {
+  border-bottom-color: #1e293b;
+}
+
+.dark .user-card {
+  background: #111827;
+  border-color: #1e293b;
+  box-shadow: none;
+}
+
+.dark .user-card:hover {
+  border-color: #a8334a;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+}
+
+.dark .user-card-avatar {
+  background: linear-gradient(145deg, #41101a, #731828);
+  color: #fdf2f4;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.dark .user-card.is-online .user-card-avatar {
+  background: linear-gradient(145deg, #064e3b, #047857);
+  color: #d1fae5;
+}
+
+.dark .user-card-presence {
+  background: #0f172a;
+  border-color: #1e293b;
+  color: #94a3b8;
+}
+
+.dark .user-card.is-online .user-card-presence {
+  background: rgba(5, 150, 105, 0.12);
+  border-color: rgba(5, 150, 105, 0.35);
+  color: #6ee7b7;
+}
+
+.dark .user-card-name {
+  color: #f8fafc;
+}
+
+.dark .user-card-fullname,
+.dark .user-card-email {
+  color: #94a3b8;
+}
+
+.dark .user-card-foot {
+  border-top-color: #1e293b;
+}
+
+.dark .user-card-badge.is-admin {
+  background: #2a0a11;
+  border-color: #5c1421;
+  color: #e2a8b4;
+}
+
+.dark .user-card-badge.is-staff,
+.dark .user-card-badge.is-user {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+@media (max-width: 640px) {
+  .user-studio {
+    padding: 0.9rem;
+  }
+
+  .user-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .user-card-open {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-card,
+  .user-card.is-online .user-card-dot {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}

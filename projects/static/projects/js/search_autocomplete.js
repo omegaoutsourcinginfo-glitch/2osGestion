@@ -85,11 +85,21 @@
     window.location.href = href;
   }
 
+  function isUserChangelist() {
+    return /\/admin\/auth\/user\/?$/.test(window.location.pathname || "");
+  }
+
   function bindSearch(input) {
     if (!input || input.dataset.htmxAutocomplete === "1") {
       return;
     }
     if (typeof htmx === "undefined") {
+      return;
+    }
+
+    // Users list: keep Django search, not project autocomplete.
+    if (isUserChangelist()) {
+      input.setAttribute("placeholder", "Nom d'utilisateur, e-mail…");
       return;
     }
 

@@ -1,0 +1,95 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block result_list %}
+{% if cl.result_count %}
+<div class="user-studio" id="result_list">
+    <div class="user-studio-head">
+        <div>
+            <p class="user-studio-eyebrow">Comptes</p>
+            <h2 class="user-studio-title">Utilisateurs</h2>
+        </div>
+        <p class="user-studio-count">
+            {{ cl.result_count }}
+            {% if cl.result_count == 1 %}compte{% else %}comptes{% endif %}
+        </p>
+    </div>
+
+    <div class="user-cards" role="list">
+        {% for user in cl.result_list %}
+        {% url opts|admin_urlname:'change' user.pk|admin_urlquote as change_url %}
+        {% with presence=user.presence %}
+        <a
+            class="user-card{% if presence and presence.is_online %} is-online{% endif %}{% if not user.is_active %} is-inactive{% endif %}"
+            role="listitem"
+            href="{% add_preserved_filters change_url is_popup to_field %}"
+            style="--card-i: {{ forloop.counter0 }}"
+            title="{% blocktranslate with name=user.username %}Modifier {{ name }}{% endblocktranslate %}"
+        >
+            <span class="user-card-top">
+                <span class="user-card-avatar" aria-hidden="true">
+                    {% if user.first_name and user.last_name %}
+                        {{ user.first_name|make_list|first|upper }}{{ user.last_name|make_list|first|upper }}
+                    {% elif user.first_name %}
+                        {{ user.first_name|slice:":2"|upper }}
+                    {% else %}
+                        {{ user.username|slice:":2"|upper }}
+                    {% endif %}
+                </span>
+                <span class="user-card-presence">
+                    <span class="user-card-dot" aria-hidden="true"></span>
+                    {% if presence and presence.is_online %}
+                        En ligne
+                    {% elif presence and presence.last_seen_at %}
+                        Il y a {{ presence.last_seen_at|timesince }}
+                    {% else %}
+                        Hors ligne
+                    {% endif %}
+                </span>
+            </span>
+
+            <span class="user-card-body">
+                <strong class="user-card-name">{{ user.username }}</strong>
+                {% if user.get_full_name %}
+                <span class="user-card-fullname">{{ user.get_full_name }}</span>
+                {% endif %}
+                {% if user.email %}
+                <span class="user-card-email">
+                    <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+                    {{ user.email }}
+                </span>
+                {% else %}
+                <span class="user-card-email is-empty">
+                    <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+                    Pas d'e-mail
+                </span>
+                {% endif %}
+            </span>
+
+            <span class="user-card-foot">
+                <span class="user-card-badges">
+                    {% if user.is_superuser %}
+                    <span class="user-card-badge is-admin">Admin</span>
+                    {% elif user.is_staff %}
+                    <span class="user-card-badge is-staff">Staff</span>
+                    {% else %}
+                    <span class="user-card-badge is-user">Utilisateur</span>
+                    {% endif %}
+                    {% if not user.is_active %}
+                    <span class="user-card-badge is-inactive">Inactif</span>
+                    {% endif %}
+                </span>
+                <span class="user-card-open">
+                    Ouvrir
+                    <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                </span>
+            </span>
+        </a>
+        {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+    {% include "unfold/helpers/empty_results.html" %}
+{% endif %}
+{% endblock %}

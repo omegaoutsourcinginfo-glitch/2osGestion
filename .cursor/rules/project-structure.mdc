@@ -1,0 +1,128 @@
+---
+description: Architecture admin-only Django + Unfold for 2osGestion (no API)
+alwaysApply: true
+---
+
+# 2os Gestion — project structure (admin-only + Unfold)
+
+## Goal
+
+Admin-only Django app using **django-unfold** at `/admin/`.
+Domain stays **projects** + **accounts**. Do **not** add DRF, JWT, Swagger, Wagtail, or a separate REST API.
+
+## Hard rules
+
+- **Do NOT** add Django REST Framework, ViewSets, serializers, API routers, OpenAPI/Swagger, JWT, or `dj-rest-auth`.
+- **Do NOT** create `serializers.py`, API `views.py`, or REST app `urls.py`.
+- **Do NOT** install Wagtail unless explicitly requested.
+- Product UI = Django admin + Unfold (`/admin/`). Non-API admin pages (e.g. project fiche under `projets/`) are allowed.
+- Prefer fixing existing apps over inventing new domain apps (`catalogue` / `todos` are **not** part of this product).
+
+## Stack (this repo)
+
+| Layer | Choice |
+|--------|--------|
+| Python | `>=3.11,<4` (local may use 3.14) |
+| Django | `6.x` (keep in sync with `pyproject.toml`) |
+| Admin UI | **django-unfold** (+ contrib filters/forms/inlines) |
+| Auth | Django session auth via Unfold admin |
+| User | Custom email-based `users.User` (`AUTH_USER_MODEL`); `accounts` = presence only |
+| Env | `django-environ` + `.env` |
+| DB | PostgreSQL in Docker; SQLite allowed for local DX |
+| Extras | Pillow, gunicorn, whitenoise, reportlab, python-docx, openpyxl as already used |
+| Packaging | Poetry (`pyproject.toml`) + `requirements.txt` for Docker if needed |
+| Deploy | Docker Compose (`web` + `db`) |
+
+## Folder layout (authoritative for this repo)
+
+```text
+project-root/
+├── manage.py
+├── pyproject.toml
+├── poetry.lock
+├── .env.example
+├── .gitignore
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── docker/
+│   └── entrypoint.sh
+├── templates/
+├── core/                         # project package (settings, urls, wsgi/asgi)
+│   ├── settings.py
+│   ├── urls.py
+│   ├── views.py                  # e.g. protected media
+│   ├── wsgi.py
+│   └── asgi.py
+├── users/                        # custom email User (no username)
+│   ├── models.py
+│   ├── managers.py
+│   ├── backends.py
+│   ├── admin.py                  # Unfold ModelAdmin
+│   ├── apps.py
+│   └── migrations/
+├── accounts/                     # presence / dashboard helpers
+│   ├── models.py
+│   ├── middleware.py
+│   ├── services.py
+│   ├── signals.py
+│   ├── apps.py
+│   └── migrations/
+└── projects/                     # main domain app
+    ├── models.py
+    ├── admin.py                  # Unfold ModelAdmin + inlines
+    ├── views.py                  # admin dashboard / fiche (NOT REST)
+    ├── urls.py                   # non-API pages only
+    ├── apps.py
+    ├── management/commands/
+    └── migrations/
+```
+
+**Forbidden in apps:** `serializers.py`, REST ViewSets, API routers.
+
+## INSTALLED_APPS order (Unfold first)
+
+```python
+INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
+    "django.contrib.admin",
+    # ... django.contrib.* ...
+    "accounts",
+    "projects",
+]
+```
+
+## Admin pattern
+
+Use Unfold classes:
+
+```python
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
+```
+
+Register models with `list_display`, `list_filter`, `search_fields`, `readonly_fields`, inlines.
+
+## URL layout
+
+- `/admin/` — Unfold admin (main UI)
+- `/projets/` — project fiche / dashboard helpers (non-API)
+- `/media/` — staff-protected media (not a public static mount)
+
+## Settings checklist
+
+1. `environ.Env` + `.env`
+2. PostgreSQL via env (`DB_*` / `POSTGRES_*` / `DATABASE_URL`); SQLite fallback for local
+3. Unfold `UNFOLD` config + sidebar
+4. `STATIC_*` / `MEDIA_*`
+5. Console email by default
+6. **No** `REST_FRAMEWORK`, CORS API, Spectacular, allauth, Wagtail
+
+## When changing code
+
+- Fix structure / admin / Docker / settings to match this file.
+- Do **not** scaffold `users` / `todos` / `catalogue` unless the user explicitly asks to migrate domains.
+- Do **not** add new product features when the request is only to align structure.

@@ -80,7 +80,7 @@ def dashboard_users(*, limit: int = 12) -> DashboardUsersData:
                 output_field=BooleanField(),
             )
         )
-        .order_by("-_online", "-presence__last_seen_at", "username")[:limit]
+        .order_by("-_online", "-presence__last_seen_at", "email")[:limit]
     )
     for user in qs:
         presence = getattr(user, "presence", None)
@@ -98,7 +98,7 @@ def dashboard_users(*, limit: int = 12) -> DashboardUsersData:
                     if last_seen
                     else "—"
                 ),
-                "url": reverse("admin:auth_user_change", args=[user.pk]),
+                "url": reverse("admin:users_user_change", args=[user.pk]),
             }
         )
 

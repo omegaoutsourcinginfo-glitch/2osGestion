@@ -26,7 +26,7 @@
         <strong>{{ dash_execution }}</strong>
         <small>{{ dash_pct_execution }}%</small>
       </a>
-      <a href="{% url 'admin:auth_user_changelist' %}">
+      <a href="{% url 'admin:users_user_changelist' %}">
         <em>Utilisateurs</em>
         <strong>{{ dash_users_total }}</strong>
         <small>{{ dash_users_online }} en ligne</small>
@@ -61,7 +61,7 @@
     <section class="studio-list" aria-label="Utilisateurs du site">
       <div class="studio-list-head">
         <h2>Utilisateurs</h2>
-        <a href="{% url 'admin:auth_user_changelist' %}">Gérer les comptes</a>
+        <a href="{% url 'admin:users_user_changelist' %}">Gérer les comptes</a>
       </div>
       {% include "projects/partials/dashboard_users_list.html" %}
     </section>

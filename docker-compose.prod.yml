@@ -13,10 +13,11 @@ services:
       DJANGO_SECURE_SSL_REDIRECT: "${DJANGO_SECURE_SSL_REDIRECT:-0}"
       DJANGO_SECURE_HSTS_SECONDS: "${DJANGO_SECURE_HSTS_SECONDS:-}"
       DJANGO_BEHIND_PROXY: "${DJANGO_BEHIND_PROXY:-0}"
-      # Optional Postgres:
-      # DATABASE_URL: "${DATABASE_URL}"
+      DJANGO_DB_ENGINE: postgres
+      USE_POSTGRES: "1"
+      DB_HOST: db
+      RUN_MIGRATIONS: "${RUN_MIGRATIONS:-1}"
     volumes:
-      - ./data:/app/data
       - ./media:/app/media
       # No live source mounts in production
     command:

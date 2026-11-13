@@ -1,48 +1,58 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-2osgestion}
+      POSTGRES_USER: ${DB_USER:-2osgestion}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-2osgestion} -d ${DB_NAME:-2osgestion}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   web:
     build: .
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      DJANGO_DEBUG: "1"
-      # Dev-only key for Docker; override in production compose/secrets.
-      DJANGO_SECRET_KEY: "django-insecure-docker-dev-only-change-me"
-      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,web,testserver"
-      DJANGO_SQLITE_PATH: /app/data/db.sqlite3
-      # For Postgres instead of SQLite, uncomment and start the db service:
-      # DJANGO_DB_ENGINE: postgres
-      # POSTGRES_DB: 2osgestion
-      # POSTGRES_USER: 2osgestion
-      # POSTGRES_PASSWORD: change-me
-      # POSTGRES_HOST: db
-      # POSTGRES_PORT: "5432"
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-docker-dev-only-change-me}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,web,testserver}
+      DJANGO_DB_ENGINE: postgres
+      USE_POSTGRES: "1"
+      DB_NAME: ${DB_NAME:-2osgestion}
+      DB_USER: ${DB_USER:-2osgestion}
+      DB_PASSWORD: ${DB_PASSWORD:-change-me}
+      DB_HOST: db
+      DB_PORT: "5432"
+      POSTGRES_DB: ${DB_NAME:-2osgestion}
+      POSTGRES_USER: ${DB_USER:-2osgestion}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-1}
+      COMPANY_NAME: ${COMPANY_NAME:-2os Gestion}
     volumes:
-      # Keep database + uploads outside the image (writable)
-      - ./data:/app/data
       - ./media:/app/media
-      # Live code reload while developing
       - ./core:/app/core
+      - ./users:/app/users
       - ./accounts:/app/accounts
       - ./projects:/app/projects
       - ./templates:/app/templates
       - ./manage.py:/app/manage.py
-      - ./docker-entrypoint.sh:/app/docker-entrypoint.sh
+      - ./docker/entrypoint.sh:/app/docker/entrypoint.sh
+    depends_on:
+      db:
+        condition: service_healthy
     # Local DX: runserver. Production image default is gunicorn.
     command: python manage.py runserver 0.0.0.0:8000
-    # depends_on:
-    #   - db
 
-  # Optional PostgreSQL — enable with the web env vars above.
-  # db:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_DB: 2osgestion
-  #     POSTGRES_USER: 2osgestion
-  #     POSTGRES_PASSWORD: change-me
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-
-# volumes:
-#   pgdata:
+volumes:
+  pgdata:

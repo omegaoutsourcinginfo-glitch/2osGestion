@@ -168,7 +168,9 @@ class ProjectCodeTests(TestCase):
 
 class ProjectAdminTests(TestCase):
     def setUp(self):
-        user = get_user_model().objects.create_superuser("admin", "a@a.ma", "pass")
+        user = get_user_model().objects.create_superuser(
+            email="a@a.ma", password="pass"
+        )
         self.client.force_login(user)
 
     def test_admin_crud_pages(self):
@@ -886,7 +888,9 @@ class ProjectAdminTests(TestCase):
 class GlobalSearchAutocompleteTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_superuser("searcher", "s@test.com", "pass")
+        self.user = User.objects.create_superuser(
+            email="s@test.com", password="pass"
+        )
         self.client.force_login(self.user)
         fields = {**FIELDS, "titre": "Domaine Search Test"}
         self.project = Project.objects.create(**fields)
@@ -938,7 +942,9 @@ class GlobalSearchAutocompleteTests(TestCase):
 class CpcImportTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_superuser("cpcadmin", "cpc@test.com", "pass")
+        self.user = User.objects.create_superuser(
+            email="cpc@test.com", password="pass"
+        )
         self.client.force_login(self.user)
 
     def test_extract_iv_total_from_excel(self):
@@ -1021,7 +1027,9 @@ class FileSignatureValidatorTests(TestCase):
 class ProtectedMediaTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_superuser("mediauser", "m@test.com", "pass")
+        self.user = User.objects.create_superuser(
+            email="m@test.com", password="pass"
+        )
         self.media = tempfile.TemporaryDirectory()
         self.addCleanup(self.media.cleanup)
         self.override = self.settings(MEDIA_ROOT=self.media.name)

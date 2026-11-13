@@ -12,7 +12,9 @@ from accounts.services import ONLINE_WINDOW, dashboard_users, touch_presence
 class UserPresenceTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_superuser("dashuser", "d@test.com", "pass")
+        self.user = User.objects.create_superuser(
+            email="d@test.com", password="pass", first_name="Dash"
+        )
 
     def test_touch_presence_creates_row(self):
         touch_presence(self.user, ip="127.0.0.1", min_interval_seconds=0)
@@ -28,7 +30,7 @@ class UserPresenceTests(TestCase):
 
     def test_dashboard_users_counts_online(self):
         other = get_user_model().objects.create_user(
-            "staff2", "s2@test.com", "pass", is_staff=True
+            email="s2@test.com", password="pass", is_staff=True
         )
         touch_presence(self.user, min_interval_seconds=0)
         UserPresence.objects.create(
@@ -38,12 +40,14 @@ class UserPresenceTests(TestCase):
         data = dashboard_users()
         self.assertEqual(data["dash_users_total"], 2)
         self.assertEqual(data["dash_users_online"], 1)
-        self.assertTrue(any(u["username"] == "dashuser" and u["is_online"] for u in data["dash_users"]))
+        self.assertTrue(
+            any(u["username"] == "d@test.com" and u["is_online"] for u in data["dash_users"])
+        )
 
     def test_dashboard_shows_users_section(self):
         self.client.force_login(self.user)
         response = self.client.get("/admin/")
         body = response.content.decode("utf-8")
         self.assertIn("Utilisateurs", body)
-        self.assertIn("dashuser", body)
-        self.assertIn(reverse("admin:auth_user_changelist"), body)
+        self.assertIn("d@test.com", body)
+        self.assertIn(reverse("admin:users_user_changelist"), body)
