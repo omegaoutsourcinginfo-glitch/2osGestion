@@ -203,12 +203,14 @@ body.change-form:not([data-active-tab="general"]) [data-inline-type].uf-tab-open
   min-width: 12rem;
 }
 
-/* Unfold puts expand_more on native selects; hide it once Select2 mounts
-   (otherwise two chevrons appear next to more_vert). */
+/* Unfold puts expand_more on selects; always hide it (Select2 / CSS arrow is enough). */
+.grow.relative:has(select) > .material-symbols-outlined,
 .grow.relative:has(.select2-container) > .material-symbols-outlined,
-.grow.relative:has(select.select2-hidden-accessible) > .material-symbols-outlined,
-.related-widget-wrapper:has(.select2-container) > .grow.relative > .material-symbols-outlined,
-.relative:has(> .select2-container) > .material-symbols-outlined {
+.related-widget-wrapper:has(select) .grow.relative > .material-symbols-outlined,
+.relative:has(> select) > .material-symbols-outlined,
+.relative:has(> .select2-container) > .material-symbols-outlined,
+.select2-container ~ .material-symbols-outlined,
+select ~ .material-symbols-outlined {
   display: none !important;
 }
 

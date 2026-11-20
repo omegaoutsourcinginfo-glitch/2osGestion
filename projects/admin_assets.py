@@ -4,24 +4,44 @@ from pathlib import Path
 
 from django.templatetags.static import static
 
+_BASE = Path(__file__).resolve().parent.parent
 _STATIC_ROOT = Path(__file__).resolve().parent / "static" / "projects"
+_ACCOUNTS_STATIC = _BASE / "accounts" / "static" / "accounts"
 
 
 def _path(request) -> str:
     return (getattr(request, "path", "") or "").rstrip("/") or "/"
 
 
-def _v(rel: str) -> str:
+def _v(rel: str, *, root: Path | None = None) -> str:
     """Cache-bust from file mtime so browser always gets the latest JS/CSS."""
+    base = root or _STATIC_ROOT
     try:
-        return str(int((_STATIC_ROOT / rel).stat().st_mtime))
+        return str(int((base / rel).stat().st_mtime))
     except OSError:
         return "1"
+
+
+def style_modern(request):
+    if _is_login(request):
+        return ""
+    return static("projects/css/modern.css") + "?v=" + _v("css/modern.css")
 
 
 def style_dashboard(request):
     # Global so HTMX can open fiches from changelist/search without a full reload.
     return static("projects/css/dashboard.css") + "?v=" + _v("css/dashboard.css")
+
+
+def style_user_cards(request):
+    # Global: SPA swaps #main only, so ModelAdmin Media CSS never loads until refresh.
+    if _is_login(request):
+        return ""
+    return (
+        static("accounts/css/user_cards.css")
+        + "?v="
+        + _v("css/user_cards.css", root=_ACCOUNTS_STATIC)
+    )
 
 
 def style_project_info(request):

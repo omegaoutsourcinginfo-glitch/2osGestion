@@ -1,0 +1,65 @@
+{% load i18n admin_urls %}
+{% url opts|admin_urlname:'changelist' as list_url %}
+{% if original %}
+{% url opts|admin_urlname:'detail' original.pk|admin_urlquote as detail_url %}
+{% endif %}
+
+<div class="user-update mb-5">
+    <div class="overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm dark:border-base-700 dark:bg-base-900">
+        <div class="flex flex-col gap-4 bg-gradient-to-r from-primary-50/70 to-transparent px-5 py-5 dark:from-primary-950/30 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div class="min-w-0">
+                <a
+                    href="{% add_preserved_filters list_url %}"
+                    class="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-font-subtle-light no-underline hover:text-primary-600 dark:text-font-subtle-dark"
+                >
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                    Retour
+                </a>
+                <p class="mb-1 text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary-600">
+                    {% if add %}Nouveau compte{% else %}Modification{% endif %}
+                </p>
+                <h1 class="m-0 truncate text-2xl font-extrabold tracking-tight text-font-important-light dark:text-font-important-dark">
+                    {% if add %}
+                        Nouvel utilisateur
+                    {% elif original.get_full_name %}
+                        {{ original.get_full_name }}
+                    {% else %}
+                        {{ original.email }}
+                    {% endif %}
+                </h1>
+                <p class="mt-1.5 mb-0 max-w-lg text-sm text-font-subtle-light dark:text-font-subtle-dark">
+                    {% if add %}
+                        Le mot de passe sera généré et envoyé par e-mail.
+                    {% else %}
+                        Mettez à jour le profil. Aucun mot de passe affiché ici.
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-3">
+                <div class="user-update-avatar inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary-100 text-base font-extrabold uppercase text-primary-800 dark:bg-primary-900/50 dark:text-primary-100">
+                    {% if original and original.image %}
+                        <img src="{{ original.image.url }}" alt="" class="h-full w-full object-cover" width="56" height="56">
+                    {% elif original and original.first_name and original.last_name %}
+                        {{ original.first_name|make_list|first|upper }}{{ original.last_name|make_list|first|upper }}
+                    {% elif original and original.first_name %}
+                        {{ original.first_name|slice:":2"|upper }}
+                    {% elif original %}
+                        {{ original.email|slice:":2"|upper }}
+                    {% else %}
+                        <span class="material-symbols-outlined text-2xl" aria-hidden="true">person_add</span>
+                    {% endif %}
+                </div>
+                {% if original %}
+                <a
+                    href="{% add_preserved_filters detail_url %}"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-base-200 bg-white px-3 text-sm font-semibold text-font-default-light no-underline hover:bg-base-50 dark:border-base-600 dark:bg-base-800 dark:text-font-default-dark"
+                >
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
+                    Fiche
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

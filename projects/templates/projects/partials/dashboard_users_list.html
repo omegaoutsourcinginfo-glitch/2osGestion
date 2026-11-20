@@ -1,19 +1,26 @@
-<ol id="dash-users-list" class="studio-users">
+<div id="dash-users-list" class="dash-user-cards">
   {% for u in dash_users %}
-  <li>
-    <a href="{{ u.url }}">
-      <span class="studio-user-status {% if u.is_online %}is-online{% endif %}" title="{% if u.is_online %}En ligne{% else %}Hors ligne{% endif %}"></span>
-      <span class="studio-user-main">
-        <strong>{{ u.username }}</strong>
-        {% if u.full_name %}<em>{{ u.full_name }}</em>{% endif %}
+  <a class="dash-user-card{% if u.is_online %} is-online{% endif %}" href="{{ u.url }}">
+    <span class="dash-user-avatar" aria-hidden="true">
+      {% if u.full_name %}
+        {{ u.full_name|make_list|first|upper }}
+      {% else %}
+        {{ u.username|slice:":2"|upper }}
+      {% endif %}
+    </span>
+    <span class="dash-user-body">
+      <strong>{% if u.full_name %}{{ u.full_name }}{% else %}{{ u.username }}{% endif %}</strong>
+      <em>{{ u.username }}</em>
+    </span>
+    <span class="dash-user-side">
+      {% if u.is_superuser %}<span class="dash-user-role">Admin</span>{% endif %}
+      <span class="dash-user-seen">
+        <span class="dash-user-dot" aria-hidden="true"></span>
+        {% if u.is_online %}En ligne{% else %}{{ u.last_seen_at }}{% endif %}
       </span>
-      <span class="studio-user-meta">
-        {% if u.is_superuser %}<small class="studio-user-role">Admin</small>{% endif %}
-        <small>{{ u.last_seen_at }}</small>
-      </span>
-    </a>
-  </li>
+    </span>
+  </a>
   {% empty %}
-  <li class="studio-users-empty">Aucun utilisateur staff actif.</li>
+  <p class="studio-users-empty">Aucun utilisateur staff actif.</p>
   {% endfor %}
-</ol>
+</div>

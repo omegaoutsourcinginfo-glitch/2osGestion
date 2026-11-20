@@ -202,7 +202,9 @@ UNFOLD = {
     "SHOW_BACK_BUTTON": True,
     "DASHBOARD_CALLBACK": "projects.views.dashboard_callback",
     "STYLES": [
+        "projects.admin_assets.style_modern",
         "projects.admin_assets.style_dashboard",
+        "projects.admin_assets.style_user_cards",
         "projects.admin_assets.style_project_info",
         "projects.admin_assets.style_login",
         "projects.admin_assets.style_select2",

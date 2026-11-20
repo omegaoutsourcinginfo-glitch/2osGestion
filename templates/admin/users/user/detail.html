@@ -1,0 +1,111 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block content %}
+{% url opts|admin_urlname:'changelist' as list_url %}
+{% url opts|admin_urlname:'change' original.pk|admin_urlquote as change_url %}
+{% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+
+<div class="mx-auto mb-8 max-w-3xl space-y-4" x-data="{ deleteOpen: false }" @keydown.escape.window="deleteOpen = false">
+    <div class="overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm dark:border-base-700 dark:bg-base-900">
+        <div class="border-b border-base-100 bg-gradient-to-r from-primary-50/80 to-transparent px-5 py-5 dark:border-base-800 dark:from-primary-950/40 sm:px-6">
+            <a href="{% add_preserved_filters list_url %}" class="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-font-subtle-light no-underline hover:text-primary-600 dark:text-font-subtle-dark">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                Retour
+            </a>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary-100 text-lg font-extrabold text-primary-800 dark:bg-primary-900/50 dark:text-primary-100{% if presence and presence.is_online %} !bg-emerald-50 !text-emerald-700{% endif %}">
+                        {% if original.image %}
+                            <img src="{{ original.image.url }}" alt="" class="h-full w-full object-cover" width="64" height="64">
+                        {% elif original.first_name and original.last_name %}
+                            {{ original.first_name|make_list|first|upper }}{{ original.last_name|make_list|first|upper }}
+                        {% elif original.first_name %}
+                            {{ original.first_name|slice:":2"|upper }}
+                        {% else %}
+                            {{ original.email|slice:":2"|upper }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h1 class="m-0 text-2xl font-extrabold tracking-tight text-font-important-light dark:text-font-important-dark">
+                            {% if original.get_full_name %}{{ original.get_full_name }}{% else %}{{ original.email }}{% endif %}
+                        </h1>
+                        <p class="mt-1 mb-0 text-sm text-font-subtle-light dark:text-font-subtle-dark">{{ original.email }}</p>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            <span class="rounded-md bg-white/80 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-primary-700 ring-1 ring-primary-100 dark:bg-base-800 dark:text-primary-200 dark:ring-primary-900">{{ original.get_kind_display }}</span>
+                            {% if original.is_active %}
+                            <span class="rounded-md bg-emerald-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">Actif</span>
+                            {% else %}
+                            <span class="rounded-md bg-red-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-red-700">Inactif</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{% add_preserved_filters change_url %}" class="inline-flex h-10 items-center gap-1.5 rounded-xl bg-primary-600 px-4 text-sm font-bold text-white no-underline hover:bg-primary-700">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                        Modifier
+                    </a>
+                    {% if has_delete_permission and original.pk != request.user.pk %}
+                    <button type="button" class="inline-flex h-10 items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 text-sm font-bold text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-base-800 dark:text-red-300" @click="deleteOpen = true">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">delete</span>
+                        Supprimer
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <dl class="grid grid-cols-1 gap-0 sm:grid-cols-2">
+            <div class="border-b border-base-100 px-5 py-4 dark:border-base-800 sm:border-r">
+                <dt class="mb-1 text-[0.68rem] font-bold uppercase tracking-wide text-font-subtle-light">Prénom</dt>
+                <dd class="m-0 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{% if original.first_name %}{{ original.first_name }}{% else %}—{% endif %}</dd>
+            </div>
+            <div class="border-b border-base-100 px-5 py-4 dark:border-base-800">
+                <dt class="mb-1 text-[0.68rem] font-bold uppercase tracking-wide text-font-subtle-light">Nom</dt>
+                <dd class="m-0 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{% if original.last_name %}{{ original.last_name }}{% else %}—{% endif %}</dd>
+            </div>
+            <div class="border-b border-base-100 px-5 py-4 dark:border-base-800 sm:border-r">
+                <dt class="mb-1 text-[0.68rem] font-bold uppercase tracking-wide text-font-subtle-light">Téléphone</dt>
+                <dd class="m-0 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{% if original.phone %}{{ original.phone }}{% else %}—{% endif %}</dd>
+            </div>
+            <div class="border-b border-base-100 px-5 py-4 dark:border-base-800">
+                <dt class="mb-1 text-[0.68rem] font-bold uppercase tracking-wide text-font-subtle-light">Présence</dt>
+                <dd class="m-0 text-sm font-semibold text-font-important-light dark:text-font-important-dark">
+                    {% if presence and presence.is_online %}En ligne{% elif presence and presence.last_seen_at %}Vu il y a {{ presence.last_seen_at|timesince }}{% else %}Hors ligne{% endif %}
+                </dd>
+            </div>
+            <div class="border-b border-base-100 px-5 py-4 dark:border-base-800 sm:border-r sm:border-b-0">
+                <dt class="mb-1 text-[0.68rem] font-bold uppercase tracking-wide text-font-subtle-light">Inscription</dt>
+                <dd class="m-0 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{% if original.date_joined %}{{ original.date_joined }}{% else %}—{% endif %}</dd>
+            </div>
+            <div class="px-5 py-4">
+                <dt class="mb-1 text-[0.68rem] font-bold uppercase tracking-wide text-font-subtle-light">Dernière connexion</dt>
+                <dd class="m-0 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{% if original.last_login %}{{ original.last_login }}{% else %}Jamais{% endif %}</dd>
+            </div>
+        </dl>
+    </div>
+
+    {% if has_delete_permission and original.pk != request.user.pk %}
+    <template x-teleport="body">
+        <div x-cloak x-show="deleteOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+            <div class="absolute inset-0 bg-base-900/50" @click="deleteOpen = false"></div>
+            <div class="relative w-full max-w-sm rounded-2xl border border-base-200 bg-white p-5 shadow-xl dark:border-base-700 dark:bg-base-800" @click.stop>
+                <h2 class="text-base font-semibold">Supprimer l'utilisateur ?</h2>
+                <p class="mt-2 text-sm text-font-default-light dark:text-font-default-dark">
+                    Voulez-vous vraiment supprimer <strong>{% if original.get_full_name %}{{ original.get_full_name }}{% else %}{{ original.email }}{% endif %}</strong> ?
+                </p>
+                <div class="mt-5 flex justify-end gap-2">
+                    <button type="button" class="inline-flex h-9 items-center rounded-lg border border-base-200 px-3 text-sm font-medium hover:bg-base-50" @click="deleteOpen = false">Non</button>
+                    <form method="post" action="{% add_preserved_filters delete_url %}" data-no-spa>
+                        {% csrf_token %}
+                        <input type="hidden" name="post" value="yes">
+                        <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700">Oui, supprimer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+    {% endif %}
+</div>
+{% endblock %}

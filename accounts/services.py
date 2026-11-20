@@ -42,22 +42,34 @@ def touch_presence(user, *, ip: str | None = None, min_interval_seconds: int = 6
         return
     if not getattr(user, "is_active", False):
         return
+    if not getattr(user, "pk", None):
+        return
+
+    from django.db import DatabaseError, IntegrityError
 
     from accounts.models import UserPresence
 
+    User = get_user_model()
     now = timezone.now()
-    presence, created = UserPresence.objects.get_or_create(
-        user=user,
-        defaults={"last_seen_at": now, "last_ip": ip},
-    )
-    if created:
+    try:
+        # Skip if the user row was just deleted (admin delete response).
+        if not User.objects.filter(pk=user.pk).exists():
+            return
+        presence, created = UserPresence.objects.get_or_create(
+            user_id=user.pk,
+            defaults={"last_seen_at": now, "last_ip": ip},
+        )
+        if created:
+            return
+        if (now - presence.last_seen_at).total_seconds() < min_interval_seconds:
+            return
+        presence.last_seen_at = now
+        if ip:
+            presence.last_ip = ip
+        presence.save(update_fields=["last_seen_at", "last_ip"])
+    except (IntegrityError, DatabaseError):
+        # Never break admin delete / response flow because of presence writes.
         return
-    if (now - presence.last_seen_at).total_seconds() < min_interval_seconds:
-        return
-    presence.last_seen_at = now
-    if ip:
-        presence.last_ip = ip
-    presence.save(update_fields=["last_seen_at", "last_ip"])
 
 
 def dashboard_users(*, limit: int = 12) -> DashboardUsersData:
@@ -98,7 +110,7 @@ def dashboard_users(*, limit: int = 12) -> DashboardUsersData:
                     if last_seen
                     else "—"
                 ),
-                "url": reverse("admin:users_user_change", args=[user.pk]),
+                "url": reverse("admin:users_user_detail", args=[user.pk]),
             }
         )
 

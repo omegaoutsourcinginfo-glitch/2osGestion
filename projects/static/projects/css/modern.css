@@ -1,0 +1,34 @@
+/* 2os Gestion — modern admin polish (Unfold + brand) */
+
+:root {
+  --twoos-brand: #8b1e2d;
+  --twoos-brand-soft: #fdf2f4;
+  --twoos-ink: #0f172a;
+  --twoos-muted: #64748b;
+  --twoos-line: #e2e8f0;
+  --twoos-radius: 0.875rem;
+}
+
+/* Softer page canvas */
+#main,
+#content {
+  --tw-bg-opacity: 1;
+}
+
+/* Primary actions feel sharper */
+button[type="submit"].bg-primary-600,
+a.bg-primary-600 {
+  box-shadow: 0 1px 2px rgba(139, 30, 45, 0.18);
+}
+
+/* Content cards / fieldsets — modern quiet chrome */
+#content-main > .flex.flex-col.gap-6 > fieldset,
+.user-update-shell fieldset {
+  border-radius: var(--twoos-radius) !important;
+}
+
+/* Sidebar active state already Unfold — tighten spacing feel */
+#nav-sidebar a,
+#nav-sidebar-inner a {
+  border-radius: 0.55rem;
+}

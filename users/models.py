@@ -19,27 +19,29 @@ class User(AbstractUser):
 
     reference = PrefixedRandomCharField(length=16, prefix="user", unique=True)
 
+    first_name = models.CharField(_("first name"), max_length=150)
+    last_name = models.CharField(_("last name"), max_length=150)
+
     email = models.EmailField(
         blank=False,
         max_length=254,
         unique=True,
         verbose_name="email address",
     )
-    phone = CustomPhoneNumberField(null=True, blank=True, unique=True)
+    phone = CustomPhoneNumberField(unique=True)
 
     USERNAME_FIELD = "email"
     EMAIL_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ["first_name", "last_name", "phone"]
 
     class UserKind(models.TextChoices):
         SUPER_ADMIN = "SUPER_ADMIN", _("Super Admin")
         ADMIN = "ADMIN", _("Admin")
-        OTHER = "OTHER", _("Other")
 
     kind = models.CharField(
         max_length=255,
         choices=UserKind.choices,
-        default=UserKind.OTHER,
+        default=UserKind.ADMIN,
     )
     image = models.ImageField(
         upload_to="users/images/",
