@@ -402,6 +402,127 @@
   color: var(--muted);
 }
 
+/* Dashboard projects — same brand card language */
+.dash-project-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.dash-project-card {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.95rem 1rem;
+  border-radius: 0.95rem;
+  text-decoration: none !important;
+  color: inherit !important;
+  overflow: hidden;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(145deg, #f0d0d7, #fff 50%, #e8edf5) border-box;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 20px -14px rgba(139, 30, 45, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-project-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 52px;
+  background: linear-gradient(180deg, #fff5f6, transparent);
+  pointer-events: none;
+}
+
+.dash-project-card.is-exec::before {
+  background: linear-gradient(180deg, #eff6ff, transparent);
+}
+
+.dash-project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -14px rgba(139, 30, 45, 0.5);
+}
+
+.dash-project-code {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.45rem;
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #8b1e2d, #c43b52);
+}
+
+.dash-project-card.is-exec .dash-project-code {
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+}
+
+.dash-project-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.dash-project-body strong {
+  font-size: 0.92rem;
+  font-weight: 750;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-project-card:hover .dash-project-body strong {
+  color: #8b1e2d;
+}
+
+.dash-project-body em {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-project-status {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  color: #8b1e2d;
+  background: #fff5f6;
+  border: 1px solid #f0d0d7;
+}
+
+.dash-project-card.is-exec .dash-project-status {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.dark .dash-project-card {
+  background:
+    linear-gradient(#111827, #111827) padding-box,
+    linear-gradient(145deg, #5c1421, #1f2937) border-box;
+}
+
+.dark .dash-project-body strong {
+  color: #f9fafb;
+}
+
 .dark .dash-user-card {
   background:
     linear-gradient(#111827, #111827) padding-box,
