@@ -44,6 +44,16 @@ def style_user_cards(request):
     )
 
 
+def style_user_form(request):
+    if _is_login(request):
+        return ""
+    return (
+        static("accounts/css/user_form.css")
+        + "?v="
+        + _v("css/user_form.css", root=_ACCOUNTS_STATIC)
+    )
+
+
 def style_project_info(request):
     return static("projects/css/project_info.css") + "?v=" + _v("css/project_info.css")
 
@@ -110,3 +120,46 @@ def script_required_fields(request):
     if _is_login(request):
         return ""
     return static("projects/js/required_fields.js") + "?v=" + _v("js/required_fields.js")
+
+
+def script_user_cards_menu(request):
+    if _is_login(request):
+        return ""
+    return (
+        static("accounts/js/user_cards_menu.js")
+        + "?v="
+        + _v("js/user_cards_menu.js", root=_ACCOUNTS_STATIC)
+    )
+
+
+def style_logout_dialog(request):
+    if _is_login(request):
+        return ""
+    return (
+        static("accounts/css/logout_dialog.css")
+        + "?v="
+        + _v("css/logout_dialog.css", root=_ACCOUNTS_STATIC)
+    )
+
+
+def script_logout_dialog(request):
+    if _is_login(request):
+        return ""
+    return (
+        static("accounts/js/logout_dialog.js")
+        + "?v="
+        + _v("js/logout_dialog.js", root=_ACCOUNTS_STATIC)
+    )
+
+
+def script_user_form_prefixes(request):
+    if _is_login(request):
+        return ""
+    path = _path(request)
+    if "/admin/users/user" not in path:
+        return ""
+    return (
+        static("accounts/js/user_form_prefixes.js")
+        + "?v="
+        + _v("js/user_form_prefixes.js", root=_ACCOUNTS_STATIC)
+    )

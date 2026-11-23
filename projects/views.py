@@ -347,7 +347,7 @@ class ProjectViewSet:
     search_fields: list[str] = ["titre", "code"]
 
     def get_queryset(self) -> QuerySet[Project]:
-        return self.queryset.prefetch_related(
+        return self.queryset.select_related("created_by", "updated_by").prefetch_related(
             Prefetch(
                 "intervenants",
                 queryset=Intervenant.objects.order_by("nom_ou_cabinet"),

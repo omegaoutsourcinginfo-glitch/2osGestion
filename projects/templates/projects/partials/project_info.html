@@ -46,8 +46,11 @@
         </dd>
       </div>
       <div>
-        <dt>Mis à jour</dt>
-        <dd>{{ project.updated_at|date:"d/m/Y" }}</dd>
+        <dt>Modifié par</dt>
+        <dd>
+          {% if project.updated_by %}{{ project.updated_by.get_full_name|default:project.updated_by.email }}{% else %}—{% endif %}
+          <span class="muted"> · {{ project.updated_at|date:"d/m/Y" }}</span>
+        </dd>
       </div>
     </dl>
   </header>

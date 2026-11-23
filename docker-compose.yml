@@ -54,5 +54,12 @@ services:
     # Local DX: runserver. Production image default is gunicorn.
     command: python manage.py runserver 0.0.0.0:8000
 
+  # Local inbox for password emails — UI http://127.0.0.1:8025  SMTP :1025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   pgdata:

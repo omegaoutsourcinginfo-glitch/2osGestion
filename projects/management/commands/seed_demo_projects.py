@@ -33,6 +33,48 @@ from projects.models import (
     StructureFinancement,
     TerrainMere,
 )
+from users.models import User
+from users.services import apply_role_access
+
+DEMO_USERS = (
+    {
+        "email": "sara.benali@demo.2os.local",
+        "first_name": "Sara",
+        "last_name": "Benali",
+        "phone": "+212600000101",
+        "kind": User.UserKind.USER,
+    },
+    {
+        "email": "youssef.amrani@demo.2os.local",
+        "first_name": "Youssef",
+        "last_name": "Amrani",
+        "phone": "+212600000102",
+        "kind": User.UserKind.USER,
+    },
+    {
+        "email": "ima.chraibi@demo.2os.local",
+        "first_name": "Imane",
+        "last_name": "Chraibi",
+        "phone": "+212600000103",
+        "kind": User.UserKind.USER,
+    },
+    {
+        "email": "karim.tazi@demo.2os.local",
+        "first_name": "Karim",
+        "last_name": "Tazi",
+        "phone": "+212600000104",
+        "kind": User.UserKind.USER,
+    },
+    {
+        "email": "nadia.elalami@demo.2os.local",
+        "first_name": "Nadia",
+        "last_name": "El Alami",
+        "phone": "+212600000105",
+        "kind": User.UserKind.USER,
+    },
+)
+
+DEMO_USER_PASSWORD = "Demo2os!"
 
 def _escape_pdf(text: str) -> str:
     return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
@@ -388,14 +430,23 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"Supprimé {deleted} objet(s) liés à la démo."))
 
         intervenants = self._ensure_intervenants()
+        demo_users = self._ensure_demo_users()
 
         created = []
         with transaction.atomic():
             for index, data in enumerate(batch):
-                project = self._create_project(data, intervenants, index)
+                project = self._create_project(data, intervenants, index, demo_users)
                 created.append(project)
                 if (index + 1) % 10 == 0 or index + 1 == len(batch):
                     self.stdout.write(f"  … {index + 1}/{len(batch)}")
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"{len(demo_users)} utilisateurs démo (mot de passe: {DEMO_USER_PASSWORD})"
+            )
+        )
+        for user in demo_users:
+            self.stdout.write(f"  • {user.email} — {user.get_full_name()}")
 
         self.stdout.write(self.style.SUCCESS(f"{len(created)} projets créés :"))
         for project in created:
@@ -416,10 +467,21 @@ class Command(BaseCommand):
                 if hasattr(project, "annexe_dossier")
                 else 0
             )
+            created_by = (
+                (project.created_by.get_full_name() or project.created_by.email)
+                if project.created_by_id
+                else "—"
+            )
+            updated_by = (
+                (project.updated_by.get_full_name() or project.updated_by.email)
+                if project.updated_by_id
+                else "—"
+            )
             self.stdout.write(
                 f"  • {project.code} — {project.titre} "
                 f"(tech: {n_docs}, photos: {n_imgs}, finance: {n_fin}, "
-                f"planning: {n_plan}, annexes: {n_ann})"
+                f"planning: {n_plan}, annexes: {n_ann}) "
+                f"| créé: {created_by} | modifié: {updated_by}"
             )
 
     def _ensure_intervenants(self):
@@ -432,6 +494,30 @@ class Command(BaseCommand):
             )
             result.append(obj)
         return result
+
+    def _ensure_demo_users(self):
+        users = []
+        for data in DEMO_USERS:
+            user, created = User.objects.get_or_create(
+                email=data["email"],
+                defaults={
+                    "first_name": data["first_name"],
+                    "last_name": data["last_name"],
+                    "phone": data["phone"],
+                    "kind": data["kind"],
+                    "is_active": True,
+                },
+            )
+            if created:
+                user.set_password(DEMO_USER_PASSWORD)
+                user.save()
+                apply_role_access(user)
+                user.save(update_fields=["is_staff", "is_superuser"])
+            else:
+                apply_role_access(user)
+                user.save(update_fields=["is_staff", "is_superuser"])
+            users.append(user)
+        return users
 
     def _pdf(self, name, title, *lines):
         return ContentFile(build_pdf(title, *lines), name=name)
@@ -455,7 +541,11 @@ class Command(BaseCommand):
         img.save(buf, format="JPEG", quality=85)
         return ContentFile(buf.getvalue(), name=name)
 
-    def _create_project(self, data, intervenants, index):
+    def _create_project(self, data, intervenants, index, demo_users):
+        creator = demo_users[index % len(demo_users)] if demo_users else None
+        updater = (
+            demo_users[(index + 1) % len(demo_users)] if demo_users else creator
+        )
         project = Project.objects.create(
             prefecture=data["prefecture"],
             commune=data["commune"],
@@ -466,6 +556,8 @@ class Command(BaseCommand):
             voie_acces=data["voie_acces"],
             emprise_servitudes=data["emprise_servitudes"],
             statut_actuel=data["statut_actuel"],
+            created_by=creator,
+            updated_by=updater,
         )
         project.intervenants.set(intervenants[:3] if index % 2 else intervenants)
 

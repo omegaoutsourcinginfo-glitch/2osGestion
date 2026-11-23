@@ -22,10 +22,10 @@ a.bg-primary-600 {
 }
 
 /* Content cards / fieldsets — modern quiet chrome */
-#content-main > .flex.flex-col.gap-6 > fieldset,
-.user-update-shell fieldset {
+#content-main > .flex.flex-col.gap-6 > fieldset {
   border-radius: var(--twoos-radius) !important;
 }
+/* user form: .uf-shell owns radius — do not override fieldset */
 
 /* Sidebar active state already Unfold — tighten spacing feel */
 #nav-sidebar a,

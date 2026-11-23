@@ -4,7 +4,7 @@
 {% block content %}
 {% url opts|admin_urlname:'changelist' as list_url %}
 {% url opts|admin_urlname:'change' original.pk|admin_urlquote as change_url %}
-{% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+{% url opts|admin_urlname:'quick_delete' original.pk|admin_urlquote as delete_url %}
 
 <div class="mx-auto mb-8 max-w-3xl space-y-4" x-data="{ deleteOpen: false }" @keydown.escape.window="deleteOpen = false">
     <div class="overflow-hidden rounded-2xl border border-base-200 bg-white shadow-sm dark:border-base-700 dark:bg-base-900">
@@ -15,7 +15,7 @@
             </a>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-4">
-                    <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary-100 text-lg font-extrabold text-primary-800 dark:bg-primary-900/50 dark:text-primary-100{% if presence and presence.is_online %} !bg-emerald-50 !text-emerald-700{% endif %}">
+                    <div class="inline-flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-lg font-extrabold text-primary-800 dark:bg-primary-900/50 dark:text-primary-100{% if presence and presence.is_online %} !bg-emerald-50 !text-emerald-700{% endif %}">
                         {% if original.image %}
                             <img src="{{ original.image.url }}" alt="" class="h-full w-full object-cover" width="64" height="64">
                         {% elif original.first_name and original.last_name %}
@@ -88,20 +88,54 @@
 
     {% if has_delete_permission and original.pk != request.user.pk %}
     <template x-teleport="body">
-        <div x-cloak x-show="deleteOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-            <div class="absolute inset-0 bg-base-900/50" @click="deleteOpen = false"></div>
-            <div class="relative w-full max-w-sm rounded-2xl border border-base-200 bg-white p-5 shadow-xl dark:border-base-700 dark:bg-base-800" @click.stop>
-                <h2 class="text-base font-semibold">Supprimer l'utilisateur ?</h2>
-                <p class="mt-2 text-sm text-font-default-light dark:text-font-default-dark">
-                    Voulez-vous vraiment supprimer <strong>{% if original.get_full_name %}{{ original.get_full_name }}{% else %}{{ original.email }}{% endif %}</strong> ?
+        <div
+            x-cloak
+            x-show="deleteOpen"
+            x-transition.opacity
+            class="uc-delete-dialog"
+            role="dialog"
+            aria-modal="true"
+            :class="{ 'is-open': deleteOpen }"
+            :style="deleteOpen ? 'display:flex' : 'display:none'"
+        >
+            <div class="uc-delete-backdrop" @click="deleteOpen = false"></div>
+            <div class="uc-delete-panel" @click.stop>
+                <h2>Supprimer l'utilisateur ?</h2>
+                <p>
+                    Voulez-vous vraiment supprimer
+                    <strong>{% if original.get_full_name %}{{ original.get_full_name }}{% else %}{{ original.email }}{% endif %}</strong> ?
                 </p>
-                <div class="mt-5 flex justify-end gap-2">
-                    <button type="button" class="inline-flex h-9 items-center rounded-lg border border-base-200 px-3 text-sm font-medium hover:bg-base-50" @click="deleteOpen = false">Non</button>
-                    <form method="post" action="{% add_preserved_filters delete_url %}" data-no-spa>
-                        {% csrf_token %}
-                        <input type="hidden" name="post" value="yes">
-                        <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700">Oui, supprimer</button>
-                    </form>
+                <div class="uc-delete-actions">
+                    <button type="button" class="uc-delete-cancel" @click="deleteOpen = false">Non</button>
+                    <button
+                        type="button"
+                        class="uc-delete-confirm"
+                        @click="
+                          const token = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+                          const body = new URLSearchParams({ csrfmiddlewaretoken: decodeURIComponent(token), post: 'yes' });
+                          fetch('{% add_preserved_filters delete_url %}', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                              'X-CSRFToken': decodeURIComponent(token),
+                              'X-Requested-With': 'XMLHttpRequest',
+                              'Accept': 'application/json',
+                            },
+                            body,
+                            credentials: 'same-origin',
+                          })
+                          .then(r => r.json())
+                          .then(data => {
+                            deleteOpen = false;
+                            if (data.ok) {
+                              window.location.href = '{% add_preserved_filters list_url %}';
+                            } else {
+                              alert(data.message || 'Suppression impossible');
+                            }
+                          })
+                          .catch(() => alert('Erreur réseau'));
+                        "
+                    >Oui, supprimer</button>
                 </div>
             </div>
         </div>

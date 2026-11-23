@@ -26,11 +26,13 @@
         <strong>{{ dash_execution }}</strong>
         <small>{{ dash_pct_execution }}%</small>
       </a>
+      {% if request.user.is_superuser %}
       <a href="{% url 'admin:users_user_changelist' %}">
         <em>Utilisateurs</em>
         <strong>{{ dash_users_total }}</strong>
         <small>{{ dash_users_online }} en ligne</small>
       </a>
+      {% endif %}
     </section>
 
     <section class="studio-list" aria-label="Projets récents">
@@ -58,6 +60,7 @@
       {% include "projects/partials/dashboard_recent_list.html" %}
     </section>
 
+    {% if request.user.is_superuser %}
     <section class="studio-list" aria-label="Utilisateurs du site">
       <div class="studio-list-head">
         <h2>Utilisateurs</h2>
@@ -65,5 +68,6 @@
       </div>
       {% include "projects/partials/dashboard_users_list.html" %}
     </section>
+    {% endif %}
   </div>
 </div>

@@ -7,8 +7,8 @@
       <div><dt>Code</dt><dd>{{ project.code }}</dd></div>
       <div><dt>Statut</dt><dd>{{ project.get_statut_actuel_display }}</dd></div>
       <div><dt>Lots / Unités</dt><dd>{% if project.nombre_lots %}{{ project.nombre_lots }}{% else %}<span class="muted">Non renseigné</span>{% endif %}</dd></div>
-      <div><dt>Créé le</dt><dd>{{ project.created_at|date:"d/m/Y" }}</dd></div>
-      <div><dt>Mis à jour</dt><dd>{{ project.updated_at|date:"d/m/Y" }}</dd></div>
+      <div><dt>Créé par</dt><dd>{% if project.created_by %}{{ project.created_by.get_full_name|default:project.created_by.email }}{% else %}<span class="muted">—</span>{% endif %}<br><span class="muted">{{ project.created_at|date:"d/m/Y" }}</span></dd></div>
+      <div><dt>Modifié par</dt><dd>{% if project.updated_by %}{{ project.updated_by.get_full_name|default:project.updated_by.email }}{% else %}<span class="muted">—</span>{% endif %}<br><span class="muted">{{ project.updated_at|date:"d/m/Y" }}</span></dd></div>
       <div><dt>Servitudes</dt><dd>{% if project.emprise_servitudes %}{{ project.emprise_servitudes|truncatechars:48 }}{% else %}<span class="muted">Aucune</span>{% endif %}</dd></div>
     </dl>
     <h3 class="pi-subhead">Description</h3>

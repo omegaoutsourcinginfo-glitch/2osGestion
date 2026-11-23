@@ -550,14 +550,24 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         "code_link",
         "titre_link",
         "statut_link",
+        "created_by_display",
+        "updated_by_display",
     )
     list_display_links = None
     list_per_page = 10
     show_full_result_count = False
+    list_select_related = ("created_by", "updated_by")
     search_fields = ("code", "titre", "prefecture", "commune")
-    list_filter = ("statut_actuel", "is_archived", "prefecture", "commune")
+    list_filter = ("statut_actuel", "is_archived", "prefecture", "commune", "created_by")
     ordering = ("-code",)
-    readonly_fields = ("code_display", "is_archived", "created_at", "updated_at")
+    readonly_fields = (
+        "code_display",
+        "is_archived",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+    )
     inlines = (
         TerrainMereInline,
         AutorisationInline,
@@ -583,7 +593,15 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         ("Identification", {"fields": ("code_display", "titre", "statut_actuel", "is_archived")}),
         ("Localisation", {"fields": ("prefecture", "commune", "situation_localisation", "voie_acces")}),
         ("Description", {"fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
-        ("Historique", {"fields": ("created_at", "updated_at")}),
+        (
+            "Historique",
+            {
+                "fields": (
+                    ("created_by", "created_at"),
+                    ("updated_by", "updated_at"),
+                )
+            },
+        ),
     )
 
     def changelist_view(self, request, extra_context=None):
@@ -607,6 +625,28 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
                 ("Description", {"fields": ("consistance_globale", "nombre_lots", "emprise_servitudes")}),
             )
         return self.fieldsets
+
+    def save_model(self, request, obj, form, change):
+        user = request.user if request.user.is_authenticated else None
+        if not change and user is not None and obj.created_by_id is None:
+            obj.created_by = user
+        if user is not None:
+            obj.updated_by = user
+        super().save_model(request, obj, form, change)
+
+    @admin.display(description="Créé par", ordering="created_by")
+    def created_by_display(self, obj):
+        if obj.created_by_id and obj.created_by:
+            name = obj.created_by.get_full_name() or obj.created_by.email
+            return name
+        return "—"
+
+    @admin.display(description="Modifié par", ordering="updated_by")
+    def updated_by_display(self, obj):
+        if obj.updated_by_id and obj.updated_by:
+            name = obj.updated_by.get_full_name() or obj.updated_by.email
+            return name
+        return "—"
 
     @admin.display(description="Code")
     def code_display(self, obj):

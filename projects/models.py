@@ -1,4 +1,5 @@
-﻿from django.core.validators import MinValueValidator
+﻿from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
@@ -162,6 +163,22 @@ class Project(TimeStampedModel):
         related_name="projects",
         verbose_name="Intervenants",
     )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="projects_created",
+        verbose_name="Créé par",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="projects_updated",
+        verbose_name="Modifié par",
+    )
     documents: models.QuerySet["ProjectDocument"]
     images: models.QuerySet["ProjectImage"]
 
@@ -172,6 +189,8 @@ class Project(TimeStampedModel):
             models.Index(fields=["statut_actuel"]),
             models.Index(fields=["is_archived"]),
             models.Index(fields=["commune"]),
+            models.Index(fields=["created_by"]),
+            models.Index(fields=["updated_by"]),
         ]
 
     def __str__(self) -> str:

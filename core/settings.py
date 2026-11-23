@@ -205,12 +205,14 @@ UNFOLD = {
         "projects.admin_assets.style_modern",
         "projects.admin_assets.style_dashboard",
         "projects.admin_assets.style_user_cards",
+        "projects.admin_assets.style_user_form",
         "projects.admin_assets.style_project_info",
         "projects.admin_assets.style_login",
         "projects.admin_assets.style_select2",
         "projects.admin_assets.style_select2_admin",
         "projects.admin_assets.style_admin_form",
         "projects.admin_assets.style_search_autocomplete",
+        "projects.admin_assets.style_logout_dialog",
     ],
     "SCRIPTS": [
         "projects.admin_assets.script_spa_nav",
@@ -218,6 +220,9 @@ UNFOLD = {
         "projects.admin_assets.script_search_autocomplete",
         "projects.admin_assets.script_required_fields",
         "projects.admin_assets.script_dropdowns",
+        "projects.admin_assets.script_user_cards_menu",
+        "projects.admin_assets.script_logout_dialog",
+        "projects.admin_assets.script_user_form_prefixes",
     ],
     "COLORS": {
         "primary": {
@@ -256,8 +261,9 @@ UNFOLD = {
                         "title": _("Utilisateurs"),
                         "icon": "group",
                         "link": reverse_lazy("admin:users_user_changelist"),
-                        "permission": lambda request: request.user.has_perm(
-                            "users.view_user"
+                        # Comptes = Super Admin only (not Utilisateur).
+                        "permission": lambda request: bool(
+                            getattr(request.user, "is_superuser", False)
                         ),
                     },
                 ],
@@ -379,14 +385,39 @@ if not DEBUG:
     if env.bool("DJANGO_BEHIND_PROXY", default=False):
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+# --- Email / SMTP (Django 6 MAILERS) ---
+# Local: Mailpit → docker compose up -d mailpit → UI http://127.0.0.1:8025
+# If EMAIL_HOST is set → SMTP. Otherwise console (prints in the runserver terminal).
+_email_host = env("EMAIL_HOST", default="").strip()
+_email_port = env.int("EMAIL_PORT", default=1025)
+_email_user = env("EMAIL_HOST_USER", default="").strip()
+# Gmail App Passwords are often pasted with spaces — strip them.
+_email_password = env("EMAIL_HOST_PASSWORD", default="").replace(" ", "")
+_email_use_tls = env.bool("EMAIL_USE_TLS", default=False)
+_email_use_ssl = env.bool("EMAIL_USE_SSL", default=False)
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
     default=f"noreply@{COMPANY_NAME.lower().replace(' ', '')}.local",
 )
+if _email_host:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": _email_host,
+                "port": _email_port,
+                "username": _email_user or None,
+                "password": _email_password or None,
+                "use_tls": _email_use_tls,
+                "use_ssl": _email_use_ssl,
+            },
+        },
+    }
+else:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

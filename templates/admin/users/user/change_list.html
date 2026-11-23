@@ -3,7 +3,7 @@
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'accounts/css/user_cards.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/user_cards.css' %}?v=del5">
 {% endblock %}
 
 {% block result_list %}
@@ -13,10 +13,12 @@
         {% for user in cl.result_list %}
         {% url opts|admin_urlname:'detail' user.pk|admin_urlquote as detail_url %}
         {% url opts|admin_urlname:'change' user.pk|admin_urlquote as change_url %}
-        {% url opts|admin_urlname:'delete' user.pk|admin_urlquote as delete_url %}
+        {% url opts|admin_urlname:'quick_delete' user.pk|admin_urlquote as delete_url %}
+        {% url opts|admin_urlname:'send_password' user.pk|admin_urlquote as send_password_url %}
         {% add_preserved_filters detail_url is_popup to_field as detail_href %}
         {% add_preserved_filters change_url is_popup to_field as change_href %}
         {% add_preserved_filters delete_url is_popup to_field as delete_href %}
+        {% add_preserved_filters send_password_url is_popup to_field as send_password_href %}
         {% with presence=user.presence %}
         <article
             class="uc-card{% if presence and presence.is_online %} is-online{% else %} is-offline{% endif %}{% if not user.is_active %} is-inactive{% endif %}"
@@ -36,7 +38,7 @@
                     {% endif %}
                 </a>
 
-                <div style="display:flex;align-items:center;gap:0.4rem;">
+                <div class="uc-top-actions">
                     <span class="uc-status">
                         <span class="uc-dot" aria-hidden="true"></span>
                         {% if presence and presence.is_online %}
@@ -48,34 +50,27 @@
                         {% endif %}
                     </span>
 
-                    <details class="uc-menu user-card-menu" data-no-spa>
-                        <summary title="{% translate 'Actions' %}" aria-label="{% translate 'Actions' %}">
-                            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-                        </summary>
-                        <div class="uc-dropdown" role="menu">
-                            <a href="{{ detail_href }}" role="menuitem">
-                                <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                                Détail
-                            </a>
-                            <a href="{{ change_href }}" role="menuitem">
-                                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                                Modifier
-                            </a>
-                            {% if has_delete_permission and user.pk != request.user.pk %}
-                            <button
-                                type="button"
-                                class="user-card-delete-btn is-danger"
-                                role="menuitem"
-                                data-delete-url="{{ delete_href }}"
-                                data-delete-name="{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}"
-                                data-delete-email="{{ user.email }}"
-                            >
-                                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                                Supprimer
-                            </button>
-                            {% endif %}
-                        </div>
-                    </details>
+                    <button
+                        type="button"
+                        class="uc-menu-btn"
+                        title="{% translate 'Actions' %}"
+                        aria-label="{% translate 'Actions' %}"
+                        aria-haspopup="menu"
+                        aria-expanded="false"
+                        data-detail-url="{{ detail_href }}"
+                        data-change-url="{{ change_href }}"
+                        {% if has_change_permission %}
+                        data-send-password-url="{{ send_password_href }}"
+                        data-send-password-email="{{ user.email }}"
+                        {% endif %}
+                        {% if has_delete_permission and user.pk != request.user.pk %}
+                        data-delete-url="{{ delete_href }}"
+                        data-delete-name="{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}"
+                        data-delete-email="{{ user.email }}"
+                        {% endif %}
+                    >
+                        <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                    </button>
                 </div>
             </div>
 
@@ -98,8 +93,6 @@
             <div class="uc-foot">
                 {% if user.kind == "SUPER_ADMIN" %}
                 <span class="uc-badge is-super">Super Admin</span>
-                {% elif user.kind == "ADMIN" %}
-                <span class="uc-badge is-admin">Admin</span>
                 {% else %}
                 <span class="uc-badge is-user">Utilisateur</span>
                 {% endif %}
@@ -113,76 +106,55 @@
     </div>
 </div>
 
+{# Portal + delete dialog: moved to body; singleton JS (SPA-safe) #}
+<div id="uc-portal-menu" class="uc-portal-menu" hidden role="menu">
+    <a id="uc-portal-detail" class="uc-portal-item" role="menuitem" href="#">
+        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+        Détail
+    </a>
+    <a id="uc-portal-edit" class="uc-portal-item" role="menuitem" href="#">
+        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+        Modifier
+    </a>
+    <button id="uc-portal-send-password" type="button" class="uc-portal-item" role="menuitem" hidden>
+        <span class="material-symbols-outlined" aria-hidden="true">key</span>
+        Envoyer mot de passe
+    </button>
+    <button id="uc-portal-delete" type="button" class="uc-portal-item is-danger" role="menuitem" hidden>
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+        Supprimer
+    </button>
+</div>
+
 <div
     id="user-delete-dialog"
-    class="fixed inset-0 z-[9999] hidden items-center justify-center p-4"
+    class="uc-delete-dialog"
     role="dialog"
     aria-modal="true"
     hidden
 >
-    <div class="user-delete-backdrop absolute inset-0 bg-base-900/50"></div>
-    <div class="relative w-full max-w-sm rounded-2xl border border-base-200 bg-white p-5 shadow-xl dark:border-base-700 dark:bg-base-800">
-        <h2 class="text-base font-semibold">Supprimer l'utilisateur ?</h2>
-        <p class="mt-2 text-sm text-font-default-light dark:text-font-default-dark">
+    <div class="uc-delete-backdrop" data-uc-delete-close></div>
+    <div class="uc-delete-panel">
+        <h2>Supprimer l'utilisateur ?</h2>
+        <p>
             Voulez-vous vraiment supprimer
             <strong id="user-delete-dialog-name"></strong>
             (<span id="user-delete-dialog-email" class="break-all"></span>) ?
         </p>
-        <div class="mt-5 flex justify-end gap-2">
-            <button type="button" id="user-delete-dialog-no" class="inline-flex h-9 items-center rounded-lg border border-base-200 px-3 text-sm font-medium hover:bg-base-50">Non</button>
+        <div class="uc-delete-actions">
+            <button type="button" class="uc-delete-cancel" data-uc-delete-close>Non</button>
             <form id="user-delete-dialog-form" method="post" action="" data-no-spa>
                 {% csrf_token %}
                 <input type="hidden" name="post" value="yes">
-                <button type="submit" class="inline-flex h-9 items-center rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700">Oui, supprimer</button>
             </form>
+            <button
+                type="button"
+                id="user-delete-dialog-confirm"
+                class="uc-delete-confirm"
+            >Oui, supprimer</button>
         </div>
     </div>
 </div>
-
-<script>
-(function () {
-  function closeMenus(except) {
-    document.querySelectorAll("details.user-card-menu[open]").forEach(function (el) {
-      if (el !== except) el.removeAttribute("open");
-    });
-  }
-  function dialog() { return document.getElementById("user-delete-dialog"); }
-  function openDeleteDialog(btn) {
-    var box = dialog();
-    if (!box) return;
-    document.getElementById("user-delete-dialog-form").action = btn.getAttribute("data-delete-url") || "";
-    document.getElementById("user-delete-dialog-name").textContent = btn.getAttribute("data-delete-name") || "";
-    document.getElementById("user-delete-dialog-email").textContent = btn.getAttribute("data-delete-email") || "";
-    box.hidden = false; box.classList.remove("hidden"); box.classList.add("flex");
-    closeMenus();
-  }
-  function closeDeleteDialog() {
-    var box = dialog();
-    if (!box) return;
-    box.hidden = true; box.classList.add("hidden"); box.classList.remove("flex");
-  }
-  function onDocClick(event) {
-    if (!(event.target.closest && event.target.closest("details.user-card-menu"))) closeMenus();
-    var delBtn = event.target.closest && event.target.closest(".user-card-delete-btn");
-    if (delBtn) { event.preventDefault(); event.stopPropagation(); openDeleteDialog(delBtn); return; }
-    if (event.target.closest && event.target.closest("#user-delete-dialog-no, .user-delete-backdrop")) closeDeleteDialog();
-  }
-  function onToggle(event) {
-    if (event.target && event.target.matches && event.target.matches("details.user-card-menu") && event.target.open) closeMenus(event.target);
-  }
-  function onKey(event) { if (event.key === "Escape") { closeMenus(); closeDeleteDialog(); } }
-  function bind() {
-    document.removeEventListener("click", onDocClick, true);
-    document.removeEventListener("toggle", onToggle, true);
-    document.removeEventListener("keydown", onKey, true);
-    document.addEventListener("click", onDocClick, true);
-    document.addEventListener("toggle", onToggle, true);
-    document.addEventListener("keydown", onKey, true);
-  }
-  bind();
-  document.addEventListener("twoos:spa-ready", bind);
-})();
-</script>
 {% else %}
     {% include "unfold/helpers/empty_results.html" %}
 {% endif %}

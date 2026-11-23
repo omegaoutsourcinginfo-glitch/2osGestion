@@ -1,8 +1,9 @@
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import Group
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from unfold.admin import ModelAdmin
@@ -10,18 +11,57 @@ from unfold.forms import AdminPasswordChangeForm
 from unfold.widgets import UnfoldAdminImageSmallFieldWidget
 
 from users.models import User
-from users.services import generate_password, send_account_credentials_email
+from users.services import (
+    apply_role_access,
+    reset_and_email_password,
+    send_account_credentials_email,
+)
 
 admin.site.unregister(Group)
 
 
+class EmailAdminAuthenticationForm(AuthenticationForm):
+    """Admin login uses email in the username field."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Adresse e-mail"
+        self.fields["username"].widget.attrs.update(
+            {
+                "autocomplete": "username",
+                "placeholder": "email@exemple.com",
+            }
+        )
+
+
+admin.site.login_form = EmailAdminAuthenticationForm
+
+_orig_admin_login = admin.site.login
+
+
+def _admin_login(request, extra_context=None):
+    """After login, never send Utilisateur to /admin/users/ (403 looks like failed login)."""
+    response = _orig_admin_login(request, extra_context=extra_context)
+    user = getattr(request, "user", None)
+    if (
+        request.method == "POST"
+        and user is not None
+        and user.is_authenticated
+        and not user.is_superuser
+        and isinstance(response, HttpResponseRedirect)
+    ):
+        target = response.url or ""
+        if "/users/" in target:
+            return HttpResponseRedirect(reverse("admin:index"))
+    return response
+
+
+admin.site.login = _admin_login
+
+
 def _apply_kind_flags(user: User) -> None:
-    if user.kind == User.UserKind.SUPER_ADMIN:
-        user.is_staff = True
-        user.is_superuser = True
-    elif user.kind == User.UserKind.ADMIN:
-        user.is_staff = True
-        user.is_superuser = False
+    """Keep Django auth flags in sync with Rôle (Super Admin / Utilisateur)."""
+    apply_role_access(user)
 
 
 class UserCreationForm(forms.ModelForm):
@@ -33,14 +73,23 @@ class UserCreationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        labels = {
+            "email": "Adresse e-mail",
+            "first_name": "Prénom",
+            "last_name": "Nom",
+            "phone": "Téléphone",
+            "kind": "Rôle",
+        }
         for name in ("email", "first_name", "last_name", "phone", "kind"):
             self.fields[name].required = True
+            if name in labels:
+                self.fields[name].label = labels[name]
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if email and User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(
-                "A user is already registered with this e-mail address."
+                "Un utilisateur est déjà enregistré avec cette adresse e-mail."
             )
         return email
 
@@ -49,7 +98,7 @@ class UserCreationForm(forms.ModelForm):
         if not phone:
             raise forms.ValidationError("Ce champ est obligatoire.")
         if User.objects.filter(phone=phone).exists():
-            raise forms.ValidationError("Phone number already exists")
+            raise forms.ValidationError("Ce numéro de téléphone existe déjà.")
         return phone
 
     def clean_kind(self):
@@ -57,14 +106,24 @@ class UserCreationForm(forms.ModelForm):
         request = getattr(self, "request", None)
         if request is not None and not request.user.is_superuser:
             raise forms.ValidationError(
-                "Seul un superutilisateur peut créer un Admin."
+                "Seul un Super Admin peut créer un utilisateur."
             )
+        if kind not in (
+            User.UserKind.SUPER_ADMIN,
+            User.UserKind.USER,
+        ):
+            raise forms.ValidationError("Rôle invalide.")
         return kind
 
     def save(self, commit=True):
+        # Like serializer.create(): generate password then set_password.
+        from users.services import generate_password
+
         user = super().save(commit=False)
-        password = generate_password()
+        password = generate_password(12)
         user.set_password(password)
+        # Keep on both form + instance (admin save_form uses commit=False).
+        self._generated_password = password
         user._generated_password = password
         _apply_kind_flags(user)
         if commit:
@@ -88,6 +147,18 @@ class UserChangeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        labels = {
+            "email": "Adresse e-mail",
+            "first_name": "Prénom",
+            "last_name": "Nom",
+            "phone": "Téléphone",
+            "kind": "Rôle",
+            "image": "Photo",
+            "is_active": "Actif",
+        }
+        for name, label in labels.items():
+            if name in self.fields:
+                self.fields[name].label = label
         for name in ("email", "first_name", "last_name", "phone", "kind"):
             if name in self.fields:
                 self.fields[name].required = True
@@ -108,8 +179,13 @@ class UserChangeForm(forms.ModelForm):
         request = getattr(self, "request", None)
         if request is not None and not request.user.is_superuser:
             raise forms.ValidationError(
-                "Seul un superutilisateur peut définir un Admin."
+                "Seul un Super Admin peut modifier le rôle."
             )
+        if kind not in (
+            User.UserKind.SUPER_ADMIN,
+            User.UserKind.USER,
+        ):
+            raise forms.ValidationError("Rôle invalide.")
         return kind
 
 
@@ -120,7 +196,8 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
     change_password_form = AdminPasswordChangeForm
     change_list_template = "admin/users/user/change_list.html"
     change_form_template = "admin/users/user/change_form.html"
-    change_form_outer_before_template = "admin/users/user/change_form_hero.html"
+    # Hero is included inside change_form.html (one connected composition).
+    change_form_outer_before_template = None
     # Skip Django's auth add_form.html ("After you've created a user…").
     add_form_template = "admin/users/user/change_form.html"
     actions = None
@@ -144,12 +221,16 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
         (
             "Profil",
             {
-                "description": "Informations du compte affichées sur la fiche utilisateur.",
+                "description": (
+                    '<div class="user-alert">'
+                    '<span class="material-symbols-outlined" aria-hidden="true">badge</span>'
+                    "<div><strong>Profil utilisateur</strong><br>"
+                    "Ces informations apparaissent sur la fiche et dans la liste des comptes."
+                    "</div></div>"
+                ),
                 "fields": (
-                    "email",
-                    "first_name",
-                    "last_name",
-                    "phone",
+                    ("email", "phone"),
+                    ("first_name", "last_name"),
                     "kind",
                     "image",
                     "is_active",
@@ -162,12 +243,16 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
             "Profil",
             {
                 "classes": ("wide",),
-                "description": "Créez le compte. Le mot de passe est généré automatiquement.",
+                "description": (
+                    '<div class="user-alert">'
+                    '<span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>'
+                    "<div><strong>Mot de passe automatique</strong><br>"
+                    "Créé à l'enregistrement et envoyé par e-mail à l'utilisateur."
+                    "</div></div>"
+                ),
                 "fields": (
-                    "email",
-                    "first_name",
-                    "last_name",
-                    "phone",
+                    ("email", "phone"),
+                    ("first_name", "last_name"),
                     "kind",
                 ),
             },
@@ -194,9 +279,13 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def formfield_for_choice_field(self, db_field, request, **kwargs):
-        if db_field.name == "kind" and not request.user.is_superuser:
-            # Non-superuser cannot assign Admin / Super Admin.
-            kwargs["choices"] = []
+        if db_field.name == "kind":
+            # Only two roles in the product UI.
+            kwargs["choices"] = list(User.UserKind.choices)
+            if not request.user.is_superuser:
+                kwargs["choices"] = [
+                    c for c in kwargs["choices"] if c[0] == User.UserKind.USER
+                ]
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
@@ -205,9 +294,32 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
             readonly.append("kind")
         return readonly
 
+    def has_module_permission(self, request):
+        # Utilisateur must not see the users app at all.
+        return bool(request.user.is_superuser)
+
+    def has_view_permission(self, request, obj=None):
+        return bool(request.user.is_superuser)
+
+    def has_change_permission(self, request, obj=None):
+        return bool(request.user.is_superuser)
+
+    def has_delete_permission(self, request, obj=None):
+        return bool(request.user.is_superuser)
+
     def has_add_permission(self, request):
-        # Only a superuser can create Admin / Super Admin accounts.
-        return request.user.is_superuser and super().has_add_permission(request)
+        # Only Super Admin can create accounts.
+        return bool(request.user.is_superuser)
+
+    def _redirect_non_superuser(self, request):
+        """Avoid raw 403 after login when ``next`` points at /admin/users/…"""
+        if request.user.is_superuser:
+            return None
+        messages.warning(
+            request,
+            "Accès réservé au Super Admin. Bienvenue sur le tableau de bord projets.",
+        )
+        return HttpResponseRedirect(reverse("admin:index"))
 
     def get_urls(self):
         opts = self.model._meta
@@ -217,19 +329,130 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
                 self.admin_site.admin_view(self.detail_view),
                 name=f"{opts.app_label}_{opts.model_name}_detail",
             ),
+            path(
+                "<path:object_id>/quick-delete/",
+                self.admin_site.admin_view(self.quick_delete_view),
+                name=f"{opts.app_label}_{opts.model_name}_quick_delete",
+            ),
+            path(
+                "<path:object_id>/send-password/",
+                self.admin_site.admin_view(self.send_password_view),
+                name=f"{opts.app_label}_{opts.model_name}_send_password",
+            ),
         ]
         return custom + super().get_urls()
 
+    def send_password_view(self, request, object_id):
+        """POST: reset password + send it by e-mail (AJAX JSON)."""
+        opts = self.model._meta
+        obj = get_object_or_404(self.get_queryset(request), pk=object_id)
+        changelist = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+        wants_json = (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or "application/json" in (request.headers.get("Accept") or "")
+        )
+
+        def _json(ok, message, status=200):
+            return JsonResponse(
+                {"ok": ok, "message": message, "id": str(object_id)},
+                status=status,
+            )
+
+        if request.method != "POST":
+            if wants_json:
+                return _json(False, "Méthode non autorisée.", status=405)
+            return HttpResponseRedirect(changelist)
+
+        if not self.has_change_permission(request, obj):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
+
+        if not obj.email:
+            msg = "Cet utilisateur n'a pas d'adresse e-mail."
+            if wants_json:
+                return _json(False, msg, status=400)
+            self.message_user(request, msg, messages.ERROR)
+            return HttpResponseRedirect(changelist)
+
+        try:
+            reset_and_email_password(obj)
+        except Exception as e:
+            msg = f"Impossible d'envoyer le mot de passe à {obj.email} : {e}"
+            if wants_json:
+                return _json(False, msg, status=400)
+            self.message_user(request, msg, messages.ERROR)
+            return HttpResponseRedirect(changelist)
+
+        msg = f"Nouveau mot de passe envoyé à {obj.email}."
+        if wants_json:
+            return _json(True, msg)
+        self.message_user(request, msg, messages.SUCCESS)
+        return HttpResponseRedirect(changelist)
+
+    def quick_delete_view(self, request, object_id):
+        """POST delete from cards/detail. AJAX → JSON (no full page refresh)."""
+        opts = self.model._meta
+        obj = get_object_or_404(self.get_queryset(request), pk=object_id)
+        changelist = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+        wants_json = (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or "application/json" in (request.headers.get("Accept") or "")
+        )
+
+        def _json(ok, message, status=200):
+            return JsonResponse(
+                {"ok": ok, "message": message, "id": str(object_id)},
+                status=status,
+            )
+
+        if request.method != "POST":
+            if wants_json:
+                return _json(False, "Méthode non autorisée.", status=405)
+            return HttpResponseRedirect(changelist)
+
+        if not self.has_delete_permission(request, obj):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
+
+        if obj.pk == request.user.pk:
+            msg = "Vous ne pouvez pas supprimer votre propre compte."
+            if wants_json:
+                return _json(False, msg, status=400)
+            self.message_user(request, msg, messages.ERROR)
+            return HttpResponseRedirect(changelist)
+
+        label = str(obj)
+        try:
+            self.log_deletions(request, [obj])
+            self.delete_model(request, obj)
+        except Exception as e:
+            msg = f"Impossible de supprimer {label} : {e}"
+            if wants_json:
+                return _json(False, msg, status=400)
+            self.message_user(request, msg, messages.ERROR)
+            return HttpResponseRedirect(changelist)
+
+        msg = f"Utilisateur « {label} » supprimé avec succès."
+        if wants_json:
+            return _json(True, msg)
+        self.message_user(request, msg, messages.SUCCESS)
+        return HttpResponseRedirect(changelist)
+
     def detail_view(self, request, object_id, extra_context=None):
+        denied = self._redirect_non_superuser(request)
+        if denied is not None:
+            return denied
         opts = self.model._meta
         obj = get_object_or_404(
             self.get_queryset(request).select_related("presence"),
             pk=object_id,
         )
         if not self.has_view_permission(request, obj):
-            from django.core.exceptions import PermissionDenied
-
-            raise PermissionDenied
+            return self._redirect_non_superuser(request) or HttpResponseRedirect(
+                reverse("admin:index")
+            )
 
         context = {
             **self.admin_site.each_context(request),
@@ -246,39 +469,74 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
         return render(request, "admin/users/user/detail.html", context)
 
     def changelist_view(self, request, extra_context=None):
+        denied = self._redirect_non_superuser(request)
+        if denied is not None:
+            return denied
         extra_context = extra_context or {}
+        extra_context.setdefault(
+            "has_change_permission",
+            self.has_change_permission(request),
+        )
         extra_context.setdefault(
             "has_delete_permission",
             self.has_delete_permission(request),
         )
         return super().changelist_view(request, extra_context=extra_context)
 
-    def response_add(self, request, obj, post_url_continue=None):
-        # One success alert, then back to the user list (no stay-on-edit).
-        self.message_user(
-            request,
-            f"Utilisateur créé avec succès ({obj.email}).",
-            messages.SUCCESS,
+    def add_view(self, request, form_url="", extra_context=None):
+        denied = self._redirect_non_superuser(request)
+        if denied is not None:
+            return denied
+        return super().add_view(request, form_url, extra_context)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        denied = self._redirect_non_superuser(request)
+        if denied is not None:
+            return denied
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def save_model(self, request, obj, form, change):
+        if "kind" in form.cleaned_data:
+            _apply_kind_flags(obj)
+        super().save_model(request, obj, form, change)
+        # Groups need pk — sync again after save.
+        apply_role_access(obj)
+        if change:
+            return
+        # Stash plaintext password for response_add (serializer.create email step).
+        request._new_user_password = (
+            getattr(form, "_generated_password", None)
+            or getattr(obj, "_generated_password", None)
         )
+
+    def response_add(self, request, obj, post_url_continue=None):
+        # Same as serializer.create(): send login password by e-mail after save.
+        password = getattr(request, "_new_user_password", None)
+        if password:
+            try:
+                send_account_credentials_email(obj, password)
+                self.message_user(
+                    request,
+                    f"Utilisateur créé — e-mail envoyé à {obj.email}.",
+                    messages.SUCCESS,
+                )
+            except Exception as e:
+                print(f"Error sending email: {e}")
+                self.message_user(
+                    request,
+                    f"Utilisateur créé ({obj.email}), mais l'e-mail n'a pas pu être envoyé : {e}",
+                    messages.ERROR,
+                )
+        else:
+            self.message_user(
+                request,
+                f"Utilisateur créé ({obj.email}), mais aucun mot de passe à envoyer.",
+                messages.WARNING,
+            )
         opts = self.model._meta
         if "_addanother" in request.POST:
             return HttpResponseRedirect(request.path)
         return HttpResponseRedirect(
             reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
         )
-
-    def save_model(self, request, obj, form, change):
-        if "kind" in form.cleaned_data:
-            _apply_kind_flags(obj)
-        super().save_model(request, obj, form, change)
-        if change:
-            return
-        password = getattr(obj, "_generated_password", None)
-        if not password:
-            return
-        try:
-            send_account_credentials_email(obj, password)
-        except Exception:
-            # Email failure must not block create; success alert is shown in response_add.
-            pass
 
