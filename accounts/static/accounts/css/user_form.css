@@ -13,7 +13,7 @@ body.app-users.model-user.change-form {
   --uf-surface: #ffffff;
   --uf-canvas: #f4f6f9;
   --uf-radius: 1.5rem;
-  --uf-width: 38.5rem;
+  --uf-width: 100%;
 }
 
 /* Soft page atmosphere */
@@ -34,13 +34,14 @@ body.app-users.model-user.change-form #content-start {
   display: none !important;
 }
 
-/* ---- Shell card ---- */
+/* ---- Shell card (full content width) ---- */
 .uf-shell {
-  max-width: var(--uf-width);
-  margin: 1.25rem auto 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0.75rem 0 0;
   border-radius: var(--uf-radius) var(--uf-radius) 0 0;
   background: var(--uf-surface);
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 1px solid #dbe3ee;
   border-bottom: 0;
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.04),
@@ -311,11 +312,27 @@ body.app-users.model-user.change-form #content-start {
   width: 100% !important;
 }
 
-/* Input prefixes (icon + field) */
+/* Input prefixes (icon + field) — border lives on WRAP
+   because Unfold/Tailwind utilities load after this file and zero input borders. */
 .uf-shell .uf-input-wrap {
   position: relative;
   display: block;
   width: 100%;
+  box-sizing: border-box;
+  border: 2px solid #000 !important;
+  border-radius: 0.85rem !important;
+  background: #fff !important;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.uf-shell .uf-input-wrap:hover {
+  border-color: #000 !important;
+}
+
+.uf-shell .uf-input-wrap:focus-within {
+  border-color: #000 !important;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12) !important;
 }
 
 .uf-shell .uf-input-prefix {
@@ -327,11 +344,11 @@ body.app-users.model-user.change-form #content-start {
   pointer-events: none;
   font-size: 1.15rem !important;
   line-height: 1;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .uf-shell .uf-input-wrap:focus-within .uf-input-prefix {
-  color: var(--uf-brand);
+  color: #000;
 }
 
 /* Soft modern inputs */
@@ -348,9 +365,9 @@ body.app-users.model-user.change-form #content-start {
   width: 100% !important;
   max-width: none !important;
   min-height: 2.85rem !important;
-  border: 1px solid transparent !important;
+  border: 1.5px solid #111827 !important;
   border-radius: 0.85rem !important;
-  background: #f1f5f9 !important;
+  background: #fff !important;
   box-shadow: none !important;
   padding-inline: 0.95rem !important;
   font-size: 0.92rem !important;
@@ -363,9 +380,17 @@ body.app-users.model-user.change-form #content-start {
     transform 0.15s ease;
 }
 
+.uf-shell .uf-input-wrap input,
+.uf-shell .uf-input-wrap select,
 .uf-shell input.uf-has-prefix,
 .uf-shell select.uf-has-prefix {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
   padding-left: 2.55rem !important;
+  background: transparent !important;
+  min-height: 2.85rem !important;
 }
 
 .uf-shell input.uf-has-prefix::placeholder {
@@ -375,16 +400,21 @@ body.app-users.model-user.change-form #content-start {
 
 .uf-shell input:hover,
 .uf-shell select:hover,
-.uf-shell textarea:hover {
-  background: #eef2f7 !important;
+.uf-shell textarea:hover,
+.uf-shell .uf-input-wrap:hover input,
+.uf-shell .uf-input-wrap:hover select {
+  background: #fff !important;
+  border-color: #000 !important;
 }
 
 .uf-shell input:focus,
 .uf-shell select:focus,
-.uf-shell textarea:focus {
+.uf-shell textarea:focus,
+.uf-shell .uf-input-wrap:focus-within input,
+.uf-shell .uf-input-wrap:focus-within select {
   background: #fff !important;
-  border-color: rgba(139, 30, 45, 0.45) !important;
-  box-shadow: 0 0 0 4px rgba(139, 30, 45, 0.12) !important;
+  border-color: #000 !important;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.12) !important;
   outline: none !important;
 }
 
@@ -411,8 +441,9 @@ body.app-users.model-user.change-form #content-start {
 body.app-users.model-user.change-form #submit-row {
   position: static !important;
   z-index: 1 !important;
-  max-width: var(--uf-width);
-  margin: 0 auto 2rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 1.5rem;
   animation: uf-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
 }
 
@@ -438,7 +469,7 @@ body.app-users.model-user.change-form #submit-row .container {
   justify-content: flex-end !important;
   align-items: center !important;
   gap: 0.6rem !important;
-  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border: 1px solid #dbe3ee !important;
   border-top: 1px solid var(--uf-line) !important;
   border-radius: 0 0 var(--uf-radius) var(--uf-radius) !important;
   background: #fff !important;
@@ -528,6 +559,19 @@ body.user-add-form #submit-row input[name="_continue"] {
   .uf-shell .form-row.field-row,
   .uf-shell .group\/row {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* On wide screens keep a comfortable field grid, not a single skinny column */
+@media (min-width: 960px) {
+  .uf-shell fieldset {
+    padding-inline: 1.75rem !important;
+  }
+  .uf-shell .field-row,
+  .uf-shell .form-row.field-row,
+  .uf-shell .group\/row {
+    grid-template-columns: 1fr 1fr !important;
+    max-width: none;
   }
 }
 

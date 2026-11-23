@@ -31,6 +31,15 @@
       wrap.appendChild(icon);
       wrap.appendChild(el);
 
+      // Inline fallback: Unfold CSS loads after ours and clears input borders.
+      wrap.style.setProperty("border", "2px solid #000", "important");
+      wrap.style.setProperty("border-radius", "0.85rem", "important");
+      wrap.style.setProperty("background", "#fff", "important");
+      el.style.setProperty("border", "0", "important");
+      el.style.setProperty("box-shadow", "none", "important");
+      el.style.setProperty("outline", "none", "important");
+      el.style.setProperty("background", "transparent", "important");
+
       if (meta.placeholder && !el.getAttribute("placeholder")) {
         el.setAttribute("placeholder", meta.placeholder);
       }
