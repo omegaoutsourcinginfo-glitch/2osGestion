@@ -258,11 +258,28 @@
     box.setAttribute("hidden", "hidden");
   }
 
+  function updateResultCount(delta) {
+    var badges = document.querySelectorAll(".changelist-result-count");
+    badges.forEach(function (badge) {
+      var raw = (badge.textContent || "").trim();
+      var n = parseInt(raw, 10);
+      if (isNaN(n)) return;
+      var next = Math.max(0, n + delta);
+      badge.textContent = String(next);
+      var title = badge.getAttribute("title") || "";
+      if (title) {
+        badge.setAttribute("title", title.replace(String(n), String(next)));
+      }
+      badge.hidden = next === 0;
+    });
+  }
+
   function removeCard(card) {
     if (!card || !card.parentNode) return;
     card.classList.add("is-removing");
     window.setTimeout(function () {
       if (card.parentNode) card.remove();
+      updateResultCount(-1);
       var grid = qs(".uc-grid");
       if (grid && !grid.querySelector(".uc-card")) {
         var wrap = qs(".uc-wrap");

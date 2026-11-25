@@ -20,6 +20,13 @@ from users.services import (
 admin.site.unregister(Group)
 
 
+class RoleRadioSelect(forms.RadioSelect):
+    """Rôle as Tailwind pills — no border / no native select."""
+
+    template_name = "users/widgets/role_radio.html"
+    option_template_name = "users/widgets/role_option.html"
+
+
 class EmailAdminAuthenticationForm(AuthenticationForm):
     """Admin login uses email in the username field."""
 
@@ -84,6 +91,10 @@ class UserCreationForm(forms.ModelForm):
             self.fields[name].required = True
             if name in labels:
                 self.fields[name].label = labels[name]
+        self.fields["kind"].widget = RoleRadioSelect(
+            choices=User.UserKind.choices,
+        )
+        self.fields["kind"].initial = User.UserKind.USER
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
@@ -162,6 +173,10 @@ class UserChangeForm(forms.ModelForm):
         for name in ("email", "first_name", "last_name", "phone", "kind"):
             if name in self.fields:
                 self.fields[name].required = True
+        if "kind" in self.fields:
+            self.fields["kind"].widget = RoleRadioSelect(
+                choices=User.UserKind.choices,
+            )
 
     def clean_phone(self):
         phone = (self.cleaned_data.get("phone") or "").strip()
@@ -201,6 +216,18 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
     # Skip Django's auth add_form.html ("After you've created a user…").
     add_form_template = "admin/users/user/change_form.html"
     actions = None
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        # Keep create page short: one primary Enregistrer in view.
+        extra_context = extra_context or {}
+        if object_id is None:
+            extra_context.update(
+                {
+                    "show_save_and_continue": False,
+                    "show_save_and_add_another": False,
+                }
+            )
+        return super().changeform_view(request, object_id, form_url, extra_context)
     ordering = ("-date_joined",)
     list_display = (
         "email",
@@ -212,7 +239,8 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
         "is_active",
         "date_joined",
     )
-    list_filter = ("kind", "is_staff", "is_superuser", "is_active")
+    # Card UI: hide Unfold Filters button / sidebar.
+    list_filter = ()
     search_fields = ("email", "first_name", "last_name", "phone", "reference")
     readonly_fields = ("reference", "last_login", "date_joined")
     list_select_related = ("presence",)
@@ -280,12 +308,13 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
 
     def formfield_for_choice_field(self, db_field, request, **kwargs):
         if db_field.name == "kind":
-            # Only two roles in the product UI.
+            # Only two roles in the product UI — radio pills, not a select.
             kwargs["choices"] = list(User.UserKind.choices)
             if not request.user.is_superuser:
                 kwargs["choices"] = [
                     c for c in kwargs["choices"] if c[0] == User.UserKind.USER
                 ]
+            kwargs["widget"] = RoleRadioSelect()
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):

@@ -625,6 +625,40 @@
     return result;
   }
 
+  function isUserAdminFormUrl(url) {
+    var path = normalizePath(url);
+    return path.indexOf("/admin/users/user") === 0;
+  }
+
+  /** POST user admin form via HTMX so Enregistrer does not full-refresh the page. */
+  function spaPostForm(url, form, submitter) {
+    if (typeof htmx === "undefined" || !document.getElementById("main")) {
+      form.submit();
+      return;
+    }
+
+    var requestUrl = url;
+    try {
+      var req = new URL(url, window.location.origin);
+      requestUrl = req.pathname + req.search;
+    } catch (errReq) {
+      // keep url
+    }
+
+    var values = new FormData(form);
+    if (submitter && submitter.name) {
+      values.append(submitter.name, submitter.value || "");
+    }
+
+    htmx.ajax("POST", requestUrl, {
+      target: "#main",
+      swap: "innerHTML",
+      select: "#main > *",
+      source: form,
+      values: values,
+    });
+  }
+
   function isChangeFormPath(url) {
     var path = normalizePath(url);
     return /\/add$/.test(path) || /\/change$/.test(path);
@@ -779,12 +813,10 @@
     if (
       form.id === "login-form" ||
       form.id === "logout-form" ||
+      form.id === "twoos-logout-form" ||
       (form.getAttribute("action") || "").indexOf("login") >= 0 ||
       (form.getAttribute("action") || "").indexOf("logout") >= 0
     ) {
-      return;
-    }
-    if ((form.getAttribute("method") || "get").toLowerCase() !== "get") {
       return;
     }
     if (form.target === "_blank" || form.closest("[data-no-spa]")) {
@@ -793,6 +825,19 @@
 
     var action = form.getAttribute("action") || window.location.href;
     if (!isInternalAppUrl(action)) {
+      return;
+    }
+
+    var method = (form.getAttribute("method") || "get").toLowerCase();
+
+    // User create/edit: POST without full page refresh.
+    if (method === "post") {
+      if (!isUserAdminFormUrl(action) && !isUserAdminFormUrl(window.location.href)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      spaPostForm(action, form, event.submitter);
       return;
     }
 
@@ -849,6 +894,14 @@
       return;
     }
     try {
+      var verb =
+        (event.detail.requestConfig && event.detail.requestConfig.verb) || "";
+      var finalUrlOk = xhr.responseURL || "";
+      if (verb.toLowerCase() === "post" && finalUrlOk) {
+        pushUrl(finalUrlOk);
+        rememberSpaPath(finalUrlOk);
+        updateSidebarActive(finalUrlOk);
+      }
       var doc = new DOMParser().parseFromString(xhr.responseText, "text/html");
       if (doc.querySelector("#login-form")) {
         window.location.href = "/admin/login/";
@@ -856,6 +909,14 @@
       }
       if (doc.querySelector("#main") && doc.title) {
         document.title = doc.title;
+      }
+      // Sync body classes (change-form / user-add-form) after SPA POST.
+      if (doc.body && document.body) {
+        ["change-form", "user-add-form", "app-users", "model-user"].forEach(
+          function (cls) {
+            document.body.classList.toggle(cls, doc.body.classList.contains(cls));
+          }
+        );
       }
     } catch (err) {
       // ignore

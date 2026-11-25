@@ -38,16 +38,135 @@ body.app-users.model-user.change-form #content-start {
 .uf-shell {
   width: 100%;
   max-width: 100%;
-  margin: 0.75rem 0 0;
+  margin: 0.5rem 0 0;
   border-radius: var(--uf-radius) var(--uf-radius) 0 0;
   background: var(--uf-surface);
   border: 1px solid #dbe3ee;
   border-bottom: 0;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 24px 48px -28px rgba(15, 23, 42, 0.28);
+  box-shadow: none;
   overflow: hidden;
   animation: uf-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Compact create form: everything + Enregistrer without page scroll */
+.uf-shell.is-add .uf-hero {
+  padding: 0.7rem 1.25rem 0.75rem;
+}
+
+.uf-shell.is-add .uf-back {
+  margin-bottom: 0.45rem;
+}
+
+.uf-shell.is-add .uf-title {
+  font-size: 1.35rem;
+}
+
+.uf-shell.is-add .uf-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.uf-shell.is-add .uf-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+}
+
+.uf-shell.is-add .uf-avatar .material-symbols-outlined {
+  font-size: 1.35rem !important;
+}
+
+.uf-shell.is-add fieldset {
+  padding: 0.85rem 1.25rem 0.75rem !important;
+}
+
+.uf-shell.is-add fieldset .description,
+.uf-shell.is-add fieldset > div.leading-relaxed {
+  margin: 0 0 0.75rem !important;
+}
+
+.uf-shell.is-add .user-alert {
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.uf-shell.is-add .user-alert strong {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+}
+
+.uf-shell.is-add .user-alert .material-symbols-outlined {
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 1rem !important;
+  border-radius: 0.45rem;
+}
+
+.uf-shell.is-add .field-row,
+.uf-shell.is-add .form-row.field-row,
+.uf-shell.is-add .group\/row {
+  gap: 0.75rem 1rem !important;
+  margin: 0 0 0.75rem !important;
+}
+
+.uf-shell.is-add .field-line,
+.uf-shell.is-add .group\/line {
+  gap: 0.3rem !important;
+}
+
+.uf-shell.is-add label {
+  font-size: 0.72rem !important;
+}
+
+.uf-shell.is-add .uf-input-wrap,
+.uf-shell.is-add input[type="text"],
+.uf-shell.is-add input[type="email"],
+.uf-shell.is-add input[type="tel"],
+.uf-shell.is-add select {
+  min-height: 2.45rem !important;
+}
+
+.uf-shell.is-add .uf-input-wrap input,
+.uf-shell.is-add .uf-input-wrap select,
+.uf-shell.is-add input.uf-has-prefix,
+.uf-shell.is-add select.uf-has-prefix {
+  min-height: 2.45rem !important;
+}
+
+/* Submit lives inside .uf-shell (JS moves it) — no empty gap */
+.uf-shell.has-submit {
+  border-radius: var(--uf-radius);
+  border-bottom: 1px solid #dbe3ee;
+  margin-bottom: 0.75rem;
+}
+
+body.app-users.model-user.change-form.user-add-form #submit-row,
+body.app-users.model-user.change-form #submit-row {
+  margin: 0 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 40 !important;
+}
+
+body.app-users.model-user.change-form.user-add-form #submit-row > div > div.relative,
+body.app-users.model-user.change-form.user-add-form #submit-row .container {
+  padding: 0.7rem 1.25rem !important;
+  border-radius: 0 0 var(--uf-radius) var(--uf-radius) !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Hide secondary save on create — one clear Enregistrer in view */
+body.app-users.model-user.change-form.user-add-form #submit-row button[name="_addanother"],
+body.app-users.model-user.change-form.user-add-form #submit-row input[name="_addanother"],
+body.app-users.model-user.change-form.user-add-form #submit-row button[name="_continue"],
+body.app-users.model-user.change-form.user-add-form #submit-row input[name="_continue"] {
+  display: none !important;
 }
 
 @keyframes uf-rise {
@@ -177,7 +296,7 @@ body.app-users.model-user.change-form #content-start {
 
 .uf-shell fieldset {
   margin: 0 !important;
-  padding: 1.35rem 1.5rem 0.5rem !important;
+  padding: 1.5rem 1.75rem 1.5rem !important;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -251,8 +370,8 @@ body.app-users.model-user.change-form #content-start {
 .uf-shell .group\/row {
   display: grid !important;
   grid-template-columns: 1fr 1fr;
-  gap: 1.1rem 1.15rem !important;
-  margin: 0 0 1.1rem !important;
+  gap: 1.25rem 1.35rem !important;
+  margin: 0 0 1.25rem !important;
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
@@ -312,43 +431,44 @@ body.app-users.model-user.change-form #content-start {
   width: 100% !important;
 }
 
-/* Input prefixes (icon + field) — border lives on WRAP
-   because Unfold/Tailwind utilities load after this file and zero input borders. */
+/* Input prefixes — soft bordered wraps (Unfold clears raw input borders) */
 .uf-shell .uf-input-wrap {
   position: relative;
   display: block;
   width: 100%;
   box-sizing: border-box;
-  border: 2px solid #000 !important;
-  border-radius: 0.85rem !important;
-  background: #fff !important;
+  border: 1px solid #d0d7e2 !important;
+  border-radius: 0.9rem !important;
+  background: #f8fafc !important;
   overflow: hidden;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .uf-shell .uf-input-wrap:hover {
-  border-color: #000 !important;
+  border-color: #b8c2d1 !important;
+  background: #fff !important;
 }
 
 .uf-shell .uf-input-wrap:focus-within {
-  border-color: #000 !important;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(139, 30, 45, 0.55) !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 4px rgba(139, 30, 45, 0.12) !important;
 }
 
 .uf-shell .uf-input-prefix {
   position: absolute;
   top: 50%;
-  left: 0.85rem;
+  left: 0.9rem;
   z-index: 2;
   transform: translateY(-50%);
   pointer-events: none;
   font-size: 1.15rem !important;
   line-height: 1;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .uf-shell .uf-input-wrap:focus-within .uf-input-prefix {
-  color: #000;
+  color: var(--uf-brand);
 }
 
 /* Soft modern inputs */
@@ -364,10 +484,10 @@ body.app-users.model-user.change-form #content-start {
 .uf-shell .select2-container {
   width: 100% !important;
   max-width: none !important;
-  min-height: 2.85rem !important;
-  border: 1.5px solid #111827 !important;
-  border-radius: 0.85rem !important;
-  background: #fff !important;
+  min-height: 2.9rem !important;
+  border: 1px solid #d0d7e2 !important;
+  border-radius: 0.9rem !important;
+  background: #f8fafc !important;
   box-shadow: none !important;
   padding-inline: 0.95rem !important;
   font-size: 0.92rem !important;
@@ -376,8 +496,7 @@ body.app-users.model-user.change-form #content-start {
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    box-shadow 0.15s ease;
 }
 
 .uf-shell .uf-input-wrap input,
@@ -388,9 +507,9 @@ body.app-users.model-user.change-form #content-start {
   border-radius: 0 !important;
   box-shadow: none !important;
   outline: none !important;
-  padding-left: 2.55rem !important;
+  padding-left: 2.65rem !important;
   background: transparent !important;
-  min-height: 2.85rem !important;
+  min-height: 2.9rem !important;
 }
 
 .uf-shell input.uf-has-prefix::placeholder {
@@ -400,22 +519,27 @@ body.app-users.model-user.change-form #content-start {
 
 .uf-shell input:hover,
 .uf-shell select:hover,
-.uf-shell textarea:hover,
-.uf-shell .uf-input-wrap:hover input,
-.uf-shell .uf-input-wrap:hover select {
+.uf-shell textarea:hover {
   background: #fff !important;
-  border-color: #000 !important;
+  border-color: #b8c2d1 !important;
 }
 
 .uf-shell input:focus,
 .uf-shell select:focus,
-.uf-shell textarea:focus,
+.uf-shell textarea:focus {
+  background: #fff !important;
+  border-color: rgba(139, 30, 45, 0.55) !important;
+  box-shadow: 0 0 0 4px rgba(139, 30, 45, 0.12) !important;
+  outline: none !important;
+}
+
+.uf-shell .uf-input-wrap:hover input,
+.uf-shell .uf-input-wrap:hover select,
 .uf-shell .uf-input-wrap:focus-within input,
 .uf-shell .uf-input-wrap:focus-within select {
-  background: #fff !important;
-  border-color: #000 !important;
-  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.12) !important;
-  outline: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 .uf-shell .field-image img,
@@ -437,13 +561,112 @@ body.app-users.model-user.change-form #content-start {
   font-size: 0.76rem !important;
 }
 
+/* Rôle — Tailwind-like pills, no border */
+.uf-shell .uf-role-radios,
+.uf-shell ul.uf-role-radios,
+.uf-shell .field-kind ul {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.5rem !important;
+  margin: 0 !important;
+  padding: 0.35rem !important;
+  list-style: none !important;
+  background: #f1f5f9 !important;
+  border: 0 !important;
+  border-radius: 0.9rem !important;
+  box-shadow: none !important;
+}
+
+.uf-shell .field-kind ul > li,
+.uf-shell .uf-role-radios > li {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  border: 0 !important;
+}
+
+.uf-shell .field-kind label,
+.uf-shell .uf-role-radios label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 !important;
+  padding: 0.55rem 0.95rem !important;
+  min-height: 2.35rem;
+  border: 0 !important;
+  border-radius: 0.7rem !important;
+  background: transparent !important;
+  font-size: 0.86rem !important;
+  font-weight: 650 !important;
+  color: #64748b !important;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.uf-shell .field-kind input[type="radio"],
+.uf-shell .uf-role-radios input[type="radio"] {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.uf-shell .field-kind label:has(input:checked),
+.uf-shell .uf-role-radios label:has(input:checked),
+.uf-shell .uf-role-option:has(input:checked) {
+  border: 0 !important;
+  background: #ffffff !important;
+  color: var(--uf-deep) !important;
+  box-shadow: none !important;
+}
+
+.uf-shell .uf-role-option {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.uf-shell .field-kind .uf-input-wrap {
+  display: none !important;
+}
+
+.dark .uf-shell .field-kind ul,
+.dark .uf-shell .uf-role-radios {
+  background: #27272a !important;
+  border: 0 !important;
+}
+
+.dark .uf-shell .field-kind label,
+.dark .uf-shell .uf-role-radios label {
+  background: transparent !important;
+  border: 0 !important;
+  color: #a1a1aa !important;
+  box-shadow: none !important;
+}
+
+.dark .uf-shell .field-kind label:has(input:checked),
+.dark .uf-shell .uf-role-radios label:has(input:checked) {
+  background: #3f3f46 !important;
+  border: 0 !important;
+  color: #f0d0d7 !important;
+  box-shadow: none !important;
+}
+
 /* ---- Submit glued as card footer ---- */
 body.app-users.model-user.change-form #submit-row {
-  position: static !important;
-  z-index: 1 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 40 !important;
   width: 100%;
   max-width: 100%;
-  margin: 0 0 1.5rem;
+  margin: 0 !important;
   animation: uf-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
 }
 
@@ -462,20 +685,72 @@ body.app-users.model-user.change-form #submit-row .container {
   max-width: none !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 1rem 1.5rem 1.15rem !important;
+  padding: 1.15rem 1.75rem 1.25rem !important;
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
   justify-content: flex-end !important;
   align-items: center !important;
-  gap: 0.6rem !important;
+  gap: 0.65rem !important;
   border: 1px solid #dbe3ee !important;
   border-top: 1px solid var(--uf-line) !important;
   border-radius: 0 0 var(--uf-radius) var(--uf-radius) !important;
-  background: #fff !important;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 24px 48px -28px rgba(15, 23, 42, 0.28);
+  background: #fafbfc !important;
+  box-shadow: none !important;
+}
+
+/* Dark mode polish for user form */
+.dark body.app-users.model-user.change-form,
+body.app-users.model-user.change-form.dark {
+  --uf-ink: #fafafa;
+  --uf-muted: #a1a1aa;
+  --uf-line: #3f3f46;
+  --uf-surface: #18181b;
+  --uf-canvas: #09090b;
+  --uf-soft: rgba(139, 30, 45, 0.2);
+}
+
+.dark body.app-users.model-user.change-form #main,
+.dark body.app-users.model-user.change-form #content {
+  background: #09090b !important;
+}
+
+.dark .uf-shell,
+.dark body.app-users.model-user.change-form #submit-row > div > div.relative,
+.dark body.app-users.model-user.change-form #submit-row .container {
+  background: #18181b !important;
+  border-color: #3f3f46 !important;
+}
+
+.dark .uf-hero {
+  background: #18181b;
+  border-bottom-color: #3f3f46;
+}
+
+.dark .uf-title {
+  color: #fafafa;
+}
+
+.dark .uf-shell label {
+  color: #e4e4e7 !important;
+}
+
+.dark .uf-shell .uf-input-wrap {
+  background: #27272a !important;
+  border-color: #52525b !important;
+}
+
+.dark .uf-shell .uf-input-wrap:focus-within {
+  border-color: #c43b52 !important;
+  background: #27272a !important;
+  box-shadow: 0 0 0 4px rgba(196, 59, 82, 0.2) !important;
+}
+
+.dark .uf-shell input,
+.dark .uf-shell select {
+  background: #27272a !important;
+  border-color: #52525b !important;
+  color: #fafafa !important;
 }
 
 body.app-users.model-user.change-form #submit-row button,

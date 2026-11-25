@@ -1,0 +1,4 @@
+<label class="uf-role-option inline-flex cursor-pointer items-center rounded-lg px-4 py-2.5 text-sm font-semibold text-base-500 transition hover:text-base-800 dark:text-base-400 dark:hover:text-base-100">
+    <input type="{{ widget.type }}" name="{{ widget.name }}"{% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}{% include "django/forms/widgets/attrs.html" %} class="sr-only">
+    {{ widget.label }}
+</label>

@@ -7,11 +7,20 @@
     id_phone: { icon: "call", placeholder: "+212 6 …" },
     id_first_name: { icon: "person", placeholder: "Prénom" },
     id_last_name: { icon: "badge", placeholder: "Nom" },
-    id_kind: { icon: "shield_person", placeholder: "" },
   };
+
+  function attachSubmitFooter() {
+    var shell = document.querySelector(".uf-shell");
+    var submit = document.getElementById("submit-row");
+    if (!shell || !submit) return;
+    if (submit.parentElement === shell) return;
+    shell.appendChild(submit);
+    shell.classList.add("has-submit");
+  }
 
   function decorate() {
     if (!document.querySelector(".uf-shell")) return;
+    attachSubmitFooter();
 
     Object.keys(MAP).forEach(function (id) {
       var el = document.getElementById(id);
@@ -32,9 +41,9 @@
       wrap.appendChild(el);
 
       // Inline fallback: Unfold CSS loads after ours and clears input borders.
-      wrap.style.setProperty("border", "2px solid #000", "important");
-      wrap.style.setProperty("border-radius", "0.85rem", "important");
-      wrap.style.setProperty("background", "#fff", "important");
+      wrap.style.setProperty("border", "1px solid #d0d7e2", "important");
+      wrap.style.setProperty("border-radius", "0.9rem", "important");
+      wrap.style.setProperty("background", "#f8fafc", "important");
       el.style.setProperty("border", "0", "important");
       el.style.setProperty("box-shadow", "none", "important");
       el.style.setProperty("outline", "none", "important");
