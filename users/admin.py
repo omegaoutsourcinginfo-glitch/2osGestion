@@ -21,7 +21,7 @@ admin.site.unregister(Group)
 
 
 class RoleRadioSelect(forms.RadioSelect):
-    """Rôle as Tailwind pills — no border / no native select."""
+    """Rôle as visible radio buttons (not a select dropdown)."""
 
     template_name = "users/widgets/role_radio.html"
     option_template_name = "users/widgets/role_option.html"
@@ -250,10 +250,10 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
             "Profil",
             {
                 "description": (
-                    '<div class="user-alert">'
-                    '<span class="material-symbols-outlined" aria-hidden="true">badge</span>'
-                    "<div><strong>Profil utilisateur</strong><br>"
-                    "Ces informations apparaissent sur la fiche et dans la liste des comptes."
+                    '<div class="user-alert flex items-start gap-3 border-0 bg-primary-50 p-3 text-sm text-primary-800 shadow-none dark:bg-primary-950 dark:text-primary-200">'
+                    '<span class="material-symbols-outlined flex h-8 w-8 shrink-0 items-center justify-center bg-white text-base text-primary-600 shadow-none dark:bg-base-800" aria-hidden="true">badge</span>'
+                    '<div><strong class="block font-bold text-primary-900 dark:text-primary-100">Profil utilisateur</strong>'
+                    '<span class="text-primary-800 dark:text-primary-200">Ces informations apparaissent sur la fiche et dans la liste des comptes.</span>'
                     "</div></div>"
                 ),
                 "fields": (
@@ -272,10 +272,10 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
             {
                 "classes": ("wide",),
                 "description": (
-                    '<div class="user-alert">'
-                    '<span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>'
-                    "<div><strong>Mot de passe automatique</strong><br>"
-                    "Créé à l'enregistrement et envoyé par e-mail à l'utilisateur."
+                    '<div class="user-alert flex items-start gap-3 border-0 bg-primary-50 p-3 text-sm text-primary-800 shadow-none dark:bg-primary-950 dark:text-primary-200">'
+                    '<span class="material-symbols-outlined flex h-8 w-8 shrink-0 items-center justify-center bg-white text-base text-primary-600 shadow-none dark:bg-base-800" aria-hidden="true">auto_awesome</span>'
+                    '<div><strong class="block font-bold text-primary-900 dark:text-primary-100">Mot de passe automatique</strong>'
+                    '<span class="text-primary-800 dark:text-primary-200">Créé à l\'enregistrement et envoyé par e-mail à l\'utilisateur.</span>'
                     "</div></div>"
                 ),
                 "fields": (
@@ -512,10 +512,144 @@ class UserAdmin(DjangoUserAdmin, ModelAdmin):
         )
         return super().changelist_view(request, extra_context=extra_context)
 
+    def _wants_add_dialog(self, request) -> bool:
+        if request.POST.get("_dialog") == "1" or request.GET.get("dialog") == "1":
+            return True
+        if request.headers.get("X-Dialog") == "1":
+            return True
+        return False
+
+    def _wants_json(self, request) -> bool:
+        return (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or "application/json" in (request.headers.get("Accept") or "")
+        )
+
+    def _prepare_add_dialog_form(self, form):
+        """Compact Tailwind-friendly widgets for the dialog partial."""
+        placeholders = {
+            "email": "email@exemple.com",
+            "phone": "+212 6 …",
+            "first_name": "Prénom",
+            "last_name": "Nom",
+        }
+        for name, ph in placeholders.items():
+            if name not in form.fields:
+                continue
+            form.fields[name].widget.attrs.update(
+                {
+                    "placeholder": ph,
+                    "autocomplete": "off",
+                    "class": (
+                        "h-10 w-full rounded-xl border border-base-200 bg-white "
+                        "py-2 pl-9 pr-3 text-sm shadow-none outline-none "
+                        "focus:border-primary-500 focus:ring-2 focus:ring-primary-600/15 "
+                        "dark:border-base-600 dark:bg-base-800"
+                    ),
+                }
+            )
+        return form
+
+    def add_dialog_view(self, request):
+        """GET: form HTML partial. POST: create user → JSON (or form HTML on error)."""
+        opts = self.model._meta
+        changelist = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+        form_action = reverse(f"admin:{opts.app_label}_{opts.model_name}_add")
+        denied = self._redirect_non_superuser(request)
+        if denied is not None:
+            if self._wants_json(request) and request.method == "POST":
+                return JsonResponse(
+                    {"ok": False, "message": "Permission refusée."},
+                    status=403,
+                )
+            return denied
+
+        if not self.has_add_permission(request):
+            if self._wants_json(request):
+                return JsonResponse(
+                    {"ok": False, "message": "Permission refusée."},
+                    status=403,
+                )
+            return HttpResponseRedirect(changelist)
+
+        Form = self.add_form
+
+        if request.method == "POST":
+            form = Form(request.POST, request.FILES)
+            form.request = request
+            self._prepare_add_dialog_form(form)
+            if form.is_valid():
+                obj = form.save(commit=False)
+                self.save_model(request, obj, form, change=False)
+                form.save_m2m()
+                self.save_related(request, form, [], change=False)
+
+                password = getattr(request, "_new_user_password", None) or getattr(
+                    form, "_generated_password", None
+                )
+                message = f"Utilisateur créé ({obj.email})."
+                if password:
+                    try:
+                        send_account_credentials_email(obj, password)
+                        message = f"Utilisateur créé — e-mail envoyé à {obj.email}."
+                    except Exception as e:
+                        message = (
+                            f"Utilisateur créé ({obj.email}), "
+                            f"mais l'e-mail n'a pas pu être envoyé : {e}"
+                        )
+
+                if self._wants_json(request):
+                    return JsonResponse(
+                        {
+                            "ok": True,
+                            "message": message,
+                            "id": str(obj.pk),
+                        }
+                    )
+                return HttpResponseRedirect(changelist)
+
+            # Validation errors → re-render form HTML for the dialog body
+            return render(
+                request,
+                "admin/users/user/add_dialog.html",
+                {
+                    "form": form,
+                    "form_action": form_action,
+                    "opts": opts,
+                },
+                status=400,
+            )
+
+        form = Form()
+        form.request = request
+        self._prepare_add_dialog_form(form)
+        return render(
+            request,
+            "admin/users/user/add_dialog.html",
+            {
+                "form": form,
+                "form_action": form_action,
+                "opts": opts,
+            },
+        )
+
     def add_view(self, request, form_url="", extra_context=None):
         denied = self._redirect_non_superuser(request)
         if denied is not None:
             return denied
+
+        # Dialog / AJAX path — never a full admin page
+        if self._wants_add_dialog(request) or (
+            request.method == "POST" and self._wants_json(request)
+        ):
+            return self.add_dialog_view(request)
+
+        # Direct visit to /add/ → open dialog on the changelist instead
+        if request.method == "GET":
+            opts = self.model._meta
+            url = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+            return HttpResponseRedirect(f"{url}?open_add=1")
+
         return super().add_view(request, form_url, extra_context)
 
     def change_view(self, request, object_id, form_url="", extra_context=None):

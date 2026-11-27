@@ -1,6 +1,7 @@
-<div class="border-t border-base-200 px-6 py-3 relative dark:border-base-800" x-data="{ openUserLinks: false }">
+{% load i18n %}
+<div class="border-t border-base-200 p-3 relative dark:border-base-800" x-data="{ openUserLinks: false }">
     <nav
-        class="absolute bg-white border border-base-200 flex flex-col leading-none py-1 rounded-default shadow-lg bottom-[73px] left-3 right-3 z-50 dark:bg-base-800 dark:border-base-700"
+        class="absolute bg-white border border-base-200 flex flex-col leading-none py-1.5 rounded-2xl shadow-[0_16px_40px_-18px_rgba(15,23,42,0.45)] bottom-[calc(100%+0.5rem)] left-3 right-3 z-50 dark:bg-base-800 dark:border-base-700"
         x-cloak
         x-show="openUserLinks"
         x-transition
@@ -18,25 +19,29 @@
     </nav>
 
     <div
-        class="cursor-pointer flex flex-row gap-3 items-center min-h-[64px] -mx-6 -my-3 px-6 py-3 hover:bg-base-100 dark:hover:bg-base-800"
+        class="cursor-pointer flex flex-row gap-3 items-center rounded-2xl border border-base-200/90 bg-white px-3 py-2.5 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.35)] transition hover:border-primary-200 hover:bg-primary-50/40 dark:border-base-700 dark:bg-base-900 dark:hover:border-primary-800 dark:hover:bg-primary-950/30"
         x-on:click="if (!$event.target.closest('a,button')) { openUserLinks = !openUserLinks }"
-        x-bind:class="{'bg-base-100 dark:bg-base-800': openUserLinks}"
+        x-bind:class="{'border-primary-300 bg-primary-50/60 dark:border-primary-700 dark:bg-primary-950/40': openUserLinks}"
+        title="{% trans 'Compte et thème' %}"
     >
         {% include "unfold/helpers/avatar.html" with user=request.user %}
 
-        <div class="flex flex-col select-none min-w-0">
-            <div class="font-semibold text-important tracking-tight truncate">
-                {{ request.user.get_full_name|default:request.user.get_username }}
+        <div class="flex flex-col select-none min-w-0 flex-1">
+            <div class="font-semibold text-sm text-slate-900 tracking-tight truncate dark:text-slate-100">
+                {{ request.user.get_full_name|default:request.user.email }}
             </div>
 
             {% if request.user.email %}
-                <div class="text-subtle text-xs truncate">
+                <div class="text-slate-500 text-xs truncate dark:text-slate-400">
                     {{ request.user.email }}
                 </div>
             {% endif %}
+            <div class="mt-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-300">
+                {% if request.user.is_superuser %}Super Admin{% else %}Compte{% endif %}
+            </div>
         </div>
 
-        <span class="material-symbols-outlined ml-auto select-none text-font-default-light dark:text-font-default-dark">
+        <span class="material-symbols-outlined ml-auto select-none text-slate-400 dark:text-slate-500" aria-hidden="true">
             unfold_more
         </span>
     </div>

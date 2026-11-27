@@ -4,10 +4,20 @@
 {% block bodyclass %}{{ block.super }}{% if add %} user-add-form{% endif %}{% endblock %}
 
 {% block content %}
-<div class="uf-shell{% if add %} is-add{% endif %}">
+{# Alpine + HTMX: userForm() in user_form_prefixes.js; SPA re-inits on htmx:afterSettle #}
+<div
+    class="uf-shell w-full bg-white shadow-none dark:bg-slate-900{% if add %} is-add{% endif %}"
+    x-data="userForm"
+    x-init="init()"
+>
     {% include "admin/users/user/change_form_hero.html" %}
-    <div class="uf-body">
+    <div class="uf-body bg-white dark:bg-slate-900">
         {{ block.super }}
     </div>
 </div>
+{% endblock %}
+
+{# Tailwind submit bar — not styled via JS classList #}
+{% block submit_buttons_bottom %}
+{% include "admin/users/user/submit_line.html" %}
 {% endblock %}

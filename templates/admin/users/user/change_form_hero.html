@@ -3,18 +3,22 @@
 {% url opts|admin_urlname:'detail' original.pk|admin_urlquote as detail_url %}
 {% endif %}
 
-<header class="uf-hero">
-    <a href="{% url opts|admin_urlname:'changelist' %}" class="uf-back">
-        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+<header class="uf-hero mb-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.28)] dark:border-slate-700 dark:bg-slate-900{% if not add %} flex-col items-stretch gap-3 px-5 py-5 sm:px-6{% endif %}">
+    {% if not add %}
+    <a href="{% url opts|admin_urlname:'changelist' %}" class="uf-back inline-flex items-center gap-1 text-sm font-semibold text-slate-500 no-underline hover:text-primary-600">
+        <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
         Retour
     </a>
+    {% endif %}
 
-    <div class="uf-hero-main">
-        <div class="uf-hero-text">
-            <p class="uf-eyebrow">
-                {% if add %}Nouveau compte{% else %}Compte{% endif %}
+    <div class="uf-hero-main flex min-w-0 flex-1 items-center justify-between gap-3">
+        <div class="uf-hero-text min-w-0">
+            {% if not add %}
+            <p class="uf-eyebrow mb-1 inline-flex rounded-lg bg-primary-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">
+                Compte
             </p>
-            <h1 class="uf-title">
+            {% endif %}
+            <h1 class="uf-title m-0 text-base font-bold leading-tight text-slate-900 dark:text-slate-50{% if not add %} text-xl{% endif %}">
                 {% if add %}
                     Créer un utilisateur
                 {% elif original.get_full_name %}
@@ -23,7 +27,7 @@
                     {{ original.email }}
                 {% endif %}
             </h1>
-            <p class="uf-sub">
+            <p class="uf-sub m-0 mt-0.5 text-xs text-slate-500">
                 {% if add %}
                     Identifiants envoyés automatiquement par e-mail.
                 {% elif original %}
@@ -32,9 +36,9 @@
             </p>
         </div>
 
-        <div class="uf-avatar" aria-hidden="true">
+        <div class="uf-avatar inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-600 text-xs font-extrabold text-white shadow-none{% if not add %} h-14 w-14 text-base{% endif %}" aria-hidden="true">
             {% if original and original.image %}
-                <img src="{{ original.image.url }}" alt="" width="72" height="72">
+                <img src="{{ original.image.url }}" alt="" width="72" height="72" class="h-full w-full object-cover">
             {% elif original and original.first_name and original.last_name %}
                 {{ original.first_name|make_list|first|upper }}{{ original.last_name|make_list|first|upper }}
             {% elif original and original.first_name %}
@@ -42,14 +46,14 @@
             {% elif original %}
                 {{ original.email|slice:":2"|upper }}
             {% else %}
-                <span class="material-symbols-outlined">person_add</span>
+                <span class="material-symbols-outlined text-lg">person_add</span>
             {% endif %}
         </div>
     </div>
 
     {% if original %}
-    <a href="{% add_preserved_filters detail_url %}" class="uf-fiche">
-        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+    <a href="{% add_preserved_filters detail_url %}" class="uf-fiche inline-flex h-9 items-center gap-1 rounded-xl border border-primary-200 bg-primary-50 px-3 text-sm font-bold text-primary-700 no-underline shadow-none hover:bg-white dark:border-primary-900 dark:bg-primary-950/40 dark:text-primary-300 dark:hover:bg-slate-800">
+        <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
         Voir la fiche
     </a>
     {% endif %}

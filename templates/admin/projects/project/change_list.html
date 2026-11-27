@@ -1,0 +1,160 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block result_list %}
+<div class="my-2 mb-6" id="result_list" data-pj-table>
+    <div class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_30px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700 dark:bg-slate-900">
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse text-left text-sm">
+                <thead>
+                    <tr class="border-b border-slate-100 bg-slate-50/90 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 sm:px-5">Code</th>
+                        <th scope="col" class="min-w-[14rem] px-4 py-3.5 sm:px-5">Projet</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 sm:px-5">Localisation</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-center sm:px-5">Lots</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 sm:px-5">Statut</th>
+                        <th scope="col" class="hidden whitespace-nowrap px-4 py-3.5 lg:table-cell sm:px-5">Créé par</th>
+                        <th scope="col" class="px-4 py-3.5 text-right sm:px-5">
+                            <span class="sr-only">{% translate "Actions" %}</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for project in cl.result_list %}
+                    {% url opts|admin_urlname:'change' project.pk|admin_urlquote as change_url %}
+                    {% add_preserved_filters change_url is_popup to_field as change_href %}
+                    {% url 'admin:projects_project_voir_archive' project.pk as archive_url %}
+                    <tr
+                        class="project-row-clickable group transition-colors hover:bg-primary-50/40 dark:hover:bg-primary-950/20{% if project.is_archived %} opacity-80{% endif %}"
+                        title="Voir le détail du projet"
+                        x-data="{ menuOpen: false }"
+                        @keydown.escape.window="menuOpen = false"
+                    >
+                        <td class="whitespace-nowrap px-4 py-4 align-middle sm:px-5">
+                            <a
+                                href="{{ project.get_absolute_url }}"
+                                class="project-detail-link inline-flex items-center rounded-lg bg-primary-50 px-2.5 py-1 font-mono text-[0.8rem] font-bold tracking-wide text-primary-700 no-underline ring-1 ring-primary-100 transition group-hover:bg-primary-100 dark:bg-primary-950/50 dark:text-primary-300 dark:ring-primary-900"
+                            >{{ project.code }}</a>
+                        </td>
+                        <td class="px-4 py-4 align-middle sm:px-5">
+                            <a
+                                href="{{ project.get_absolute_url }}"
+                                class="project-detail-link block max-w-[22rem] no-underline"
+                            >
+                                <span class="block truncate font-semibold text-slate-800 transition group-hover:text-primary-700 dark:text-slate-100 dark:group-hover:text-primary-300">
+                                    {{ project.titre }}
+                                </span>
+                                {% if project.is_archived %}
+                                <span class="mt-0.5 inline-flex text-[0.7rem] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">Archivé</span>
+                                {% endif %}
+                            </a>
+                        </td>
+                        <td class="px-4 py-4 align-middle sm:px-5">
+                            <div class="max-w-[14rem]">
+                                <div class="truncate font-medium text-slate-700 dark:text-slate-200">{{ project.commune }}</div>
+                                <div class="mt-0.5 truncate text-xs text-slate-400">{{ project.prefecture }}</div>
+                            </div>
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-4 text-center align-middle sm:px-5">
+                            <span class="inline-flex min-w-[2rem] justify-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                {{ project.nombre_lots|default:"—" }}
+                            </span>
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-4 align-middle sm:px-5">
+                            {% if project.statut_actuel == "EXECUTION" %}
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-700 ring-1 ring-primary-100 dark:bg-primary-950/40 dark:text-primary-300 dark:ring-primary-900">
+                                <span class="h-1.5 w-1.5 rounded-full bg-primary-500" aria-hidden="true"></span>
+                                Exécution
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100 dark:bg-sky-950/40 dark:text-sky-300 dark:ring-sky-900">
+                                <span class="h-1.5 w-1.5 rounded-full bg-sky-500" aria-hidden="true"></span>
+                                Instruction
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="hidden px-4 py-4 align-middle lg:table-cell sm:px-5">
+                            <span class="truncate text-slate-500 dark:text-slate-400">
+                                {% if project.created_by %}
+                                    {{ project.created_by.get_full_name|default:project.created_by.email }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td
+                            class="field-actions_holder relative px-4 py-4 text-right align-middle sm:px-5"
+                            data-no-row-nav
+                            @click.outside="menuOpen = false"
+                        >
+                            <button
+                                type="button"
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                title="{% translate 'Actions' %}"
+                                aria-label="{% translate 'Actions' %}"
+                                aria-haspopup="menu"
+                                x-bind:aria-expanded="menuOpen.toString()"
+                                @click.stop="menuOpen = !menuOpen"
+                            >
+                                <span class="material-symbols-outlined text-[1.25rem] leading-none" aria-hidden="true">more_vert</span>
+                            </button>
+                            <div
+                                x-cloak
+                                x-show="menuOpen"
+                                x-transition
+                                class="absolute right-4 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-lg dark:border-slate-700 dark:bg-slate-900 sm:right-5"
+                                role="menu"
+                            >
+                                <a
+                                    href="{{ project.get_absolute_url }}"
+                                    class="project-detail-link flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-700 no-underline hover:bg-primary-50 hover:text-primary-800 dark:text-slate-200 dark:hover:bg-primary-950/40"
+                                    role="menuitem"
+                                >
+                                    <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">visibility</span>
+                                    Voir la fiche
+                                </a>
+                                {% if has_change_permission %}
+                                <a
+                                    href="{{ change_href }}"
+                                    class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-700 no-underline hover:bg-primary-50 hover:text-primary-800 dark:text-slate-200 dark:hover:bg-primary-950/40"
+                                    role="menuitem"
+                                >
+                                    <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">edit</span>
+                                    Modifier
+                                </a>
+                                <a
+                                    href="{{ archive_url }}"
+                                    class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-700 no-underline hover:bg-primary-50 hover:text-primary-800 dark:text-slate-200 dark:hover:bg-primary-950/40"
+                                    role="menuitem"
+                                >
+                                    <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">archive</span>
+                                    {% if project.is_archived %}Désarchiver{% else %}Archiver{% endif %}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-16 text-center sm:px-5">
+                            {% if has_add_permission %}
+                            {% url opts|admin_urlname:'add' as add_url %}
+                            <p class="m-0 text-sm text-slate-500">Aucun projet pour le moment.</p>
+                            <a
+                                href="{% add_preserved_filters add_url is_popup to_field %}"
+                                class="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white no-underline hover:bg-primary-700"
+                            >
+                                Ajouter un projet
+                            </a>
+                            {% else %}
+                            {% include "unfold/helpers/empty_results.html" %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

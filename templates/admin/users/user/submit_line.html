@@ -1,0 +1,38 @@
+{% load i18n admin_urls %}
+{# Tailwind-only submit bar for users (classes in HTML — not via JS) #}
+<div
+    id="submit-row"
+    class="static m-0 block w-full border-0 bg-transparent p-0 shadow-none"
+    data-uf-in-form="1"
+>
+    <div class="m-0 border-0 bg-transparent p-0 shadow-none">
+        <div class="flex h-auto min-h-0 w-full flex-row flex-wrap items-center justify-end gap-2 border-0 bg-transparent px-4 py-3 shadow-none">
+            <button
+                type="submit"
+                name="_save"
+                class="inline-flex items-center justify-center rounded-xl border-0 bg-primary-600 px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_20px_-10px_rgba(37,99,235,0.7)] hover:bg-primary-700"
+            >
+                {% trans "Save" %}
+            </button>
+
+            {% if not add and original %}
+            <button
+                type="submit"
+                name="_continue"
+                class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-none hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            >
+                {% trans "Save and continue editing" %}
+            </button>
+
+            {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+            {% add_preserved_filters delete_url as link %}
+            <a
+                href="{{ link }}"
+                class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline shadow-none hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            >
+                {% trans "Delete" %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>

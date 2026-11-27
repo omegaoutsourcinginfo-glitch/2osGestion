@@ -1,0 +1,109 @@
+/*
+ * Modern product UI (2026) — soft canvas, airy cards, crisp type.
+ */
+@layer components {
+  /* Soft app canvas behind Unfold content (respects html.dark toggle) */
+  body:not(.login) #main,
+  body:not(.login) #content {
+    background:
+      radial-gradient(900px 420px at 0% -10%, rgba(37, 99, 235, 0.08), transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, rgba(14, 165, 233, 0.06), transparent 50%),
+      #f4f7f6;
+  }
+
+  html.dark body:not(.login) #main,
+  html.dark body:not(.login) #content,
+  .dark body:not(.login) #main,
+  .dark body:not(.login) #content {
+    background:
+      radial-gradient(900px 420px at 0% -10%, rgba(37, 99, 235, 0.12), transparent 55%),
+      #0b1220;
+  }
+
+  .ui-page {
+    @apply relative mx-auto w-full max-w-6xl px-3 pb-12 pt-3 sm:px-5;
+  }
+
+  .ui-page-wide {
+    @apply relative mx-auto w-full max-w-7xl px-3 pb-12 pt-3 sm:px-5;
+  }
+
+  .ui-card {
+    @apply rounded-3xl border border-white/80 bg-white/90 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_-18px_rgba(15,23,42,0.18)] backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-900/90;
+  }
+
+  .ui-card-pad {
+    @apply rounded-3xl border border-white/80 bg-white/90 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_-18px_rgba(15,23,42,0.18)] backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-900/90 sm:p-6;
+  }
+
+  .ui-btn-primary {
+    @apply inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border-0 bg-primary-600 px-5 text-sm font-semibold text-white no-underline shadow-[0_8px_20px_-10px_rgba(37,99,235,0.7)] transition hover:-translate-y-0.5 hover:bg-primary-700;
+  }
+
+  .ui-btn-secondary {
+    @apply inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/90 px-5 text-sm font-semibold text-slate-700 no-underline shadow-sm transition hover:-translate-y-0.5 hover:bg-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200;
+  }
+
+  .ui-eyebrow {
+    @apply m-0 text-sm font-medium text-slate-500;
+  }
+
+  .ui-title {
+    @apply m-0 text-3xl font-semibold tracking-[-0.04em] text-slate-900 dark:text-slate-50 sm:text-4xl;
+  }
+
+  .ui-subtitle {
+    @apply m-0 mt-2 max-w-2xl text-[0.95rem] leading-relaxed text-slate-500 dark:text-slate-400;
+  }
+
+  /* Modern segmented tabs */
+  .pi-nav-inner {
+    @apply gap-1 rounded-2xl bg-slate-100/90 p-1 dark:bg-slate-800/80;
+  }
+
+  .pi-nav-inner button {
+    @apply inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-medium text-slate-600 transition hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700;
+  }
+
+  .pi-nav-inner button.is-active {
+    @apply bg-white text-slate-900 shadow-sm hover:bg-white hover:text-slate-900 dark:bg-slate-700 dark:text-white;
+  }
+
+  .studio {
+    @apply min-h-[50vh] bg-transparent;
+  }
+
+  .studio-detail {
+    @apply bg-transparent;
+  }
+
+  .studio-body,
+  .studio-body-detail {
+    @apply relative mx-auto w-full max-w-7xl px-3 pb-12 pt-3 sm:px-5;
+  }
+
+  /* Admin change-form shell */
+  .cf-shell {
+    @apply mx-auto w-full max-w-5xl;
+  }
+
+  .cf-hero {
+    @apply mb-5 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-5 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.28)] dark:border-slate-700 dark:bg-slate-900/95 sm:p-6;
+  }
+
+  .cf-hero-eyebrow {
+    @apply m-0 inline-flex rounded-lg bg-primary-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-primary-700 dark:bg-primary-950/50 dark:text-primary-300;
+  }
+
+  .cf-hero-title {
+    @apply m-0 mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-50 sm:text-3xl;
+  }
+
+  .cf-hero-sub {
+    @apply m-0 mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500 dark:text-slate-400;
+  }
+
+  .cf-panel {
+    @apply overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.28)] dark:border-slate-700 dark:bg-slate-900/95;
+  }
+}

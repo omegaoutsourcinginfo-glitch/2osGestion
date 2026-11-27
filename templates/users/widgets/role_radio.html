@@ -1,9 +1,7 @@
-<div class="uf-role-radios flex flex-wrap gap-1 rounded-xl bg-base-100 p-1 dark:bg-base-800">
-{% with id=widget.attrs.id %}
+<div class="uf-role-radios flex flex-row flex-wrap items-center gap-x-5 gap-y-2 bg-transparent p-0 shadow-none">
 {% for group, options, index in widget.optgroups %}
   {% for option in options %}
     {% include option.template_name with widget=option %}
   {% endfor %}
 {% endfor %}
-{% endwith %}
 </div>

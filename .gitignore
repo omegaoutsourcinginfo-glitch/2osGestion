@@ -19,7 +19,11 @@ local_settings.py
 
 # Node / frontend build
 node_modules/
-frontend/dist/
+# Keep frontend/dist/app.css committed so Docker/prod works without npm.
+# Ignore other generated artifacts under dist if added later.
+frontend/dist/*
+!frontend/dist/.gitkeep
+!frontend/dist/app.css
 
 # IDE / OS
 .idea/

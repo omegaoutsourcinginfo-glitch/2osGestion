@@ -53,21 +53,21 @@
 
 #result_list tbody tr.search-row-highlight,
 table tbody tr.search-row-highlight {
-  outline: 2px solid #8b1e2d;
+  outline: 2px solid #2563eb;
   outline-offset: -2px;
-  background: rgba(139, 30, 45, 0.08) !important;
+  background: rgba(37, 99, 235, 0.08) !important;
 }
 
 .search-autocomplete-item:hover,
 .search-autocomplete-item:focus {
-  background: rgba(139, 30, 45, 0.08);
+  background: rgba(37, 99, 235, 0.08);
   outline: none;
 }
 
 .search-autocomplete-code {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #8b1e2d;
+  color: #2563eb;
 }
 
 .search-autocomplete-titre {

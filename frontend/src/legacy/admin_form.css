@@ -1,8 +1,8 @@
 /* Admin change-form polish: focus, hover, buttons, file widgets */
 
 :root {
-  --admin-focus: #8b1e2d;
-  --admin-focus-ring: rgba(139, 30, 45, 0.3);
+  --admin-focus: #2563eb;
+  --admin-focus-ring: rgba(37, 99, 235, 0.3);
   --admin-secondary: #4b5563;
   --admin-secondary-border: #6b7280;
 }
@@ -73,13 +73,13 @@
 
 .change-form a[title]:hover,
 .change-form label[title]:hover {
-  background: rgba(139, 30, 45, 0.08);
+  background: rgba(37, 99, 235, 0.08);
   color: var(--admin-focus) !important;
 }
 
 .dark .change-form a[title]:hover,
 .dark .change-form label[title]:hover {
-  background: rgba(139, 30, 45, 0.18);
+  background: rgba(37, 99, 235, 0.18);
 }
 
 /* ---- Inline "Ajouter" ---- */
@@ -118,35 +118,46 @@
   max-width: 36rem;
 }
 
-/* ---- Submit row: primary blue save, muted gray delete ---- */
+/* ---- Submit row: Sage primary save, muted secondary actions ---- */
 #submit-row button[name="_save"],
-#submit-row input[name="_save"] {
-  background: #8b1e2d !important;
-  border-color: #731828 !important;
+#submit-row input[name="_save"],
+#submit-row button[type="submit"].bg-primary-600,
+#submit-row a.bg-primary-600 {
+  background: #2563eb !important;
+  border-color: #1d4ed8 !important;
   color: #fff !important;
   font-weight: 600 !important;
   min-width: 8.5rem;
-  box-shadow: 0 1px 2px rgba(139, 30, 45, 0.25);
+  border-radius: 0.75rem !important;
+  box-shadow: 0 8px 20px -10px rgba(37, 99, 235, 0.7);
 }
 
 #submit-row button[name="_save"]:hover,
 #submit-row input[name="_save"]:hover {
-  background: #731828 !important;
-  border-color: #5c1421 !important;
+  background: #1d4ed8 !important;
+  border-color: #1e40af !important;
+}
+
+#submit-row button[name="_continue"],
+#submit-row button[name="_addanother"],
+#submit-row button[name="_saveasnew"],
+#submit-row a[href]:not([href*="/delete/"]) {
+  border-radius: 0.75rem !important;
 }
 
 #submit-row a[href*="/delete/"] {
-  background: #374151 !important;
-  border: 1px solid #4b5563 !important;
-  color: #e5e7eb !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
   box-shadow: none !important;
   font-weight: 600 !important;
+  border-radius: 0.75rem !important;
 }
 
 #submit-row a[href*="/delete/"]:hover {
-  background: #4b5563 !important;
-  border-color: #6b7280 !important;
-  color: #fff !important;
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 
 .dark #submit-row a[href*="/delete/"] {
@@ -158,6 +169,72 @@
 .dark #submit-row a[href*="/delete/"]:hover {
   background: #374151 !important;
   color: #fff !important;
+}
+
+/* Soft card shell for change-form content */
+body.change-form #content-main > form,
+body.change-form #content-main form.uf-shell,
+body.change-form .cf-shell > form {
+  display: block;
+}
+
+body.change-form #content-main > form > .flex.flex-col.gap-6,
+body.change-form .cf-panel-fields {
+  gap: 1.25rem;
+}
+
+body.change-form #content-main > form > .flex.flex-col.gap-6 > fieldset.module,
+body.change-form .cf-panel fieldset.module,
+body.change-form #content-main .inline-group,
+body.change-form .uf-shell .uf-body fieldset.module {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 30px -20px rgba(15, 23, 42, 0.28);
+}
+
+.dark body.change-form #content-main > form > .flex.flex-col.gap-6 > fieldset.module,
+.dark body.change-form #content-main .inline-group,
+.dark body.change-form .uf-shell .uf-body fieldset.module,
+html.dark body.change-form #content-main > form > .flex.flex-col.gap-6 > fieldset.module,
+html.dark body.change-form #content-main .inline-group,
+html.dark body.change-form .uf-shell .uf-body fieldset.module {
+  border-color: #334155 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+}
+
+.dark body.change-form .uf-shell,
+.dark body.change-form .uf-body,
+html.dark body.change-form .uf-shell,
+html.dark body.change-form .uf-body {
+  background-color: #0f172a !important;
+}
+
+body.change-form fieldset.module h2,
+body.change-form .inline-group h2 {
+  letter-spacing: -0.02em;
+}
+
+body.change-form .form-row {
+  padding-block: 0.85rem;
+}
+
+body.change-form input[type="text"],
+body.change-form input[type="number"],
+body.change-form input[type="email"],
+body.change-form input[type="url"],
+body.change-form input[type="password"],
+body.change-form input[type="date"],
+body.change-form textarea,
+body.change-form select:not([multiple]):not(.select2-hidden-accessible) {
+  border-radius: 0.75rem !important;
+  min-height: 2.65rem;
+}
+
+body.change-form textarea {
+  min-height: 6.5rem;
 }
 
 /* Breathing room around fieldsets / inlines */
@@ -309,8 +386,8 @@ select:not([multiple]):not(.select2-hidden-accessible):focus {
 /* Open state: maroon border like Intervenants */
 .select2-container--admin-autocomplete.select2-container--open .select2-selection--single,
 .select2-container.select2-container--open .select2-selection--single {
-  border-color: #7f1d1d !important;
-  box-shadow: 0 0 0 1px #7f1d1d !important;
+  border-color: #b91c1c !important;
+  box-shadow: 0 0 0 1px #b91c1c !important;
   outline: none !important;
 }
 
@@ -384,7 +461,7 @@ select:not([multiple]):not(.select2-hidden-accessible):focus {
 
 .select2-results__option--highlighted[aria-selected],
 .select2-results__option--highlighted {
-  background-color: #fdf2f4 !important;
+  background-color: #eff6ff !important;
   color: #111827 !important;
 }
 
@@ -425,7 +502,7 @@ select:not([multiple]):not(.select2-hidden-accessible):focus {
 
 .dark .select2-results__option--highlighted[aria-selected],
 .dark .select2-results__option--highlighted {
-  background-color: #7f1d1d33 !important;
+  background-color: #b91c1c33 !important;
 }
 
 /* Required / invalid fields: red highlight, no top banner text */
@@ -508,7 +585,7 @@ form.was-validated .form-row:has(:required:invalid) label,
 .changelist-page-btn:hover {
   background: #f9fafb;
   border-color: #d1d5db;
-  color: #8b1e2d;
+  color: #2563eb;
 }
 
 .changelist-page-btn.is-disabled {
@@ -540,7 +617,7 @@ form.was-validated .form-row:has(:required:invalid) label,
 
 .changelist-page-num a:hover {
   background: #f3f4f6;
-  color: #8b1e2d;
+  color: #2563eb;
 }
 
 .changelist-page-num span.font-medium {
@@ -551,6 +628,6 @@ form.was-validated .form-row:has(:required:invalid) label,
   height: 2.25rem;
   padding: 0 0.45rem;
   border-radius: 0.45rem;
-  background: #8b1e2d;
+  background: #2563eb;
   color: #fff !important;
 }

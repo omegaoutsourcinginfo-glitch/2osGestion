@@ -1,15 +1,34 @@
 {% extends "admin/change_list.html" %}
 {% load i18n admin_urls static %}
 
-{% block extrastyle %}
+{% block extrahead %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'accounts/css/user_cards.css' %}?v=del5">
+<script src="{% static 'accounts/js/user_add_dialog.js' %}?v=3" defer></script>
 {% endblock %}
 
 {% block result_list %}
-{% if cl.result_count %}
-<div class="uc-wrap" id="result_list">
-    <div class="uc-grid" role="list">
+{% url opts|admin_urlname:'add' as add_url %}
+<div class="my-2 mb-6" id="result_list" data-uc-wrap>
+    <div
+        class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4"
+        role="list"
+        data-uc-grid
+    >
+        {# ADD NEW — same pattern as reference UI #}
+        {% if has_add_permission %}
+        <a
+            href="{% add_preserved_filters add_url is_popup to_field %}"
+            class="addlink group flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-2xl border border-slate-200/90 bg-white p-6 text-center no-underline shadow-[0_8px_30px_-18px_rgba(15,23,42,0.28)] transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900"
+            role="listitem"
+            title="{% blocktranslate with name=cl.opts.verbose_name %}Add {{ name }}{% endblocktranslate %}"
+        >
+            <span class="inline-flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary-300 text-primary-400 transition group-hover:border-primary-400 group-hover:bg-primary-50 dark:border-primary-500/50 dark:group-hover:bg-primary-950/40">
+                <span class="material-symbols-outlined text-4xl leading-none" aria-hidden="true">add</span>
+            </span>
+            <span class="text-sm font-bold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Ajouter</span>
+        </a>
+        {% endif %}
+
         {% for user in cl.result_list %}
         {% url opts|admin_urlname:'detail' user.pk|admin_urlquote as detail_url %}
         {% url opts|admin_urlname:'change' user.pk|admin_urlquote as change_url %}
@@ -21,14 +40,41 @@
         {% add_preserved_filters send_password_url is_popup to_field as send_password_href %}
         {% with presence=user.presence %}
         <article
-            class="uc-card{% if presence and presence.is_online %} is-online{% else %} is-offline{% endif %}{% if not user.is_active %} is-inactive{% endif %}"
+            class="relative flex min-h-[320px] flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_-18px_rgba(15,23,42,0.28)] transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900{% if not user.is_active %} opacity-90{% endif %}"
             role="listitem"
-            style="--i: {{ forloop.counter0 }}"
+            data-uc-card
         >
-            <div class="uc-top">
-                <a class="uc-avatar" href="{{ detail_href }}" aria-hidden="true">
+            <button
+                type="button"
+                class="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                title="{% translate 'Actions' %}"
+                aria-label="{% translate 'Actions' %}"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                data-uc-menu-btn
+                data-detail-url="{{ detail_href }}"
+                data-change-url="{{ change_href }}"
+                {% if has_change_permission %}
+                data-send-password-url="{{ send_password_href }}"
+                data-send-password-email="{{ user.email }}"
+                {% endif %}
+                {% if has_delete_permission and user.pk != request.user.pk %}
+                data-delete-url="{{ delete_href }}"
+                data-delete-name="{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}"
+                data-delete-email="{{ user.email }}"
+                {% endif %}
+            >
+                <span class="material-symbols-outlined text-[1.25rem] leading-none" aria-hidden="true">more_vert</span>
+            </button>
+
+            <div class="mt-2 flex flex-col items-center text-center">
+                <a
+                    href="{{ detail_href }}"
+                    class="inline-flex h-[4.75rem] w-[4.75rem] items-center justify-center overflow-hidden rounded-full bg-primary-100 text-lg font-bold text-primary-700 ring-[5px] ring-primary-300 no-underline dark:bg-primary-950/50 dark:text-primary-200 dark:ring-primary-500/40"
+                    aria-hidden="true"
+                >
                     {% if user.image %}
-                        <img src="{{ user.image.url }}" alt="" width="54" height="54">
+                        <img src="{{ user.image.url }}" alt="" class="h-full w-full object-cover" width="76" height="76">
                     {% elif user.first_name and user.last_name %}
                         {{ user.first_name|make_list|first|upper }}{{ user.last_name|make_list|first|upper }}
                     {% elif user.first_name %}
@@ -38,111 +84,90 @@
                     {% endif %}
                 </a>
 
-                <div class="uc-top-actions">
-                    <span class="uc-status">
-                        <span class="uc-dot" aria-hidden="true"></span>
-                        {% if presence and presence.is_online %}
-                            En ligne
-                        {% elif presence and presence.last_seen_at %}
-                            {{ presence.last_seen_at|timesince }}
-                        {% else %}
-                            Hors ligne
-                        {% endif %}
-                    </span>
+                <h3 class="m-0 mt-4 max-w-full truncate px-2 text-base font-bold text-slate-800 dark:text-slate-100">
+                    {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}
+                </h3>
+                <p class="m-0 mt-1 text-sm text-slate-400">
+                    {% if user.kind == "SUPER_ADMIN" %}Super Admin{% else %}Utilisateur{% endif %}
+                    {% if not user.is_active %} · Inactif{% endif %}
+                </p>
+            </div>
 
-                    <button
-                        type="button"
-                        class="uc-menu-btn"
-                        title="{% translate 'Actions' %}"
-                        aria-label="{% translate 'Actions' %}"
-                        aria-haspopup="menu"
-                        aria-expanded="false"
-                        data-detail-url="{{ detail_href }}"
-                        data-change-url="{{ change_href }}"
-                        {% if has_change_permission %}
-                        data-send-password-url="{{ send_password_href }}"
-                        data-send-password-email="{{ user.email }}"
-                        {% endif %}
-                        {% if has_delete_permission and user.pk != request.user.pk %}
-                        data-delete-url="{{ delete_href }}"
-                        data-delete-name="{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}"
-                        data-delete-email="{{ user.email }}"
-                        {% endif %}
-                    >
-                        <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-                    </button>
+            <div class="mt-5 grid grid-cols-3 gap-1 border-y border-slate-100 py-4 dark:border-slate-800">
+                <div class="text-center">
+                    <div class="text-lg font-bold text-slate-800 dark:text-slate-100">{% if user.is_active %}1{% else %}0{% endif %}</div>
+                    <div class="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">Actif</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-bold text-slate-800 dark:text-slate-100">{% if user.kind == "SUPER_ADMIN" %}1{% else %}0{% endif %}</div>
+                    <div class="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">Admin</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-bold text-slate-800 dark:text-slate-100">{% if presence and presence.is_online %}1{% else %}0{% endif %}</div>
+                    <div class="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">En ligne</div>
                 </div>
             </div>
 
-            <a class="uc-body" href="{{ detail_href }}">
-                <h3 class="uc-name">
-                    {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.email }}{% endif %}
-                </h3>
-                <div class="uc-meta">
-                    <span class="material-symbols-outlined" aria-hidden="true">mail</span>
-                    <span>{{ user.email }}</span>
-                </div>
-                {% if user.phone %}
-                <div class="uc-meta">
-                    <span class="material-symbols-outlined" aria-hidden="true">call</span>
-                    <span>{{ user.phone }}</span>
-                </div>
-                {% endif %}
-            </a>
-
-            <div class="uc-foot">
-                {% if user.kind == "SUPER_ADMIN" %}
-                <span class="uc-badge is-super">Super Admin</span>
-                {% else %}
-                <span class="uc-badge is-user">Utilisateur</span>
-                {% endif %}
-                {% if not user.is_active %}
-                <span class="uc-badge is-off">Inactif</span>
-                {% endif %}
+            <div class="mt-auto pt-4">
+                <a
+                    href="{{ detail_href }}"
+                    class="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary-600 text-sm font-semibold text-white no-underline transition hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-400"
+                >
+                    Voir le profil
+                </a>
             </div>
         </article>
         {% endwith %}
         {% endfor %}
     </div>
+
+    {% if not cl.result_count and not has_add_permission %}
+        {% include "unfold/helpers/empty_results.html" %}
+    {% endif %}
 </div>
 
-{# Portal + delete dialog: moved to body; singleton JS (SPA-safe) #}
-<div id="uc-portal-menu" class="uc-portal-menu" hidden role="menu">
-    <a id="uc-portal-detail" class="uc-portal-item" role="menuitem" href="#">
-        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+{# Portal + delete dialog #}
+<div
+    id="uc-portal-menu"
+    class="fixed z-[2147483000] hidden w-[13.5rem] min-w-[13.5rem] rounded-xl border border-slate-200 bg-white p-1.5 text-slate-800 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+    hidden
+    role="menu"
+>
+    <a id="uc-portal-detail" class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-[0.84rem] font-semibold text-slate-800 no-underline hover:bg-primary-50 hover:text-primary-800 dark:text-slate-200 dark:hover:bg-primary-950/40 dark:hover:text-primary-200" role="menuitem" href="#">
+        <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">visibility</span>
         Détail
     </a>
-    <a id="uc-portal-edit" class="uc-portal-item" role="menuitem" href="#">
-        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+    <a id="uc-portal-edit" class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-[0.84rem] font-semibold text-slate-800 no-underline hover:bg-primary-50 hover:text-primary-800 dark:text-slate-200 dark:hover:bg-primary-950/40 dark:hover:text-primary-200" role="menuitem" href="#">
+        <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">edit</span>
         Modifier
     </a>
-    <button id="uc-portal-send-password" type="button" class="uc-portal-item" role="menuitem" hidden>
-        <span class="material-symbols-outlined" aria-hidden="true">key</span>
+    <button id="uc-portal-send-password" type="button" class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-[0.84rem] font-semibold text-slate-800 hover:bg-primary-50 hover:text-primary-800 dark:text-slate-200 dark:hover:bg-primary-950/40" role="menuitem" hidden>
+        <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">key</span>
         Envoyer mot de passe
     </button>
-    <button id="uc-portal-delete" type="button" class="uc-portal-item is-danger" role="menuitem" hidden>
-        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+    <button id="uc-portal-delete" type="button" class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-[0.84rem] font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40" role="menuitem" hidden>
+        <span class="material-symbols-outlined text-[1.05rem]" aria-hidden="true">delete</span>
         Supprimer
     </button>
 </div>
 
 <div
     id="user-delete-dialog"
-    class="uc-delete-dialog"
+    class="fixed inset-0 z-[2147483001] hidden items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
     hidden
 >
-    <div class="uc-delete-backdrop" data-uc-delete-close></div>
-    <div class="uc-delete-panel">
-        <h2>Supprimer l'utilisateur ?</h2>
-        <p>
+    <div class="absolute inset-0 bg-slate-900/55" data-uc-delete-close></div>
+    <div class="relative z-[1] w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900" data-uc-delete-panel>
+        <h2 class="m-0 text-[1.05rem] font-extrabold text-slate-900 dark:text-slate-100">Supprimer l'utilisateur ?</h2>
+        <p class="mt-2.5 mb-0 text-[0.88rem] leading-snug text-slate-500 dark:text-slate-400">
             Voulez-vous vraiment supprimer
             <strong id="user-delete-dialog-name"></strong>
             (<span id="user-delete-dialog-email" class="break-all"></span>) ?
         </p>
-        <div class="uc-delete-actions">
-            <button type="button" class="uc-delete-cancel" data-uc-delete-close>Non</button>
+        <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3.5 text-[0.84rem] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" data-uc-delete-close>Non</button>
             <form id="user-delete-dialog-form" method="post" action="" data-no-spa>
                 {% csrf_token %}
                 <input type="hidden" name="post" value="yes">
@@ -150,12 +175,9 @@
             <button
                 type="button"
                 id="user-delete-dialog-confirm"
-                class="uc-delete-confirm"
+                class="inline-flex h-9 items-center rounded-lg border-0 bg-red-600 px-3.5 text-[0.84rem] font-bold text-white hover:bg-red-700"
             >Oui, supprimer</button>
         </div>
     </div>
 </div>
-{% else %}
-    {% include "unfold/helpers/empty_results.html" %}
-{% endif %}
 {% endblock %}

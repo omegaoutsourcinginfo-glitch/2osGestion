@@ -1,28 +1,28 @@
 /* Admin login — 2os Gestion brand panel */
 .login-shell {
-  --login-ink: #1c1214;
-  --login-muted: #6b5a5e;
-  --login-line: #eadfe2;
+  --login-ink: #0f172a;
+  --login-muted: #64748b;
+  --login-line: #dbeafe;
   --login-surface: #ffffff;
-  --login-brand: #8b1e2d;
-  --login-brand-deep: #5c1421;
-  --login-brand-soft: #fdf2f4;
-  --login-glow: rgba(139, 30, 45, 0.28);
+  --login-brand: #2563eb;
+  --login-brand-deep: #1e40af;
+  --login-brand-soft: #eff6ff;
+  --login-glow: rgba(37, 99, 235, 0.28);
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  background: #f7f4f5;
+  background: #f3faf7;
   color: var(--login-ink);
   font-family: "Inter", "Segoe UI", sans-serif;
 }
 
 .dark .login-shell {
-  --login-ink: #f8eef0;
-  --login-muted: #b7a4a8;
-  --login-line: #3a2a2e;
-  --login-surface: #1a1214;
-  --login-brand-soft: #2a0a11;
-  background: #120d0e;
+  --login-ink: #eff6ff;
+  --login-muted: #94a3b8;
+  --login-line: #134e4a;
+  --login-surface: #172554;
+  --login-brand-soft: #172554;
+  background: #011911;
 }
 
 .login-brand {
@@ -32,11 +32,11 @@
   flex-direction: column;
   justify-content: space-between;
   padding: clamp(2rem, 5vw, 3.5rem);
-  color: #fff7f8;
+  color: #f0fdf6;
   background:
-    radial-gradient(1200px 600px at 10% 0%, rgba(201, 107, 125, 0.35), transparent 55%),
-    radial-gradient(900px 500px at 90% 100%, rgba(65, 16, 26, 0.55), transparent 50%),
-    linear-gradient(155deg, var(--login-brand) 0%, var(--login-brand-deep) 52%, #2a0a11 100%);
+    radial-gradient(1200px 600px at 10% 0%, rgba(52, 211, 153, 0.35), transparent 55%),
+    radial-gradient(900px 500px at 90% 100%, rgba(6, 78, 59, 0.55), transparent 50%),
+    linear-gradient(155deg, var(--login-brand) 0%, var(--login-brand-deep) 52%, #172554 100%);
 }
 
 .login-brand::before {

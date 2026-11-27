@@ -34,8 +34,8 @@
   --accent-text: #1d4ed8;
   --accent-border: #2563eb;
   --surface: #ffffff;
-  --ok: #047857;
-  --ok-soft: #ecfdf5;
+  --ok: #1d4ed8;
+  --ok-soft: #eff6ff;
   --font: "Inter", "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
   color: var(--ink-soft);
@@ -445,6 +445,56 @@
   letter-spacing: 0 !important;
   text-transform: uppercase !important;
   flex-shrink: 0;
+}
+
+/* Intervenant type colors — BET (Bureau d'études) highlighted */
+.pi-person-card[data-type="MO"] .pi-person-avatar {
+  background: #f1f5f9;
+  color: #334155 !important;
+  box-shadow: inset 0 0 0 1px #cbd5e1;
+}
+.pi-person-card[data-type="ARCHITECTE"] .pi-person-avatar {
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
+}
+.pi-person-card[data-type="IGT"] .pi-person-avatar {
+  background: #f0f9ff;
+  color: #0369a1 !important;
+  box-shadow: inset 0 0 0 1px #bae6fd;
+}
+.pi-person-card[data-type="BET"] {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #fff 70%);
+}
+.pi-person-card[data-type="BET"] .pi-person-avatar {
+  background: #2563eb;
+  color: #fff !important;
+  box-shadow: 0 6px 14px -8px rgba(37, 99, 235, 0.7);
+}
+.pi-person-card[data-type="BET"] .pi-person-body > span {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+.pi-person-card[data-type="BC"] .pi-person-avatar {
+  background: #fff7ed;
+  color: #c2410c !important;
+  box-shadow: inset 0 0 0 1px #fed7aa;
+}
+.pi-person-card[data-type="LABO"] .pi-person-avatar {
+  background: #fdf2f8;
+  color: #be185d !important;
+  box-shadow: inset 0 0 0 1px #fbcfe8;
+}
+.pi-person-card[data-type="ENTREPRISE"] .pi-person-avatar {
+  background: #fefce8;
+  color: #a16207 !important;
+  box-shadow: inset 0 0 0 1px #fde68a;
+}
+.pi-person-card[data-type="AUTRE"] .pi-person-avatar {
+  background: #f1f5f9;
+  color: #475569 !important;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
 }
 
 .pi-person-body {
@@ -882,9 +932,9 @@
 }
 
 .annexe-badge.is-ok {
-  color: #047857;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
 }
 
 .annexe-badge.is-wait {
@@ -994,8 +1044,8 @@
   --accent-text: #60a5fa;
   --accent-border: #3b82f6;
   --surface: #111113;
-  --ok: #34d399;
-  --ok-soft: rgba(16, 185, 129, 0.14);
+  --ok: #60a5fa;
+  --ok-soft: rgba(59, 130, 246, 0.14);
   color: var(--ink-soft);
 }
 
@@ -1107,6 +1157,54 @@
   color: var(--muted);
 }
 
+.dark .pi-person-card[data-type="MO"] .pi-person-avatar {
+  background: rgba(148, 163, 184, 0.18);
+  color: #e2e8f0 !important;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+}
+.dark .pi-person-card[data-type="ARCHITECTE"] .pi-person-avatar {
+  background: rgba(29, 78, 216, 0.22);
+  color: #93c5fd !important;
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.35);
+}
+.dark .pi-person-card[data-type="IGT"] .pi-person-avatar {
+  background: rgba(3, 105, 161, 0.22);
+  color: #7dd3fc !important;
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+.dark .pi-person-card[data-type="BET"] {
+  border-color: rgba(96, 165, 250, 0.4);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.22) 0%, var(--surface) 75%);
+}
+.dark .pi-person-card[data-type="BET"] .pi-person-avatar {
+  background: #3b82f6;
+  color: #fff !important;
+  box-shadow: 0 6px 14px -8px rgba(59, 130, 246, 0.75);
+}
+.dark .pi-person-card[data-type="BET"] .pi-person-body > span {
+  color: #93c5fd;
+}
+.dark .pi-person-card[data-type="BC"] .pi-person-avatar {
+  background: rgba(194, 65, 12, 0.22);
+  color: #fdba74 !important;
+  box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.35);
+}
+.dark .pi-person-card[data-type="LABO"] .pi-person-avatar {
+  background: rgba(190, 24, 93, 0.22);
+  color: #f9a8d4 !important;
+  box-shadow: inset 0 0 0 1px rgba(244, 114, 182, 0.35);
+}
+.dark .pi-person-card[data-type="ENTREPRISE"] .pi-person-avatar {
+  background: rgba(161, 98, 7, 0.22);
+  color: #fde68a !important;
+  box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.35);
+}
+.dark .pi-person-card[data-type="AUTRE"] .pi-person-avatar {
+  background: #27272a;
+  color: #a1a1aa !important;
+  box-shadow: inset 0 0 0 1px #3f3f46;
+}
+
 .dark .pi-doc-row:hover {
   border-color: #3f3f46;
   background: var(--soft);
@@ -1157,7 +1255,7 @@
 }
 
 .dark .annexes-progress-bar {
-  background: #10b981;
+  background: #3b82f6;
 }
 
 .dark .annexe-badge.is-ok {

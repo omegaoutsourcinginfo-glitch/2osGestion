@@ -1,0 +1,22 @@
+{% load i18n %}
+
+{% if sidebar_show_search %}
+    <div class="mb-3 mx-3 relative" x-on:click="$dispatch('opencommand')" data-sidebar-search>
+        <div class="flex h-11 w-full cursor-pointer flex-row items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 shadow-sm transition hover:border-primary-300 hover:bg-primary-50/40 focus-within:border-primary-500 focus-within:ring-4 focus-within:ring-primary-600/10 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-primary-700 dark:hover:bg-primary-950/30">
+            <span class="material-symbols-outlined shrink-0 text-[1.25rem] text-slate-400 dark:text-slate-500" aria-hidden="true">search</span>
+
+            <div class="min-w-0 flex-1 truncate text-sm font-medium text-slate-500 dark:text-slate-400">
+                {% trans 'Search apps and models...' %}
+            </div>
+
+            <kbd class="hidden shrink-0 items-center gap-0.5 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase text-slate-500 sm:inline-flex dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                {% if 'Macintosh' in request.META.HTTP_USER_AGENT %}
+                    <span class="material-symbols-outlined text-[0.85rem] leading-none">keyboard_command_key</span>
+                {% else %}
+                    <span class="material-symbols-outlined text-[0.85rem] leading-none">keyboard_control_key</span>
+                {% endif %}
+                <span>K</span>
+            </kbd>
+        </div>
+    </div>
+{% endif %}

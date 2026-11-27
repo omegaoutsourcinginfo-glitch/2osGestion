@@ -1,0 +1,26 @@
+{% load i18n %}
+
+{% if not theme %}
+    <div class="@container border-b border-base-200 flex flex-row gap-1 mb-1 pb-1.5 px-2 dark:border-base-700">
+        <a class="cursor-pointer flex flex-row gap-2 grow px-2 py-2 rounded-xl hover:bg-base-100 hover:text-base-700 dark:hover:bg-base-700 dark:hover:text-base-200 @max-[240px]:justify-center"
+           x-on:click="switchTheme('light')"
+           x-bind:class="adminTheme == 'light' && 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300'">
+            <span class="material-symbols-outlined text-[1.1rem]">light_mode</span>
+            <span class="leading-none self-center text-xs font-semibold @max-[240px]:hidden">{% trans "Light" %}</span>
+        </a>
+
+        <a class="cursor-pointer flex flex-row gap-2 grow leading-none px-2 py-2 rounded-xl hover:bg-base-100 hover:text-base-700 dark:hover:bg-base-700 dark:hover:text-base-200 @max-[240px]:justify-center"
+           x-on:click="switchTheme('dark')"
+           x-bind:class="adminTheme == 'dark' && 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300'">
+            <span class="material-symbols-outlined text-[1.1rem]">dark_mode</span>
+            <span class="leading-none self-center text-xs font-semibold @max-[240px]:hidden">{% trans "Dark" %}</span>
+        </a>
+
+        <a class="cursor-pointer flex flex-row gap-2 grow px-2 py-2 rounded-xl hover:bg-base-100 hover:text-base-700 dark:hover:bg-base-700 dark:hover:text-base-200 @max-[240px]:justify-center"
+           x-on:click="switchTheme('auto')"
+           x-bind:class="adminTheme == 'auto' && 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300'">
+            <span class="material-symbols-outlined text-[1.1rem]">computer</span>
+            <span class="leading-none self-center text-xs font-semibold @max-[240px]:hidden">{% trans "System" %}</span>
+        </a>
+    </div>
+{% endif %}

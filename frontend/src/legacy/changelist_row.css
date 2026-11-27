@@ -6,13 +6,53 @@ table tbody td.action-checkbox {
   display: none !important;
 }
 
+/* ---- Modern changelist tables (all Unfold result lists) ---- */
+#result_list.result-list {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+#result_list.result-list tbody tr.data-row > td,
+#result_list.result-list tbody tr.data-row > th {
+  padding: 0.9rem 1rem;
+  vertical-align: middle;
+  border-top: 1px solid #f1f5f9;
+  color: #334155;
+  font-size: 0.875rem;
+}
+
+.dark #result_list.result-list tbody tr.data-row > td,
+.dark #result_list.result-list tbody tr.data-row > th,
+html.dark #result_list.result-list tbody tr.data-row > td,
+html.dark #result_list.result-list tbody tr.data-row > th {
+  border-top-color: #1e293b;
+  color: #e2e8f0;
+}
+
+#result_list.result-list tbody tr.data-row > td a:not([class*="bg-"]):not([class*="rounded-full"]) {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#result_list.result-list tbody tr.data-row:hover > td a:not([class*="bg-"]):not([class*="rounded-full"]) {
+  color: #2563eb;
+}
+
+#result_list.result-list tbody tr.data-row > td:first-child a {
+  font-variant-numeric: tabular-nums;
+}
+
 /* One-click project row → fiche détail */
 table tbody tr.project-row-clickable {
   cursor: pointer;
 }
 
+#result_list[data-pj-table] table tbody tr.project-row-clickable:hover,
+#result_list.result-list tbody tr.data-row:hover,
 table tbody tr.project-row-clickable:hover {
-  background: rgba(139, 30, 45, 0.05);
+  background: rgba(37, 99, 235, 0.06);
 }
 
 table tbody tr.project-row-clickable a.project-detail-link {
@@ -21,7 +61,16 @@ table tbody tr.project-row-clickable a.project-detail-link {
 }
 
 table tbody tr.project-row-clickable:hover a.project-detail-link {
-  color: #8b1e2d;
+  color: #2563eb;
+}
+
+/* Modern projects table: denser readable rows */
+#result_list[data-pj-table] table {
+  width: 100%;
+}
+
+#result_list[data-pj-table] td.field-actions_holder {
+  width: 3.5rem;
 }
 
 .project-row-actions {
@@ -51,14 +100,14 @@ table tbody tr.project-row-clickable:hover a.project-detail-link {
 }
 
 .project-row-action.is-primary {
-  background: #8b1e2d;
-  border-color: #8b1e2d;
+  background: #2563eb;
+  border-color: #2563eb;
   color: #fff !important;
 }
 
 .project-row-action.is-primary:hover {
-  background: #731828;
-  border-color: #731828;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 /* Row actions column: keep buttons aligned inside the table */
@@ -121,7 +170,7 @@ table tbody tr.project-row-clickable:hover a.project-detail-link {
 .changelist-page-btn:hover {
   background: #f9fafb;
   border-color: #d1d5db;
-  color: #8b1e2d;
+  color: #2563eb;
 }
 
 .changelist-page-btn.is-disabled {
@@ -153,7 +202,7 @@ table tbody tr.project-row-clickable:hover a.project-detail-link {
 
 .changelist-page-num a:hover {
   background: #f3f4f6;
-  color: #8b1e2d;
+  color: #2563eb;
 }
 
 .changelist-page-num span.font-medium {
@@ -164,7 +213,7 @@ table tbody tr.project-row-clickable:hover a.project-detail-link {
   height: 2.25rem;
   padding: 0 0.45rem;
   border-radius: 0.45rem;
-  background: #8b1e2d;
+  background: #2563eb;
   color: #fff !important;
 }
 

@@ -1,0 +1,58 @@
+/*
+ * Project Tailwind (v4) — single CSS pipeline for the admin UI.
+ * No Preflight: avoid resetting Unfold admin base styles.
+ */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+/* Unfold toggles class="dark" / "light" on <html> (Alpine theme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.light,
+html:not(.dark) {
+  color-scheme: light;
+}
+
+/* Scan Django templates + static JS for utility class names */
+@source "../../templates/**/*.{html,js}";
+@source "../../accounts/static/**/*.{js,html}";
+@source "../../projects/static/**/*.{js,html}";
+@source "../../users/**/*.{html,py,js}";
+@source "../../core/**/*.{html,py}";
+@source "./**/*.{html,js,css}";
+
+/* Blue primary (match UNFOLD COLORS) */
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* App component patterns (buttons, page shell, fiche tabs) */
+@import "./components.css";
+
+/*
+ * Legacy sheets for remaining admin chrome (forms, rows, autocomplete).
+ * Prefer Tailwind utilities in new markup.
+ */
+@import "./legacy/dashboard.css";
+@import "./legacy/project_info.css";
+@import "./legacy/admin_form.css";
+@import "./legacy/login.css";
+@import "./legacy/search_autocomplete.css";
+@import "./legacy/changelist_row.css";

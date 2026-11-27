@@ -86,7 +86,7 @@
     {% if project.intervenants.all %}
     <ul class="pi-people pi-people-grid">
       {% for person in project.intervenants.all %}
-      <li class="pi-person-card">
+      <li class="pi-person-card" data-type="{{ person.type_intervenant }}">
         <span class="pi-person-avatar" aria-hidden="true">
           {% if person.type_intervenant == "ARCHITECTE" %}A
           {% elif person.type_intervenant == "BET" %}B

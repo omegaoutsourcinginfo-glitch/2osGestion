@@ -36,6 +36,7 @@ COPY users ./users
 COPY accounts ./accounts
 COPY projects ./projects
 COPY templates ./templates
+COPY frontend/dist ./frontend/dist
 COPY docker/entrypoint.sh /app/docker/entrypoint.sh
 
 RUN mkdir -p /app/data /app/media /app/staticfiles \

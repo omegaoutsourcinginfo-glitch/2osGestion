@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "django.forms",
     "phonenumber_field",
     "users.apps.UsersConfig",
     "accounts.apps.AccountsConfig",
@@ -98,6 +99,9 @@ TEMPLATES = [
         },
     },
 ]
+
+# Use project TEMPLATES (DIRS + apps) for form/widget templates.
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 WSGI_APPLICATION = "core.wsgi.application"
 
@@ -179,6 +183,10 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Tailwind build output: npm run build:css → frontend/dist/app.css
+STATICFILES_DIRS = [
+    BASE_DIR / "frontend" / "dist",
+]
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -195,24 +203,16 @@ STORAGES = {
 UNFOLD = {
     "SITE_TITLE": COMPANY_NAME,
     "SITE_HEADER": COMPANY_NAME,
-    "SITE_SUBHEADER": "Gestion des projets",
-    "SITE_SYMBOL": "folder",
+    "SITE_SUBHEADER": "Pilotage de projets",
+    "SITE_SYMBOL": "grid_view",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
     "SHOW_BACK_BUTTON": True,
     "DASHBOARD_CALLBACK": "projects.views.dashboard_callback",
     "STYLES": [
-        "projects.admin_assets.style_modern",
-        "projects.admin_assets.style_dashboard",
-        "projects.admin_assets.style_user_cards",
-        "projects.admin_assets.style_user_form",
-        "projects.admin_assets.style_project_info",
-        "projects.admin_assets.style_login",
+        "projects.admin_assets.style_tailwind",
         "projects.admin_assets.style_select2",
         "projects.admin_assets.style_select2_admin",
-        "projects.admin_assets.style_admin_form",
-        "projects.admin_assets.style_search_autocomplete",
-        "projects.admin_assets.style_logout_dialog",
     ],
     "SCRIPTS": [
         "projects.admin_assets.script_spa_nav",
@@ -223,20 +223,22 @@ UNFOLD = {
         "projects.admin_assets.script_user_cards_menu",
         "projects.admin_assets.script_logout_dialog",
         "projects.admin_assets.script_user_form_prefixes",
+        "projects.admin_assets.script_user_add_dialog",
     ],
+    # Blue product palette (black / white / blue)
     "COLORS": {
         "primary": {
-            "50": "#fdf2f4",
-            "100": "#f8e9ec",
-            "200": "#f0d0d7",
-            "300": "#e2a8b4",
-            "400": "#c96b7d",
-            "500": "#a8334a",
-            "600": "#8b1e2d",
-            "700": "#731828",
-            "800": "#5c1421",
-            "900": "#41101a",
-            "950": "#2a0a11",
+            "50": "#eff6ff",
+            "100": "#dbeafe",
+            "200": "#bfdbfe",
+            "300": "#93c5fd",
+            "400": "#60a5fa",
+            "500": "#3b82f6",
+            "600": "#2563eb",
+            "700": "#1d4ed8",
+            "800": "#1e40af",
+            "900": "#1e3a8a",
+            "950": "#172554",
         },
     },
     "SIDEBAR": {

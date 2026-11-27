@@ -4,49 +4,45 @@
 {% block title %}Annexes | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block content %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'projects/css/project_info.css' %}">
-<link rel="stylesheet" href="{% static 'projects/css/dashboard.css' %}">
-
-<div class="studio studio-detail" id="dash-root">
-  <div class="studio-body studio-body-detail">
-    <header class="studio-head" style="margin-bottom: 1rem;">
+<div class="ui-page-wide" id="dash-root">
+  <header class="mb-7 overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/60 p-5 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.25)] dark:border-slate-700 dark:from-slate-900 dark:to-primary-950/30 sm:p-7">
+    <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="studio-eyebrow">Dossier administratif</p>
-        <h1 class="studio-title">Annexes obligatoires</h1>
+        <p class="ui-eyebrow">Dossier administratif</p>
+        <h1 class="ui-title">Annexes obligatoires</h1>
+        <p class="ui-subtitle">Documents requis pour le suivi administratif des projets.</p>
       </div>
-      <div class="studio-cta">
-        <a class="is-soft" href="{% url 'admin:projects_project_changelist' %}">Tous les projets</a>
-      </div>
-    </header>
+      <a class="ui-btn-secondary" href="{% url 'admin:projects_project_changelist' %}">Tous les projets</a>
+    </div>
+  </header>
 
+  <div class="ui-card-pad mb-6">
     {% include "projects/partials/annexes_sheet.html" %}
-
-    {% if projects %}
-    <section class="studio-list" aria-label="Projets" style="margin-top: 1.25rem;">
-      <div class="studio-list-head">
-        <h2>Ouvrir la fiche projet</h2>
-      </div>
-      <ol>
-        {% for project in projects %}
-        <li>
-          <a href="{% url 'admin:index' %}?projet={{ project.code }}#annexes">
-            <span class="studio-code">{{ project.code }}</span>
-            <span class="studio-info">
-              <span class="studio-name">{{ project.titre }}</span>
-              <span class="studio-place">{{ project.commune|truncatechars:40 }}</span>
-            </span>
-            <span class="studio-status {% if project.statut_actuel == 'EXECUTION' %}is-exec{% endif %}">
-              {{ project.get_statut_actuel_display }}
-            </span>
-          </a>
-        </li>
-        {% endfor %}
-      </ol>
-    </section>
-    {% endif %}
   </div>
+
+  {% if projects %}
+  <section class="ui-card-pad" aria-label="Projets">
+    <div class="mb-4 flex items-center justify-between gap-2">
+      <h2 class="m-0 text-base font-bold tracking-tight text-font-important-light dark:text-font-important-dark">Ouvrir la fiche projet</h2>
+    </div>
+    <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      {% for project in projects %}
+      <a
+        href="{% url 'admin:index' %}?projet={{ project.code }}#annexes"
+        class="flex items-center gap-3 rounded-xl border border-base-200 bg-base-50/60 px-3.5 py-3 no-underline transition hover:border-primary-200 hover:bg-white hover:shadow-sm dark:border-base-700 dark:bg-base-800/40 dark:hover:bg-base-800"
+      >
+        <span class="inline-flex h-9 min-w-9 items-center justify-center rounded-lg bg-primary-600 px-2 text-xs font-bold text-white">{{ project.code }}</span>
+        <span class="min-w-0 flex-1">
+          <strong class="block truncate text-sm font-semibold text-font-important-light dark:text-font-important-dark">{{ project.titre }}</strong>
+          <em class="mt-0.5 block truncate text-xs not-italic text-base-500">{{ project.commune|truncatechars:40 }}</em>
+        </span>
+        <span class="shrink-0 rounded-full px-2.5 py-1 text-[0.68rem] font-bold{% if project.statut_actuel == 'EXECUTION' %} bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200{% else %} bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-200{% endif %}">
+          {{ project.get_statut_actuel_display }}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

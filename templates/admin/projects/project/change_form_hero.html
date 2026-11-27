@@ -1,0 +1,24 @@
+{% load i18n %}
+<div class="cf-shell mb-1">
+    <header class="cf-hero">
+        <p class="cf-hero-eyebrow">
+            {% if add %}Nouveau projet{% else %}Projet{% endif %}
+        </p>
+        <h1 class="cf-hero-title">
+            {% if add %}
+                Créer un projet
+            {% elif original %}
+                {{ original.code }} — {{ original.titre }}
+            {% else %}
+                Projet
+            {% endif %}
+        </h1>
+        <p class="cf-hero-sub">
+            {% if add %}
+                Renseignez l’identification, la localisation et la description. Le code est généré automatiquement à l’enregistrement.
+            {% elif original %}
+                Modifiez les informations générales du projet. Utilisez la fiche pour le suivi opérationnel.
+            {% endif %}
+        </p>
+    </header>
+</div>

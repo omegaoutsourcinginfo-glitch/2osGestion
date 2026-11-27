@@ -1,73 +1,100 @@
-<div class="studio" id="dash-root">
-  <div class="studio-body">
-    <header class="studio-head">
-      <div>
-        <p class="studio-eyebrow">{{ dash_today|date:"j M Y" }}</p>
-        <h1 class="studio-title">Tableau de bord</h1>
+{# Fresh modern dashboard #}
+<div class="ui-page" id="dash-root">
+  <header class="mb-8 overflow-hidden rounded-3xl border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/70 p-5 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.25)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-primary-950/40 sm:p-7">
+    <div class="flex flex-wrap items-end justify-between gap-5">
+      <div class="min-w-0">
+        <p class="ui-eyebrow">{{ dash_today|date:"l j F Y" }}</p>
+        <h1 class="ui-title">Tableau de bord</h1>
+        <p class="ui-subtitle">
+          Suivez l’avancement des projets et l’activité de l’équipe en un coup d’œil.
+        </p>
       </div>
-      <div class="studio-cta">
-        <a href="{% url 'admin:projects_project_add' %}">Nouveau projet</a>
-        <a class="is-soft" href="{% url 'admin:projects_project_changelist' %}">Tous les projets</a>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'admin:projects_project_add' %}" class="ui-btn-primary">
+          <span class="material-symbols-outlined text-[1.15rem]" aria-hidden="true">add</span>
+          Nouveau projet
+        </a>
+        <a href="{% url 'admin:projects_project_changelist' %}" class="ui-btn-secondary">Tous les projets</a>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <section class="studio-metrics" aria-label="Vue d'ensemble">
-      <a href="{% url 'admin:projects_project_changelist' %}">
-        <em>Projets</em>
-        <strong>{{ dash_total }}</strong>
-      </a>
-      <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=INSTRUCTION">
-        <em>En instruction</em>
-        <strong>{{ dash_instruction }}</strong>
-        <small>{{ dash_pct_instruction }}%</small>
-      </a>
-      <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=EXECUTION">
-        <em>En exécution</em>
-        <strong>{{ dash_execution }}</strong>
-        <small>{{ dash_pct_execution }}%</small>
-      </a>
-      {% if request.user.is_superuser %}
-      <a href="{% url 'admin:users_user_changelist' %}">
-        <em>Utilisateurs</em>
-        <strong>{{ dash_users_total }}</strong>
-        <small>{{ dash_users_online }} en ligne</small>
-      </a>
-      {% endif %}
-    </section>
-
-    <section class="studio-list" aria-label="Projets récents">
-      <div class="studio-list-head">
-        <h2>Projets récents</h2>
-        <a href="{% url 'admin:projects_project_changelist' %}">Voir la liste</a>
-      </div>
-
-      <div class="studio-search">
-        <label class="sr-only" for="dash-recent-q">Rechercher un projet</label>
-        <input
-          id="dash-recent-q"
-          type="search"
-          name="q"
-          autocomplete="off"
-          placeholder="1re lettre du code ou titre (ex. D, A26…)"
-          data-hx-get="{% url 'projects:dashboard_recent' %}"
-          hx-get="{% url 'projects:dashboard_recent' %}"
-          hx-trigger="input changed delay:150ms, keyup changed delay:150ms, search"
-          hx-target="#dash-recent-list"
-          hx-swap="outerHTML"
-        >
-      </div>
-
-      {% include "projects/partials/dashboard_recent_list.html" %}
-    </section>
-
+  <section class="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Vue d'ensemble">
+    <a href="{% url 'admin:projects_project_changelist' %}" class="ui-card group relative overflow-hidden p-4 no-underline transition hover:-translate-y-1 hover:shadow-lg sm:p-5">
+      <span class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">
+        <span class="material-symbols-outlined" aria-hidden="true">folder</span>
+      </span>
+      <em class="block text-sm font-medium not-italic text-slate-500">Projets</em>
+      <strong class="mt-1 block text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ dash_total }}</strong>
+    </a>
+    <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=INSTRUCTION" class="ui-card group relative overflow-hidden p-4 no-underline transition hover:-translate-y-1 hover:shadow-lg sm:p-5">
+      <span class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+        <span class="material-symbols-outlined" aria-hidden="true">pending_actions</span>
+      </span>
+      <em class="block text-sm font-medium not-italic text-slate-500">En instruction</em>
+      <strong class="mt-1 block text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ dash_instruction }}</strong>
+      <small class="mt-1 block text-xs font-semibold text-sky-700 dark:text-sky-300">{{ dash_pct_instruction }}%</small>
+    </a>
+    <a href="{% url 'admin:projects_project_changelist' %}?statut_actuel__exact=EXECUTION" class="ui-card group relative overflow-hidden p-4 no-underline transition hover:-translate-y-1 hover:shadow-lg sm:p-5">
+      <span class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">
+        <span class="material-symbols-outlined" aria-hidden="true">construction</span>
+      </span>
+      <em class="block text-sm font-medium not-italic text-slate-500">En exécution</em>
+      <strong class="mt-1 block text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ dash_execution }}</strong>
+      <small class="mt-1 block text-xs font-semibold text-primary-700 dark:text-primary-300">{{ dash_pct_execution }}%</small>
+    </a>
     {% if request.user.is_superuser %}
-    <section class="studio-list" aria-label="Utilisateurs du site">
-      <div class="studio-list-head">
-        <h2>Utilisateurs</h2>
-        <a href="{% url 'admin:users_user_changelist' %}">Gérer les comptes</a>
-      </div>
-      {% include "projects/partials/dashboard_users_list.html" %}
-    </section>
+    <a href="{% url 'admin:users_user_changelist' %}" class="ui-card group relative overflow-hidden p-4 no-underline transition hover:-translate-y-1 hover:shadow-lg sm:p-5">
+      <span class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+        <span class="material-symbols-outlined" aria-hidden="true">group</span>
+      </span>
+      <em class="block text-sm font-medium not-italic text-slate-500">Utilisateurs</em>
+      <strong class="mt-1 block text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ dash_users_total }}</strong>
+      <small class="mt-1 block text-xs font-medium text-slate-500">{{ dash_users_online }} en ligne</small>
+    </a>
     {% endif %}
-  </div>
+  </section>
+
+  <section class="ui-card-pad mb-7" aria-label="Projets récents">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="m-0 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Projets récents</h2>
+        <p class="m-0 mt-0.5 text-sm text-slate-500">Accès rapide aux dossiers actifs</p>
+      </div>
+      <a href="{% url 'admin:projects_project_changelist' %}" class="text-sm font-semibold text-primary-700 no-underline hover:text-primary-800 dark:text-primary-300">Voir tout</a>
+    </div>
+
+    <div class="relative mb-4">
+      <span class="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">search</span>
+      <label class="sr-only" for="dash-recent-q">Rechercher un projet</label>
+      <input
+        id="dash-recent-q"
+        type="search"
+        name="q"
+        autocomplete="off"
+        placeholder="Rechercher un code ou un titre…"
+        class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 pl-11 pr-4 text-sm outline-none transition focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-600/10 dark:border-slate-600 dark:bg-slate-800"
+        data-hx-get="{% url 'projects:dashboard_recent' %}"
+        hx-get="{% url 'projects:dashboard_recent' %}"
+        hx-trigger="input changed delay:150ms, keyup changed delay:150ms, search"
+        hx-target="#dash-recent-list"
+        hx-swap="outerHTML"
+      >
+    </div>
+
+    {% include "projects/partials/dashboard_recent_list.html" %}
+  </section>
+
+  {% if request.user.is_superuser %}
+  <section class="ui-card-pad" aria-label="Utilisateurs du site">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="m-0 text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Équipe</h2>
+        <p class="m-0 mt-0.5 text-sm text-slate-500">Comptes et présence</p>
+      </div>
+      <a href="{% url 'admin:users_user_changelist' %}" class="text-sm font-semibold text-primary-700 no-underline hover:text-primary-800 dark:text-primary-300">Gérer</a>
+    </div>
+    {% include "projects/partials/dashboard_users_list.html" %}
+  </section>
+  {% endif %}
 </div>

@@ -1,8 +1,8 @@
 {% if dash_recent %}
-<div id="dash-recent-list" class="dash-project-cards">
+<div id="dash-recent-list" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
   {% for project in dash_recent %}
   <a
-    class="dash-project-card{% if project.statut_actuel == 'EXECUTION' %} is-exec{% else %} is-instr{% endif %}"
+    class="group flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 px-4 py-3.5 no-underline transition hover:border-primary-200 hover:bg-white hover:shadow-md dark:border-slate-700 dark:bg-slate-800/40 dark:hover:bg-slate-800"
     href="{{ project.url }}"
     hx-get="{% url 'projects:project_fiche' project.code %}"
     hx-target="#dash-root"
@@ -10,17 +10,19 @@
     hx-push-url="{{ project.url }}"
     hx-sync="#dash-root:replace"
   >
-    <span class="dash-project-code">{{ project.code }}</span>
-    <span class="dash-project-body">
-      <strong>{{ project.titre }}</strong>
-      <em>{{ project.commune|truncatechars:40 }}</em>
+    <span class="inline-flex h-11 min-w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 px-2.5 text-xs font-bold text-white shadow-sm">{{ project.code }}</span>
+    <span class="min-w-0 flex-1">
+      <strong class="block truncate text-sm font-semibold text-slate-900 dark:text-white">{{ project.titre }}</strong>
+      <em class="mt-0.5 block truncate text-xs not-italic text-slate-500">{{ project.commune|truncatechars:40 }}</em>
     </span>
-    <span class="dash-project-status">{{ project.statut_label }}</span>
+    <span class="shrink-0 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold{% if project.statut_actuel == 'EXECUTION' %} bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200{% else %} bg-primary-50 text-primary-800 dark:bg-primary-950/40 dark:text-primary-200{% endif %}">
+      {{ project.statut_label }}
+    </span>
   </a>
   {% endfor %}
 </div>
 {% else %}
-<p class="studio-empty" id="dash-recent-list">
-  {% if q %}Aucun projet pour « {{ q }} ».{% else %}Aucun projet. <a href="{% url 'admin:projects_project_add' %}">Nouveau projet</a>{% endif %}
+<p class="m-0 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700" id="dash-recent-list">
+  {% if q %}Aucun projet pour « {{ q }} ».{% else %}Aucun projet. <a href="{% url 'admin:projects_project_add' %}" class="font-semibold text-primary-700 no-underline">Nouveau projet</a>{% endif %}
 </p>
 {% endif %}

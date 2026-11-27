@@ -546,6 +546,8 @@ class AnnexeDocumentInline(TabularInline):
 class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
     # No bulk checkboxes on the changelist.
     actions = None
+    change_list_template = "admin/projects/project/change_list.html"
+    change_form_outer_before_template = "admin/projects/project/change_form_hero.html"
     list_display = (
         "code_link",
         "titre_link",
@@ -554,7 +556,7 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
         "updated_by_display",
     )
     list_display_links = None
-    list_per_page = 10
+    list_per_page = 12
     show_full_result_count = False
     list_select_related = ("created_by", "updated_by")
     search_fields = ("code", "titre", "prefecture", "commune")
@@ -587,7 +589,6 @@ class ProjectAdmin(SimpleSaveMixin, ModelAdmin):
             "projects/js/financement_total.js",
             "projects/js/changelist_row_detail.js",
         )
-        css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
         ("Identification", {"fields": ("code_display", "titre", "statut_actuel", "is_archived")}),
@@ -923,7 +924,6 @@ class StructureFinancementAdmin(
             "projects/js/financement_total.js",
             "projects/js/changelist_row_detail.js",
         )
-        css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
         (
@@ -1080,12 +1080,6 @@ class PlanningExecutionAdmin(
 
     class Media:
         js = ("projects/js/changelist_row_detail.js",)
-        css = {
-            "all": (
-                "projects/css/changelist_row.css",
-                "projects/css/planning_form.css",
-            )
-        }
 
     fieldsets = (
         (
@@ -1217,7 +1211,6 @@ class AnnexeDossierAdmin(
 
     class Media:
         js = ("projects/js/changelist_row_detail.js",)
-        css = {"all": ("projects/css/changelist_row.css",)}
 
     fieldsets = (
         (
@@ -1387,7 +1380,6 @@ class ProjectLinkedDossierAdmin(
 
     class Media:
         js = ("projects/js/changelist_row_detail.js",)
-        css = {"all": ("projects/css/changelist_row.css",)}
 
     def get_fieldsets(self, request, obj=None):
         return (

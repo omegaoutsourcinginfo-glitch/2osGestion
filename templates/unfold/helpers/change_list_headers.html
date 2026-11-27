@@ -1,21 +1,21 @@
 {% load i18n %}
 
 <thead>
-    <tr>
+    <tr class="border-b border-slate-100 bg-slate-50/90 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
         {% if cl.model_admin.ordering_field %}
-            <th></th>
+            <th class="w-px px-3 py-3.5 sm:px-4"></th>
         {% endif %}
 
         {% if cl.model_admin.list_sections|length > 0 %}
-            <th></th>
+            <th class="w-px px-3 py-3.5 sm:px-4"></th>
         {% endif %}
 
         {% for header in result_headers %}
-            <th class="align-middle font-semibold py-2 text-left text-important whitespace-nowrap {{ header.class_attrib }} {% if "action-toggle" in header.text and forloop.counter == 1 %}pl-3 w-px{% else %}px-3{% endif %}" scope="col">
+            <th class="whitespace-nowrap px-4 py-3.5 text-left align-middle sm:px-5 {{ header.class_attrib }} {% if "action-toggle" in header.text and forloop.counter == 1 %}w-px pl-3{% endif %}" scope="col">
                 <div class="flex items-center {% if header.formatting == "price" %}justify-end{% endif %}">
                     <div class="text">
                         {% if header.sortable %}
-                            <a href="{{ header.url_primary }}">
+                            <a href="{{ header.url_primary }}" class="text-slate-500 no-underline transition hover:text-primary-700 dark:text-slate-400 dark:hover:text-primary-300">
                                 {{ header.text|capfirst }}
                             </a>
                         {% else %}
@@ -33,22 +33,22 @@
 
                     {% if header.sortable %}
                         {% if header.sort_priority > 0 %}
-                            <div class="sortoptions flex items-center ml-2">
-                                <a href="{{ header.url_toggle }}" class="flex items-center leading-none text-base-400 hover:text-base-500 dark:text-base-500 dark:hover:text-base-400 toggle {% if header.ascending %}ascending{% else %}descending{% endif %}" title="{% translate "Toggle sorting" %}">
+                            <div class="sortoptions ml-2 flex items-center">
+                                <a href="{{ header.url_toggle }}" class="toggle flex items-center leading-none text-slate-400 transition hover:text-primary-600 dark:text-slate-500 dark:hover:text-primary-300 {% if header.ascending %}ascending{% else %}descending{% endif %}" title="{% translate "Toggle sorting" %}">
                                     {% if header.ascending %}
-                                        <span class="block material-symbols-outlined">arrow_circle_down</span>
+                                        <span class="material-symbols-outlined block">arrow_circle_down</span>
                                     {% else %}
-                                        <span class="block material-symbols-outlined">arrow_circle_up</span>
+                                        <span class="material-symbols-outlined block">arrow_circle_up</span>
                                     {% endif %}
                                 </a>
 
-                                <a class="sortremove flex items-center leading-none ml-1 text-base-400 dark:text-base-500 transition-all hover:text-red-700 dark:hover:text-red-500" href="{{ header.url_remove }}" title="{% translate "Remove from sorting" %}">
-                                    <span class="block material-symbols-outlined">cancel</span>
+                                <a class="sortremove ml-1 flex items-center leading-none text-slate-400 transition hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400" href="{{ header.url_remove }}" title="{% translate "Remove from sorting" %}">
+                                    <span class="material-symbols-outlined block">cancel</span>
                                 </a>
                             </div>
 
                             {% if num_sorted_fields > 1 %}
-                                <span class="sortpriority font-medium ml-2 text-xs" title="{% blocktranslate with priority_number=header.sort_priority %}Sorting priority: {{ priority_number }}{% endblocktranslate %}">
+                                <span class="sortpriority ml-2 text-xs font-medium" title="{% blocktranslate with priority_number=header.sort_priority %}Sorting priority: {{ priority_number }}{% endblocktranslate %}">
                                     {{ header.sort_priority }}
                                 </span>
                             {% endif %}
@@ -59,8 +59,8 @@
         {% endfor %}
 
         {% if actions_row %}
-            <th class="align-middle font-semibold px-3 py-2 text-right text-important whitespace-nowrap w-px" scope="col">
-                <span>Actions</span>
+            <th class="w-px whitespace-nowrap px-4 py-3.5 text-right align-middle sm:px-5" scope="col">
+                <span class="sr-only">{% translate "Actions" %}</span>
             </th>
         {% endif %}
     </tr>

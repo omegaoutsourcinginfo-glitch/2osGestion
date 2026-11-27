@@ -1,26 +1,26 @@
-<div id="dash-users-list" class="dash-user-cards">
+<div id="dash-users-list" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
   {% for u in dash_users %}
-  <a class="dash-user-card{% if u.is_online %} is-online{% endif %}" href="{{ u.url }}">
-    <span class="dash-user-avatar" aria-hidden="true">
+  <a class="flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 px-4 py-3.5 no-underline transition hover:border-primary-200 hover:bg-white hover:shadow-md dark:border-slate-700 dark:bg-slate-800/40 dark:hover:bg-slate-800" href="{{ u.url }}">
+    <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-700 text-sm font-bold text-white shadow-sm" aria-hidden="true">
       {% if u.full_name %}
         {{ u.full_name|make_list|first|upper }}
       {% else %}
         {{ u.username|slice:":2"|upper }}
       {% endif %}
     </span>
-    <span class="dash-user-body">
-      <strong>{% if u.full_name %}{{ u.full_name }}{% else %}{{ u.username }}{% endif %}</strong>
-      <em>{{ u.username }}</em>
+    <span class="min-w-0 flex-1">
+      <strong class="block truncate text-sm font-semibold text-slate-900 dark:text-white">{% if u.full_name %}{{ u.full_name }}{% else %}{{ u.username }}{% endif %}</strong>
+      <em class="mt-0.5 block truncate text-xs not-italic text-slate-500">{{ u.username }}</em>
     </span>
-    <span class="dash-user-side">
-      {% if u.is_superuser %}<span class="dash-user-role">Admin</span>{% endif %}
-      <span class="dash-user-seen">
-        <span class="dash-user-dot" aria-hidden="true"></span>
+    <span class="flex shrink-0 flex-col items-end gap-1">
+      {% if u.is_superuser %}<span class="rounded-full bg-primary-50 px-2 py-0.5 text-[0.65rem] font-semibold text-primary-800 dark:bg-primary-950/40 dark:text-primary-200">Admin</span>{% endif %}
+      <span class="inline-flex items-center gap-1.5 text-[0.7rem] font-semibold{% if u.is_online %} text-emerald-600 dark:text-emerald-300{% else %} text-slate-500{% endif %}">
+        <span class="h-1.5 w-1.5 rounded-full{% if u.is_online %} bg-emerald-500{% else %} bg-slate-400{% endif %}" aria-hidden="true"></span>
         {% if u.is_online %}En ligne{% else %}{{ u.last_seen_at }}{% endif %}
       </span>
     </span>
   </a>
   {% empty %}
-  <p class="studio-users-empty">Aucun utilisateur staff actif.</p>
+  <p class="col-span-full m-0 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700">Aucun utilisateur staff actif.</p>
   {% endfor %}
 </div>

@@ -1,6 +1,5 @@
 /**
- * Logout confirmation dialog — no Alpine teleport (SPA-safe).
- * Hidden by default; only opens from [data-twoos-logout-open].
+ * Logout confirmation dialog — Tailwind utilities only (SPA-safe).
  */
 (function () {
   if (window.__twoosLogoutDialog && typeof window.__twoosLogoutDialog.destroy === "function") {
@@ -35,7 +34,6 @@
   }
 
   function scrubOrphans() {
-    // Remove broken Alpine teleports from older templates.
     document.querySelectorAll("[aria-labelledby='logout-dialog-title']").forEach(function (el) {
       if (el.id !== DIALOG_ID) el.remove();
     });
@@ -48,31 +46,30 @@
     scrubOrphans();
     var box = document.getElementById(DIALOG_ID);
     if (box) {
-      if (box.parentElement !== document.body) {
-        document.body.appendChild(box);
-      }
+      if (box.parentElement !== document.body) document.body.appendChild(box);
       return box;
     }
 
     box = document.createElement("div");
     box.id = DIALOG_ID;
-    box.className = "";
+    box.className = "fixed inset-0 hidden items-center justify-center p-4";
+    box.style.zIndex = "2147483000";
     box.setAttribute("role", "dialog");
     box.setAttribute("aria-modal", "true");
     box.setAttribute("aria-labelledby", "twoos-logout-title");
     box.setAttribute("hidden", "hidden");
     box.innerHTML =
-      '<div class="twoos-logout-backdrop" data-twoos-logout-close></div>' +
-      '<div class="twoos-logout-panel">' +
-      '<h2 id="twoos-logout-title">Déconnexion</h2>' +
-      "<p>Voulez-vous vraiment vous déconnecter&nbsp;?</p>" +
-      '<div class="twoos-logout-actions">' +
-      '<button type="button" class="twoos-logout-cancel" data-twoos-logout-close>Annuler</button>' +
+      '<div class="absolute inset-0 bg-base-900/55" data-twoos-logout-close></div>' +
+      '<div class="relative z-[1] w-full max-w-sm overflow-hidden rounded-2xl border border-base-200 bg-white p-5 shadow-xl dark:border-base-700 dark:bg-base-900">' +
+      '<h2 id="twoos-logout-title" class="m-0 text-base font-bold text-font-important-light dark:text-font-important-dark">Déconnexion</h2>' +
+      '<p class="m-0 mt-2 text-sm text-base-500 dark:text-base-400">Voulez-vous vraiment vous déconnecter&nbsp;?</p>' +
+      '<div class="mt-5 flex items-center justify-end gap-2">' +
+      '<button type="button" class="inline-flex h-9 items-center rounded-lg border border-base-300 bg-white px-3.5 text-sm font-semibold text-base-700 hover:bg-base-50 dark:border-base-600 dark:bg-base-800 dark:text-base-200" data-twoos-logout-close>Annuler</button>' +
       '<form id="twoos-logout-form" method="post" action="' +
       logoutUrl() +
-      '" data-no-spa>' +
+      '" data-no-spa class="m-0">' +
       '<input type="hidden" name="csrfmiddlewaretoken" value="">' +
-      '<button type="submit" class="twoos-logout-confirm">Déconnexion</button>' +
+      '<button type="submit" class="inline-flex h-9 items-center rounded-lg border-0 bg-red-600 px-3.5 text-sm font-bold text-white hover:bg-red-700">Déconnexion</button>' +
       "</form>" +
       "</div></div>";
     document.body.appendChild(box);
@@ -82,7 +79,8 @@
   function closeDialog() {
     var box = document.getElementById(DIALOG_ID);
     if (!box) return;
-    box.classList.remove("is-open");
+    box.classList.add("hidden");
+    box.classList.remove("flex");
     box.hidden = true;
     box.setAttribute("hidden", "hidden");
     box.setAttribute("aria-hidden", "true");
@@ -104,7 +102,8 @@
     box.removeAttribute("hidden");
     box.removeAttribute("aria-hidden");
     box.removeAttribute("inert");
-    box.classList.add("is-open");
+    box.classList.remove("hidden");
+    box.classList.add("flex");
   }
 
   function onClick(event) {

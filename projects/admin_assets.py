@@ -22,55 +22,14 @@ def _v(rel: str, *, root: Path | None = None) -> str:
         return "1"
 
 
-def style_modern(request):
-    if _is_login(request):
-        return ""
-    return static("projects/css/modern.css") + "?v=" + _v("css/modern.css")
-
-
-def style_dashboard(request):
-    # Global so HTMX can open fiches from changelist/search without a full reload.
-    return static("projects/css/dashboard.css") + "?v=" + _v("css/dashboard.css")
-
-
-def style_user_cards(request):
-    # Global: SPA swaps #main only, so ModelAdmin Media CSS never loads until refresh.
-    if _is_login(request):
-        return ""
-    return (
-        static("accounts/css/user_cards.css")
-        + "?v="
-        + _v("css/user_cards.css", root=_ACCOUNTS_STATIC)
-    )
-
-
-def style_user_form(request):
-    if _is_login(request):
-        return ""
-    return (
-        static("accounts/css/user_form.css")
-        + "?v="
-        + _v("css/user_form.css", root=_ACCOUNTS_STATIC)
-    )
-
-
-def style_project_info(request):
-    return static("projects/css/project_info.css") + "?v=" + _v("css/project_info.css")
-
-
-def style_login(request):
-    path = _path(request)
-    if path == "/admin/login":
-        return static("projects/css/login.css") + "?v=" + _v("css/login.css")
-    return ""
-
-
-def style_admin_form(request):
-    return static("projects/css/admin_form.css") + "?v=" + _v("css/admin_form.css")
-
-
-def style_search_autocomplete(request):
-    return static("projects/css/search_autocomplete.css") + "?v=" + _v("css/search_autocomplete.css")
+def style_tailwind(request):
+    """Single compiled stylesheet (npm run build:css → frontend/dist/app.css)."""
+    dist = _BASE / "frontend" / "dist" / "app.css"
+    try:
+        ver = str(int(dist.stat().st_mtime))
+    except OSError:
+        ver = "1"
+    return static("app.css") + "?v=" + ver
 
 
 def _is_login(request) -> bool:
@@ -132,16 +91,6 @@ def script_user_cards_menu(request):
     )
 
 
-def style_logout_dialog(request):
-    if _is_login(request):
-        return ""
-    return (
-        static("accounts/css/logout_dialog.css")
-        + "?v="
-        + _v("css/logout_dialog.css", root=_ACCOUNTS_STATIC)
-    )
-
-
 def script_logout_dialog(request):
     if _is_login(request):
         return ""
@@ -162,4 +111,15 @@ def script_user_form_prefixes(request):
         static("accounts/js/user_form_prefixes.js")
         + "?v="
         + _v("js/user_form_prefixes.js", root=_ACCOUNTS_STATIC)
+    )
+
+
+def script_user_add_dialog(request):
+    """Add-user dialog (Tailwind only). Global so SPA #main swaps still work."""
+    if _is_login(request):
+        return ""
+    return (
+        static("accounts/js/user_add_dialog.js")
+        + "?v="
+        + _v("js/user_add_dialog.js", root=_ACCOUNTS_STATIC)
     )
